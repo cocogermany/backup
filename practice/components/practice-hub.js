@@ -170,7 +170,7 @@ window.PracticeHubComponent = {
     return {
       uid: uid || "local-user",
       level: dbProfile?.current_level || localStorage.getItem("coco_practice_level") || "A1",
-      format: dbProfile?.format || localStorage.getItem("coco_practice_format") || "Goethe",
+      format: dbProfile?.format ? (dbProfile.format.toLowerCase() === "telc" ? "TELC" : "Goethe") : (localStorage.getItem("coco_practice_format") || "Goethe"),
       membership: dbProfile?.membership || "FREE",
     };
   },

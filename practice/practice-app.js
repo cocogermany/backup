@@ -1,6 +1,8 @@
 /**
  * Coco Germany - Practice & Mock Exam Web Application Controller
  * practice/practice-app.js
+ *
+ * Bound to Supabase learning_users table (uid, membership, current_level, daily_credits, credits_remaining, last_reset, format, updated_at).
  */
 
 (function () {
@@ -11,29 +13,25 @@
     currentLevel: localStorage.getItem("coco_practice_level") || "A1",
     currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
     dailyCredits: JSON.parse(localStorage.getItem("coco_daily_credits")) || {
-      remaining: 5,
-      total: 5,
-      lastReset: new Date().getTime()
+      remaining: 2,
+      total: 2,
+      lastReset: new Date().toISOString().split("T")[0]
     },
-    streakDays: parseInt(localStorage.getItem("coco_streak") || "3", 10),
+    streakDays: parseInt(localStorage.getItem("coco_streak") || "0", 10),
     userProfile: {
       name: "Learner",
-      plan: "Free Member",
+      plan: "FREE",
       uid: "local-user"
     },
     stats: JSON.parse(localStorage.getItem("coco_stats")) || {
-      Lesen: 85,
-      Hören: 78,
-      Grammatik: 90,
-      Schreiben: 72,
-      Sprechen: 80,
-      totalCompleted: 14
+      Lesen: 0,
+      Hören: 0,
+      Grammatik: 0,
+      Schreiben: 0,
+      Sprechen: 0,
+      totalCompleted: 0
     },
-    testHistory: JSON.parse(localStorage.getItem("coco_history")) || [
-      { date: "Today", test: "Lesen Teil 1 (A1)", score: "5 / 5", pct: 100, status: "Passed" },
-      { date: "Yesterday", test: "Hören Teil 1 (A1)", score: "4 / 5", pct: 80, status: "Passed" },
-      { date: "3 days ago", test: "Grammatik Drill (A1)", score: "6 / 6", pct: 100, status: "Passed" }
-    ]
+    testHistory: JSON.parse(localStorage.getItem("coco_history")) || []
   };
 
   class PracticeApp {
@@ -70,26 +68,59 @@
           if (user) {
             AppState.userProfile.uid = user.uid;
             AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
+            localStorage.setItem("coco_user_uid", user.uid);
 
             if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
               try {
                 const supabase = await window.SupabaseService.getSupabaseClient();
                 if (supabase) {
-                  const { data } = await supabase.from("learning_users").select("*").eq("uid", user.uid).maybeSingle();
-                  if (data) {
+                  const todayStr = new Date().toISOString().split("T")[0];
+
+                  const { data, error } = await supabase
+                    .from("learning_users")
+                    .select("uid, membership, current_level, daily_credits, credits_remaining, last_reset, format")
+                    .eq("uid", user.uid)
+                    .maybeSingle();
+
+                  if (!error && data) {
                     if (data.current_level) AppState.currentLevel = data.current_level;
-                    if (data.format) AppState.currentFormat = data.format;
+                    if (data.format) AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
                     if (data.membership) AppState.userProfile.plan = data.membership;
-                    if (typeof data.credits_remaining === "number") {
+                    
+                    const dailyTotal = typeof data.daily_credits === "number" ? data.daily_credits : 2;
+                    AppState.dailyCredits.total = dailyTotal;
+
+                    // Daily Reset Check using DB last_reset date
+                    if (data.last_reset && data.last_reset !== todayStr) {
+                      AppState.dailyCredits.remaining = dailyTotal;
+                      await supabase.from("learning_users").update({
+                        credits_remaining: dailyTotal,
+                        last_reset: todayStr,
+                        updated_at: new Date().toISOString()
+                      }).eq("uid", user.uid);
+                    } else if (typeof data.credits_remaining === "number") {
                       AppState.dailyCredits.remaining = data.credits_remaining;
                     }
-                    if (typeof data.daily_credits === "number") {
-                      AppState.dailyCredits.total = data.daily_credits;
-                    }
+                  } else if (!data) {
+                    // Create new learning_users record adhering strictly to schema
+                    const newRecord = {
+                      uid: user.uid,
+                      membership: "FREE",
+                      current_level: AppState.currentLevel || "A1",
+                      daily_credits: 2,
+                      credits_remaining: 2,
+                      last_reset: todayStr,
+                      format: (AppState.currentFormat || "Goethe").toLowerCase(),
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    };
+                    await supabase.from("learning_users").insert([newRecord]);
+                    AppState.dailyCredits.remaining = 2;
+                    AppState.dailyCredits.total = 2;
                   }
                 }
               } catch (err) {
-                console.warn("PracticeApp: Supabase profile load error:", err);
+                console.warn("PracticeApp: Supabase learning_users profile error:", err);
               }
             }
             this.saveState();
@@ -103,12 +134,10 @@
     }
 
     checkCreditsReset() {
-      const now = new Date().getTime();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-
-      if (now - AppState.dailyCredits.lastReset > oneDayMs) {
-        AppState.dailyCredits.remaining = AppState.dailyCredits.total;
-        AppState.dailyCredits.lastReset = now;
+      const todayStr = new Date().toISOString().split("T")[0];
+      if (AppState.dailyCredits.lastReset !== todayStr) {
+        AppState.dailyCredits.remaining = AppState.dailyCredits.total || 2;
+        AppState.dailyCredits.lastReset = todayStr;
         this.saveState();
       }
     }
@@ -238,12 +267,27 @@
       const claimBtn = document.getElementById("claim-bonus-btn");
       const modalClaimBtn = document.getElementById("modal-claim-bonus");
 
-      const claimBonusAction = () => {
+      const claimBonusAction = async () => {
         if (AppState.dailyCredits.remaining < AppState.dailyCredits.total + 2) {
           AppState.dailyCredits.remaining += 1;
           this.saveState();
           this.updateHeaderUI();
           this.updateCreditsModalUI();
+
+          if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
+            try {
+              const supabase = await window.SupabaseService.getSupabaseClient();
+              const uid = AppState.userProfile.uid;
+              if (supabase && uid && uid !== "local-user") {
+                await supabase.from("learning_users").update({
+                  credits_remaining: AppState.dailyCredits.remaining,
+                  updated_at: new Date().toISOString()
+                }).eq("uid", uid);
+              }
+            } catch (e) {
+              console.warn("PracticeApp: Supabase bonus credit update note:", e);
+            }
+          }
           alert("🎉 +1 Bonus Credit added for today!");
         } else {
           alert("Maximum daily bonus credits claimed!");
@@ -262,21 +306,22 @@
       this.updateHeaderUI();
       this.handleRoute();
 
-      // Async sync to Supabase learning_users
+      // Async sync to Supabase learning_users table
       if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
         try {
           const supabase = await window.SupabaseService.getSupabaseClient();
           const uid = AppState.userProfile.uid;
           if (supabase && uid && uid !== "local-user") {
+            const todayStr = new Date().toISOString().split("T")[0];
             await supabase.from("learning_users").upsert({
-              uid,
+              uid: uid,
               current_level: AppState.currentLevel,
-              format: AppState.currentFormat,
+              format: AppState.currentFormat.toLowerCase(),
               updated_at: new Date().toISOString()
             }, { onConflict: "uid" });
           }
         } catch (e) {
-          console.warn("PracticeApp: Supabase level/format sync warning:", e);
+          console.warn("PracticeApp: Supabase learning_users upsert warning:", e);
         }
       }
     }
@@ -289,10 +334,12 @@
       const credits = AppState.dailyCredits;
       const bigCount = document.getElementById("modal-credits-big");
       const fillBar = document.getElementById("modal-credits-fill");
+      const userPlan = document.getElementById("modal-user-plan");
 
       if (bigCount) bigCount.textContent = `${credits.remaining} / ${credits.total}`;
+      if (userPlan) userPlan.textContent = AppState.userProfile.plan || "FREE";
       if (fillBar) {
-        const pct = Math.round((credits.remaining / credits.total) * 100);
+        const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
         fillBar.style.width = `${pct}%`;
       }
     }
@@ -317,7 +364,7 @@
       if (userPlan) userPlan.textContent = AppState.userProfile.plan;
 
       if (creditsFill) {
-        const pct = Math.round((credits.remaining / credits.total) * 100);
+        const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
         creditsFill.style.width = `${pct}%`;
       }
 
@@ -346,7 +393,8 @@
       const formatRow = document.getElementById("format-select-group");
       if (formatRow) {
         formatRow.querySelectorAll(".format-opt").forEach(btn => {
-          if (btn.getAttribute("data-format") === format) {
+          const btnFmt = btn.getAttribute("data-format");
+          if (btnFmt && btnFmt.toLowerCase() === format.toLowerCase()) {
             btn.classList.add("active");
           } else {
             btn.classList.remove("active");
@@ -477,8 +525,33 @@
       });
     }
 
-    startMockExam(mockId) {
-      if (AppState.dailyCredits.remaining <= 0) {
+    async deductCreditAndPersist() {
+      if (AppState.dailyCredits.remaining <= 0) return false;
+
+      AppState.dailyCredits.remaining -= 1;
+      this.saveState();
+      this.updateHeaderUI();
+
+      if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
+        try {
+          const supabase = await window.SupabaseService.getSupabaseClient();
+          const uid = AppState.userProfile.uid;
+          if (supabase && uid && uid !== "local-user") {
+            await supabase.from("learning_users").update({
+              credits_remaining: AppState.dailyCredits.remaining,
+              updated_at: new Date().toISOString()
+            }).eq("uid", uid);
+          }
+        } catch (e) {
+          console.warn("PracticeApp: Supabase credit deduction error:", e);
+        }
+      }
+      return true;
+    }
+
+    async startMockExam(mockId) {
+      const ok = await this.deductCreditAndPersist();
+      if (!ok) {
         alert("⚡ Out of daily credits! Claim daily bonus or upgrade your account to continue.");
         return;
       }
@@ -486,8 +559,9 @@
       window.location.hash = `#player?id=${mockId}`;
     }
 
-    openPlayer(materialId) {
-      if (AppState.dailyCredits.remaining <= 0) {
+    async openPlayer(materialId) {
+      const ok = await this.deductCreditAndPersist();
+      if (!ok) {
         alert("⚡ Out of daily credits! Claim daily bonus or upgrade your account to continue.");
         return;
       }
