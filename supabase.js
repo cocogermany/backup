@@ -44,12 +44,15 @@ async function fetchMaterialsSupabase(options = {}) {
   if (!supabase) return [];
 
   try {
-    let query = supabase.from("materials").select("*").order("created_at", { ascending: false });
+    let query = supabase
+      .from("materials")
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+      .order("material_number", { ascending: true });
 
     if (options.activeOnly !== false) {
       query = query.eq("active", true);
     }
-    if (options.exam) query = query.eq("exam", options.exam);
+    if (options.exam) query = query.ilike("exam", options.exam);
     if (options.level) query = query.eq("level", options.level);
     if (options.module) query = query.eq("module", options.module);
 
@@ -70,7 +73,12 @@ async function fetchMaterialByIdSupabase(id) {
   if (!supabase || !id) return null;
 
   try {
-    const { data, error } = await supabase.from("materials").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await supabase
+      .from("materials")
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+      .eq("id", id)
+      .maybeSingle();
+
     if (error) throw error;
     return data;
   } catch (err) {
@@ -95,7 +103,6 @@ async function saveMaterialMetadataSupabase(material, idToken) {
     material_number: parseInt(material.materialNumber || material.material_number || "1", 10),
     content_path: String(material.contentPath || material.content_path || `${material.level}/${material.id}.json`).trim(),
     difficulty: String(material.difficulty || "Medium").trim(),
-    estimated_time: typeof material.estimatedTime === "number" ? material.estimatedTime : parseInt(material.estimatedTime || material.estimated_time || "15", 10) || 15,
     active: material.active !== undefined ? Boolean(material.active) : true,
   };
 
@@ -104,19 +111,6 @@ async function saveMaterialMetadataSupabase(material, idToken) {
   };
   if (idToken) {
     headers["Authorization"] = `Bearer ${idToken}`;
-    try {
-      const tokenParts = idToken.split(".");
-      if (tokenParts.length === 3) {
-        const decodedPayload = JSON.parse(atob(tokenParts[1].replace(/-/g, "+").replace(/_/g, "/")));
-        console.log("[Firebase ID Token Client Debug]", {
-          iss: decodedPayload.iss,
-          aud: decodedPayload.aud,
-          email: decodedPayload.email,
-        });
-      }
-    } catch (e) {
-      console.warn("Client ID Token payload parse warning:", e);
-    }
   }
 
   const response = await fetch(endpoint, {
@@ -161,12 +155,10 @@ async function saveMockAttemptSupabase(attemptData) {
 
   const payload = {
     uid: attemptData.uid || "anonymous",
-    material_id: attemptData.materialId || attemptData.material_id,
-    score: parseInt(attemptData.score || 0, 10),
-    percentage: parseInt(attemptData.percentage || 0, 10),
-    duration_seconds: parseInt(attemptData.durationSeconds || attemptData.duration_seconds || 0, 10),
-    answers: attemptData.answers || {},
-    created_at: new Date().toISOString(),
+    level: attemptData.level || "A1",
+    format: attemptData.format || attemptData.exam || "Goethe",
+    score_percent: parseInt(attemptData.score_percent || attemptData.percentage || attemptData.score || 0, 10),
+    completed_at: new Date().toISOString(),
   };
 
   try {
@@ -180,31 +172,34 @@ async function saveMockAttemptSupabase(attemptData) {
 }
 
 // ===================================================
-// 3. MEMBERSHIP & CREDITS SERVICE (PREPARED STRUCTURE)
+// 3. MEMBERSHIP & CREDITS SERVICE
 // ===================================================
 
 /**
- * Fetch or initialize Learning User record in Supabase users table
+ * Fetch or initialize Learning User record in Supabase learning_users table
  */
 async function getOrCreateLearningUserSupabase(uid) {
   const supabase = await getSupabaseClient();
   if (!supabase || !uid) return null;
 
   try {
-    const { data: existing, error: fetchErr } = await supabase.from("users").select("*").eq("uid", uid).maybeSingle();
+    const { data: existing, error: fetchErr } = await supabase.from("learning_users").select("*").eq("uid", uid).maybeSingle();
     if (fetchErr) throw fetchErr;
 
     if (existing) return existing;
 
     const newUser = {
       uid,
-      plan_code: "free",
-      credits_remaining: 10,
-      last_credit_reset: new Date().toISOString(),
+      membership: "FREE",
+      current_level: "A1",
+      format: "Goethe",
+      daily_credits: 2,
+      credits_remaining: 2,
+      last_reset: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    const { data: created, error: insertErr } = await supabase.from("users").insert([newUser]).select();
+    const { data: created, error: insertErr } = await supabase.from("learning_users").insert([newUser]).select();
     if (insertErr) throw insertErr;
     return created ? created[0] : newUser;
   } catch (err) {
@@ -238,12 +233,12 @@ async function ensureLearningUserSupabase(uid) {
 /**
  * Fetch Plan Details from Supabase plans table
  */
-async function getPlanDetailsSupabase(planCode = "free") {
+async function getPlanDetailsSupabase(planCode = "FREE") {
   const supabase = await getSupabaseClient();
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase.from("plans").select("*").eq("code", planCode).maybeSingle();
+    const { data, error } = await supabase.from("plans").select("*").eq("code", planCode.toUpperCase()).maybeSingle();
     if (error) throw error;
     return data;
   } catch (err) {
@@ -299,5 +294,3 @@ const SupabaseService = {
 if (typeof window !== "undefined") {
   window.SupabaseService = SupabaseService;
 }
-
-

@@ -247,10 +247,10 @@ window.PracticeHubComponent = {
     const supabase = await window.SupabaseService.getSupabaseClient();
     if (!supabase) throw new Error("Supabase client unavailable");
 
-    // Scope columns to card requirements ONLY
+    // Scope columns strictly to current materials table schema: id, title, exam, level, module, material_number, content_path, difficulty, active
     let query = supabase
       .from("materials")
-      .select("id, title, exam, level, module, material_number, difficulty, estimated_time, active", { count: "exact" })
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, active", { count: "exact" })
       .eq("active", true);
 
     if (this.currentQuery.level) {
@@ -279,7 +279,6 @@ window.PracticeHubComponent = {
 
     query = query
       .order("material_number", { ascending: true })
-      .order("created_at", { ascending: false })
       .range(from, to);
 
     const { data, count, error } = await query;
@@ -318,7 +317,7 @@ window.PracticeHubComponent = {
       const isLocked = isSchreiben && !isPaid;
       const isCompleted = this.completedMaterialIds.has(mat.id);
 
-      const timeStr = typeof mat.estimated_time === "number" ? `${mat.estimated_time} mins` : (mat.estimated_time || "15 mins");
+      const timeStr = mat.module === "Schreiben" ? "20 mins" : mat.module === "Hören" ? "15 mins" : "10 mins";
       const diffStr = mat.difficulty || "Medium";
       const descStr = `${mat.exam || "Goethe"} ${mat.level} ${mat.module} drill - Material #${mat.material_number || 1}`;
 

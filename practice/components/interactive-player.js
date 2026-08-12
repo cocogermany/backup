@@ -76,20 +76,28 @@ window.InteractivePlayerComponent = {
     let material = null;
 
     // Fetch single material metadata from Supabase
-    if (window.SupabaseService && window.SupabaseService.fetchMaterialById) {
+    if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
       try {
-        const dbMat = await window.SupabaseService.fetchMaterialById(materialId);
-        if (dbMat) {
-          material = {
-            id: dbMat.id,
-            title: dbMat.title,
-            exam: dbMat.exam || "Goethe",
-            level: dbMat.level || level,
-            module: dbMat.module || "Lesen",
-            difficulty: dbMat.difficulty || "Medium",
-            estimatedSeconds: typeof dbMat.estimated_time === "number" ? dbMat.estimated_time * 60 : 600,
-            contentPath: dbMat.content_path
-          };
+        const supabase = await window.SupabaseService.getSupabaseClient();
+        if (supabase) {
+          const { data: dbMat } = await supabase
+            .from("materials")
+            .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+            .eq("id", materialId)
+            .maybeSingle();
+
+          if (dbMat) {
+            material = {
+              id: dbMat.id,
+              title: dbMat.title,
+              exam: dbMat.exam || "Goethe",
+              level: dbMat.level || level,
+              module: dbMat.module || "Lesen",
+              difficulty: dbMat.difficulty || "Medium",
+              estimatedSeconds: dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600,
+              contentPath: dbMat.content_path
+            };
+          }
         }
       } catch (e) {
         console.warn("Player: Supabase fetch error:", e);
