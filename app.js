@@ -2718,7 +2718,6 @@ async function saveExamMaterial(event) {
     const materialNumber = parseInt(formData.get("materialNumber") || "1", 10);
     const title = String(formData.get("title") || "").trim();
     const difficulty = String(formData.get("difficulty") || "Medium");
-    const estimatedTime = String(formData.get("estimatedTime") || "15 mins").trim();
     const active = formData.get("active") === "true";
 
     const id = generateExamMaterialId(exam, level, moduleName, materialNumber);
@@ -2781,7 +2780,6 @@ function fillExamMaterialForm(id) {
   form.elements.title.value = item.title || "";
   form.elements.contentPath.value = item.contentPath || `${item.level}/${item.id}.json`;
   form.elements.difficulty.value = item.difficulty || "Medium";
-  form.elements.estimatedTime.value = item.estimatedTime || "15 mins";
   form.elements.active.value = item.active !== false ? "true" : "false";
 
   form.dataset.manualNum = "true";
@@ -2883,11 +2881,6 @@ function renderAdminExamMaterials() {
               </label>
 
               <label class="field">
-                Estimated Time (Minutes)
-                <input name="estimatedTime" placeholder="e.g. 15 mins" value="15 mins" required />
-              </label>
-
-              <label class="field">
                 Active
                 <select name="active">
                   <option value="true">Yes</option>
@@ -2917,7 +2910,7 @@ function renderAdminExamMaterials() {
                         <th>Module</th>
                         <th>Content Path</th>
                         <th>Active</th>
-                        <th>Difficulty / Time</th>
+                        <th>Difficulty</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -2932,7 +2925,7 @@ function renderAdminExamMaterials() {
                               <td><span class="badge">${item.module}</span></td>
                               <td><code class="cdn-link">${item.contentPath || `${item.level}/${item.id}.json`}</code></td>
                               <td><span class="badge ${item.active ? "badge-gold" : ""}">${item.active ? "Yes" : "No"}</span></td>
-                              <td><span class="muted">${item.difficulty || "Medium"} · ${item.estimatedTime || "15 mins"}</span></td>
+                              <td><span class="muted">${item.difficulty || "Medium"}</span></td>
                               <td>
                                 <div class="actions" style="gap: 4px;">
                                   <button class="button-light" type="button" data-edit-exam-material="${item.id}">${icon("pencil")}</button>
