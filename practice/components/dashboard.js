@@ -9,7 +9,10 @@ window.DashboardComponent = {
   render: function (appState) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
     const format = appState ? appState.currentFormat || "Goethe" : "Goethe";
-    const credits = appState ? appState.dailyCredits : { remaining: 2, total: 2 };
+    const creditsObj = appState ? appState.dailyCredits : null;
+    const creditsText = (creditsObj && typeof creditsObj.remaining === "number")
+      ? `${creditsObj.remaining} / ${creditsObj.total || creditsObj.remaining}`
+      : "-- / --";
     const streak = appState ? appState.streakDays || 0 : 0;
     const userProfile = appState ? appState.userProfile || { name: "Learner", plan: "Free Member" } : { name: "Learner", plan: "Free Member" };
 
@@ -43,7 +46,7 @@ window.DashboardComponent = {
               </div>
               <h1 class="welcome-title" id="dash-welcome-title">Master German ${format} Level ${level} with Clarity</h1>
               <p class="welcome-desc" id="dash-welcome-desc">
-                Your daily goal is 2 practice sessions. You have <strong id="dash-credits-strong">${credits.remaining} / ${credits.total}</strong> daily credits remaining today.
+                Your daily goal is practice sessions. You have <strong id="dash-credits-strong">${creditsText}</strong> daily credits remaining today.
               </p>
             </div>
             <div class="welcome-actions">
@@ -210,6 +213,14 @@ window.DashboardComponent = {
           counts[mod] = count;
         }
       }));
+
+      // Update credits text in DOM if appState contains credits
+      const dashCreditsStrong = document.getElementById("dash-credits-strong");
+      if (dashCreditsStrong && appState && appState.dailyCredits && typeof appState.dailyCredits.remaining === "number") {
+        const remaining = appState.dailyCredits.remaining;
+        const total = appState.dailyCredits.total || remaining;
+        dashCreditsStrong.textContent = `${remaining} / ${total}`;
+      }
 
       // Update module count pills in DOM
       const cntLesen = document.getElementById("cnt-lesen");
