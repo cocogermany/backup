@@ -667,10 +667,9 @@ async function loadExamMaterials() {
         materialNumber: item.material_number || item.materialNumber || 1,
         title: item.title,
         difficulty: item.difficulty,
-        estimatedTime: item.estimated_time || item.estimatedTime,
+        estimatedTime: "15 mins",
         contentPath: item.content_path || item.contentPath,
         active: Boolean(item.active),
-        createdAt: item.created_at,
       }));
     } catch (err) {
       console.error("Supabase loadExamMaterials error:", err);
@@ -2736,7 +2735,6 @@ async function saveExamMaterial(event) {
       material_number: materialNumber,
       content_path: contentPath,
       difficulty,
-      estimated_time: estimatedTime,
       active,
     };
 

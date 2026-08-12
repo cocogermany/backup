@@ -226,9 +226,7 @@ export default {
           material_number: parseInt(material.material_number || material.materialNumber || "1", 10),
           content_path: String(material.content_path || material.contentPath || `${material.level}/${material.id}.json`).trim(),
           difficulty: String(material.difficulty || "Medium").trim(),
-          estimated_time: typeof material.estimated_time === "number" ? material.estimated_time : parseInt(material.estimated_time || material.estimatedTime || "15", 10) || 15,
           active: material.active !== undefined ? Boolean(material.active) : true,
-          updated_at: new Date().toISOString(),
         };
 
         const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
