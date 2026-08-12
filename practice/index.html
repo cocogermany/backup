@@ -24,6 +24,15 @@
     <link rel="stylesheet" href="practice.css" />
   </head>
   <body class="app-body">
+    <!-- LIGHTWEIGHT FULL-PAGE LOADER OVERLAY -->
+    <div id="app-page-loader" class="app-page-loader">
+      <div class="loader-content">
+        <div class="app-spinner"></div>
+        <p class="loader-title">Loading Coco Practice</p>
+        <span class="loader-subtitle">Syncing profile & credits...</span>
+      </div>
+    </div>
+
     <!-- Sidebar Overlay Backdrop for Mobile -->
     <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
 
@@ -58,14 +67,14 @@
             <span class="level-badge" id="current-level-badge">A1</span>
             <div class="level-text">
               <span class="level-name" id="current-level-name">Goethe-Zertifikat A1</span>
-              <span class="level-sub">Beginner</span>
+              <span class="level-sub">Click to switch level</span>
             </div>
             <i data-lucide="chevron-down" class="level-chevron"></i>
           </div>
           <!-- Level Menu Popover -->
           <div class="level-menu-dropdown" id="level-menu-dropdown" hidden>
             <button type="button" class="level-opt active" data-level="A1">
-              <span class="lvl-tag">A1</span> Goethe A1 (Start Deutsch 1)
+              <span class="lvl-tag">A1</span> Goethe A1 (Breakthrough)
             </button>
             <button type="button" class="level-opt" data-level="A2">
               <span class="lvl-tag">A2</span> Goethe A2 (Elementary)
@@ -89,10 +98,10 @@
               <i data-lucide="zap" class="credits-icon"></i>
               <span>Daily Credits</span>
             </div>
-            <span class="credits-count" id="sidebar-credits-count">2 / 2</span>
+            <span class="credits-count" id="sidebar-credits-count">-- / --</span>
           </div>
           <div class="credits-bar-track">
-            <div class="credits-bar-fill" id="sidebar-credits-fill" style="width: 100%;"></div>
+            <div class="credits-bar-fill" id="sidebar-credits-fill" style="width: 0%;"></div>
           </div>
           <div class="credits-footer">
             <span class="credits-reset-time" id="sidebar-reset-timer">Resets every 24h</span>
@@ -175,7 +184,7 @@
             <!-- Credits Button -->
             <button class="topbar-action-btn topbar-credits-btn" id="topbar-credits-btn" title="View & Claim Credits">
               <i data-lucide="zap"></i>
-              <span id="topbar-credits-text">2 Credits</span>
+              <span id="topbar-credits-text">-- Credits</span>
             </button>
 
             <!-- Level Switcher Button -->
@@ -190,10 +199,6 @@
         <!-- DYNAMIC VIEW PORT CONTAINER -->
         <main class="app-viewport" id="app-viewport">
           <!-- Views rendered dynamically via JS -->
-          <div id="view-loading-state" class="view-loading-card">
-            <div class="app-spinner"></div>
-            <p>Loading Coco Practice Hub...</p>
-          </div>
         </main>
       </div>
 

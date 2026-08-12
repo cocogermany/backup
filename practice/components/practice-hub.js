@@ -90,22 +90,6 @@ window.PracticeHubComponent = {
   },
 
   initHubData: async function (appState) {
-    const gridContainer = document.getElementById("materials-grid-container");
-    if (gridContainer) {
-      gridContainer.innerHTML = `
-        <div class="skeleton-card">
-          <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-          <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-          <div class="skeleton" style="height:14px; width:75%;"></div>
-        </div>
-        <div class="skeleton-card">
-          <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-          <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-          <div class="skeleton" style="height:14px; width:75%;"></div>
-        </div>
-      `;
-    }
-
     // 1. Perform Credit Check via Worker ONCE during initial Hub loading
     let idToken = "";
     try {
@@ -141,6 +125,9 @@ window.PracticeHubComponent = {
           if (window.PracticeApp) {
             window.PracticeApp.updateHeaderUI();
             window.PracticeApp.updateCreditsModalUI();
+            if (typeof window.PracticeApp.hidePageLoader === "function") {
+              window.PracticeApp.hidePageLoader();
+            }
           }
         }
       } catch (err) {

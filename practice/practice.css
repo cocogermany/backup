@@ -1735,3 +1735,60 @@ a {
     font-size: 1.15rem;
   }
 }
+
+/* ==========================================================================
+   LIGHTWEIGHT FULL-PAGE LOADER OVERLAY
+   ========================================================================== */
+.app-page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-cream, #FAF7F2);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.app-page-loader.hidden-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-page-loader .loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.app-page-loader .app-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3.5px solid var(--gray-border, #E5E1DA);
+  border-top-color: var(--brown, #7C4A36);
+  border-radius: 50%;
+  animation: app-spin 0.8s linear infinite;
+}
+
+.app-page-loader .loader-title {
+  font-family: var(--font-header, 'Montserrat', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark, #2C2825);
+  margin: 0;
+}
+
+.app-page-loader .loader-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #78716C);
+}
+
+@keyframes app-spin {
+  to { transform: rotate(360deg); }
+}

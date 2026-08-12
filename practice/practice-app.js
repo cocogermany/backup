@@ -13,8 +13,8 @@
     currentLevel: localStorage.getItem("coco_practice_level") || "A1",
     currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
     dailyCredits: JSON.parse(localStorage.getItem("coco_daily_credits")) || {
-      remaining: 2,
-      total: 2,
+      remaining: null,
+      total: null,
       lastReset: new Date().toISOString().split("T")[0]
     },
     streakDays: parseInt(localStorage.getItem("coco_streak") || "0", 10),
@@ -46,7 +46,22 @@
       this.handleRoute();
       this.loadUserProfile();
 
+      // Fallback timer: guarantee page loader disappears even if network takes > 2.5s
+      setTimeout(() => {
+        this.hidePageLoader();
+      }, 2500);
+
       window.addEventListener("hashchange", () => this.handleRoute());
+    }
+
+    hidePageLoader() {
+      const loader = document.getElementById("app-page-loader");
+      if (loader) {
+        loader.classList.add("hidden-loader");
+        setTimeout(() => {
+          if (loader.parentNode) loader.parentNode.removeChild(loader);
+        }, 350);
+      }
     }
 
     async loadUserProfile() {
@@ -128,6 +143,7 @@
             this.saveState();
             this.updateHeaderUI();
             this.handleRoute();
+            this.hidePageLoader();
           }
         });
       } catch (e) {
@@ -338,11 +354,21 @@
       const fillBar = document.getElementById("modal-credits-fill");
       const userPlan = document.getElementById("modal-user-plan");
 
-      if (bigCount) bigCount.textContent = `${credits.remaining} / ${credits.total}`;
+      if (bigCount) {
+        if (credits.remaining === null || credits.remaining === undefined) {
+          bigCount.textContent = "-- / --";
+        } else {
+          bigCount.textContent = `${credits.remaining} / ${credits.total || credits.remaining}`;
+        }
+      }
       if (userPlan) userPlan.textContent = AppState.userProfile.plan || "FREE";
       if (fillBar) {
-        const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
-        fillBar.style.width = `${pct}%`;
+        if (credits.remaining === null || !credits.total) {
+          fillBar.style.width = "0%";
+        } else {
+          const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
+          fillBar.style.width = `${pct}%`;
+        }
       }
     }
 
@@ -361,13 +387,23 @@
 
       if (badge) badge.textContent = level;
       if (name) name.textContent = `${format} ${level}`;
-      if (creditsCount) creditsCount.textContent = `${credits.remaining} / ${credits.total}`;
+      if (creditsCount) {
+        if (credits.remaining === null || credits.remaining === undefined) {
+          creditsCount.textContent = "-- / --";
+        } else {
+          creditsCount.textContent = `${credits.remaining} / ${credits.total || credits.remaining}`;
+        }
+      }
       if (userName) userName.textContent = AppState.userProfile.name;
       if (userPlan) userPlan.textContent = AppState.userProfile.plan;
 
       if (creditsFill) {
-        const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
-        creditsFill.style.width = `${pct}%`;
+        if (credits.remaining === null || !credits.total) {
+          creditsFill.style.width = "0%";
+        } else {
+          const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
+          creditsFill.style.width = `${pct}%`;
+        }
       }
 
       // Topbar UI
@@ -377,7 +413,13 @@
 
       if (streakEl) streakEl.textContent = `${AppState.streakDays} Day Streak`;
       if (levelTextEl) levelTextEl.textContent = `${format} ${level}`;
-      if (creditsTextEl) creditsTextEl.textContent = `${credits.remaining} Credits`;
+      if (creditsTextEl) {
+        if (credits.remaining === null || credits.remaining === undefined) {
+          creditsTextEl.textContent = "-- Credits";
+        } else {
+          creditsTextEl.textContent = `${credits.remaining} Credits`;
+        }
+      }
 
       // Update level popover active class
       const menu = document.getElementById("level-menu-dropdown");
