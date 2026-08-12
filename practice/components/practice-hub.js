@@ -90,7 +90,65 @@ window.PracticeHubComponent = {
   },
 
   initHubData: async function (appState) {
-    // 1. Fetch user learning profile (Firebase Auth & Supabase learning_users)
+    const gridContainer = document.getElementById("materials-grid-container");
+    if (gridContainer) {
+      gridContainer.innerHTML = `
+        <div class="skeleton-card">
+          <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
+          <div class="skeleton" style="height:14px; width:75%;"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
+          <div class="skeleton" style="height:14px; width:75%;"></div>
+        </div>
+      `;
+    }
+
+    // 1. Perform Credit Check via Worker ONCE during initial Hub loading
+    let idToken = "";
+    try {
+      const appModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+      const authModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+      const firebaseConfig = {
+        apiKey: "AIzaSyCAmxLSnUWMuhuuH8oFshZMTajeP2iXvpY",
+        authDomain: "cocogermany-ba33f.firebaseapp.com",
+        projectId: "cocogermany-ba33f",
+        storageBucket: "cocogermany-ba33f.firebasestorage.app",
+        messagingSenderId: "689122181603",
+        appId: "1:689122181603:web:a8bd80e2c187695ac8a0d6",
+      };
+      let app = appModule.getApps().length === 0 ? appModule.initializeApp(firebaseConfig) : appModule.getApp();
+      const auth = authModule.getAuth(app);
+      const user = auth.currentUser || await new Promise((res) => { const u = authModule.onAuthStateChanged(auth, (usr) => { u(); res(usr); }); });
+      if (user) {
+        idToken = await user.getIdToken(true);
+      }
+    } catch (e) {
+      console.warn("PracticeHub: Auth token lookup note:", e);
+    }
+
+    if (idToken && window.SupabaseService && typeof window.SupabaseService.checkLearningCredits === "function") {
+      try {
+        const creditRes = await window.SupabaseService.checkLearningCredits(idToken);
+        if (creditRes && creditRes.success) {
+          if (appState) {
+            appState.dailyCredits.remaining = creditRes.credits_remaining;
+            appState.dailyCredits.total = creditRes.daily_practice_credits;
+            if (creditRes.membership) appState.userProfile.plan = creditRes.membership;
+          }
+          if (window.PracticeApp) {
+            window.PracticeApp.updateHeaderUI();
+            window.PracticeApp.updateCreditsModalUI();
+          }
+        }
+      } catch (err) {
+        console.warn("PracticeHub: Worker credit check error:", err);
+      }
+    }
+
+    // 2. Fetch user learning profile & completed materials list
     const profile = await this.fetchUserProfile();
     if (profile.level) {
       this.currentQuery.level = profile.level;
@@ -111,10 +169,10 @@ window.PracticeHubComponent = {
     if (titleEl) titleEl.textContent = `Practice Hub (${this.currentQuery.level})`;
     if (badgeEl) badgeEl.textContent = `${this.currentQuery.format} ${this.currentQuery.level} Collection`;
 
-    // 2. Fetch completed materials list for status badges
+    // 3. Fetch completed materials list for status badges
     this.completedMaterialIds = await this.fetchCompletedMaterialIds();
 
-    // 3. Execute fetch & render
+    // 4. Execute fetch & render
     await this.executeFetchAndRender();
   },
 

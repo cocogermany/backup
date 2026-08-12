@@ -277,6 +277,34 @@ async function submitLearningOnboardingSupabase({ level, format, timezone }, idT
   return resData;
 }
 
+/**
+ * Perform Learning Credits Check via Cloudflare Worker POST /learning/credits/check
+ */
+async function checkLearningCreditsSupabase(idToken) {
+  const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
+  const endpoint = `${workerBase}/learning/credits/check`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok || resData.error) {
+    throw new Error(resData.error || `Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
 // ===================================================
 // GLOBAL EXPORT FOR NON-MODULE SCRIPTS
 // ===================================================
@@ -291,6 +319,7 @@ const SupabaseService = {
   ensureLearningUser: ensureLearningUserSupabase,
   getPlanDetails: getPlanDetailsSupabase,
   submitLearningOnboarding: submitLearningOnboardingSupabase,
+  checkLearningCredits: checkLearningCreditsSupabase,
 };
 
 if (typeof window !== "undefined") {

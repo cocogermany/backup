@@ -331,6 +331,156 @@ export default {
         );
       }
 
+      // 4. Learning Credits Check (POST /learning/credits/check or GET /learning/credits/check)
+      if ((request.method === "POST" || request.method === "GET") && url.pathname === "/learning/credits/check") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        // Cryptographically verify Firebase ID Token
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Get learning_users row using Firebase UID
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+
+        // If userRow does not exist, create default row
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const defaultNewUser = {
+            uid,
+            membership: "FREE",
+            current_level: "A1",
+            format: "goethe",
+            daily_credits: 2,
+            credits_remaining: 2,
+            last_reset: todayIsoDate,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([defaultNewUser]),
+          });
+
+          if (createRes.ok) {
+            const createdData = await createRes.json();
+            userRow = createdData && createdData.length > 0 ? createdData[0] : defaultNewUser;
+          } else {
+            userRow = defaultNewUser;
+          }
+        }
+
+        const membershipCode = (userRow.membership || "FREE").toUpperCase();
+
+        // 2. Use learning_users.membership to find matching plans.code and plans.daily_practice_credits
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        let dailyPracticeCredits = 2; // Default fallback
+        if (planRes.ok) {
+          const planData = await planRes.json();
+          if (planData && planData.length > 0) {
+            const planObj = planData[0];
+            if (typeof planObj.daily_practice_credits === "number") {
+              dailyPracticeCredits = planObj.daily_practice_credits;
+            }
+          }
+        }
+
+        // 3. Compute user's current local calendar date using learning_users.timezone (IANA value) and last_reset
+        const userTimezone = userRow.timezone || "UTC";
+        let userLocalToday = "";
+        try {
+          const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: userTimezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          userLocalToday = formatter.format(new Date()); // Formats as YYYY-MM-DD
+        } catch (tzErr) {
+          userLocalToday = new Date().toISOString().split("T")[0];
+        }
+
+        let creditsRemaining = typeof userRow.credits_remaining === "number" ? userRow.credits_remaining : dailyPracticeCredits;
+        let lastReset = userRow.last_reset ? String(userRow.last_reset).split("T")[0] : "";
+
+        // 4. Check if local calendar date is newer than last_reset
+        if (!lastReset || userLocalToday > lastReset) {
+          creditsRemaining = dailyPracticeCredits;
+          lastReset = userLocalToday;
+
+          await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`, {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              credits_remaining: creditsRemaining,
+              last_reset: lastReset,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+        }
+
+        return responseJSON(
+          {
+            success: true,
+            uid,
+            membership: userRow.membership || "FREE",
+            credits_remaining: creditsRemaining,
+            daily_practice_credits: dailyPracticeCredits,
+            last_reset: lastReset,
+            timezone: userTimezone,
+          },
+          200,
+          request
+        );
+      }
+
       // 3. Upload File (POST /upload)
       if (request.method === "POST" && (url.pathname === "/upload" || url.pathname === "/")) {
         const contentType = request.headers.get("content-type") || "";
