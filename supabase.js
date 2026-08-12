@@ -248,11 +248,13 @@ async function getPlanDetailsSupabase(planCode = "FREE") {
 }
 
 /**
- * Submit Learning Onboarding preferences ({ level, format }) to Cloudflare Worker POST /learning/onboarding
+ * Submit Learning Onboarding preferences ({ level, format, timezone }) to Cloudflare Worker POST /learning/onboarding
  */
-async function submitLearningOnboardingSupabase({ level, format }, idToken) {
+async function submitLearningOnboardingSupabase({ level, format, timezone }, idToken) {
   const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
   const endpoint = `${workerBase}/learning/onboarding`;
+
+  const tz = timezone || (typeof Intl !== "undefined" && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC");
 
   const headers = {
     "Content-Type": "application/json",
@@ -264,7 +266,7 @@ async function submitLearningOnboardingSupabase({ level, format }, idToken) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers,
-    body: JSON.stringify({ level, format }),
+    body: JSON.stringify({ level, format, timezone: tz }),
   });
 
   const resData = await response.json();

@@ -280,6 +280,7 @@ export default {
         const currentLevel = String(body.level || body.current_level || "A1").toUpperCase().trim();
         const rawFormat = String(body.format || body.exam_format || "goethe").toLowerCase().trim();
         const format = rawFormat === "telc" ? "telc" : "goethe";
+        const timezone = String(body.timezone || body.time_zone || "").trim();
 
         if (!env.SUPABASE_SERVICE_ROLE_KEY) {
           return responseJSON(
@@ -297,6 +298,9 @@ export default {
           format: format,
           updated_at: new Date().toISOString(),
         };
+        if (timezone) {
+          learningUserPayload.timezone = timezone;
+        }
 
         const supabaseRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
           method: "POST",
@@ -320,6 +324,7 @@ export default {
             success: true,
             message: `Learning user ${uid} preferences updated successfully`,
             data: supabaseData ? supabaseData[0] : learningUserPayload,
+            timezone: timezone || null,
           },
           200,
           request

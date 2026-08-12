@@ -108,11 +108,12 @@ async function saveProfilePreferences(event) {
       current_level: level,
     };
 
-    // 2. Send selected level and format to Cloudflare Worker POST /learning/onboarding
+    // 2. Send selected level, format, and browser timezone to Cloudflare Worker POST /learning/onboarding
+    const timezone = typeof Intl !== "undefined" && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
     if (tools && tools.auth && tools.auth.currentUser) {
       const idToken = await tools.auth.currentUser.getIdToken(true);
       if (window.SupabaseService && typeof window.SupabaseService.submitLearningOnboarding === "function") {
-        await window.SupabaseService.submitLearningOnboarding({ level, format }, idToken);
+        await window.SupabaseService.submitLearningOnboarding({ level, format, timezone }, idToken);
       } else {
         const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
         await fetch(`${workerBase}/learning/onboarding`, {
@@ -121,7 +122,7 @@ async function saveProfilePreferences(event) {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`,
           },
-          body: JSON.stringify({ level, format }),
+          body: JSON.stringify({ level, format, timezone }),
         });
       }
     }
