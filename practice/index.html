@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="description" content="Coco Germany - Premium Practice & Mock Exam Hub" />
+    <title>Practice Hub | Coco Germany</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Supabase Service Integration -->
+    <script src="../supabase.js" type="module"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="practice.css" />
+  </head>
+  <body class="app-body">
+    <!-- Sidebar Overlay Backdrop for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+
+    <!-- Main App Container -->
+    <div id="app-layout" class="app-layout">
+      
+      <!-- DESKTOP / MOBILE SIDEBAR -->
+      <aside class="app-sidebar" id="app-sidebar">
+        <div class="sidebar-header-row">
+          <a href="../index.html" class="brand-link" title="Return to Main Website">
+            <img src="../public/images/cocoLogo.jpg" alt="Coco Germany" class="brand-logo" />
+            <div class="brand-info">
+              <span class="brand-title">Coco Germany</span>
+              <span class="brand-subtitle">Practice & Mock Hub</span>
+            </div>
+          </a>
+          <button class="sidebar-close-btn" id="mobile-sidebar-close" aria-label="Close Navigation">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <!-- Level Selector Dropdown -->
+        <div class="level-selector-wrapper">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="sidebar-label" style="margin-bottom:0;">TARGET LEVEL</label>
+            <div style="display:flex; gap:4px;" id="format-select-group">
+              <button type="button" class="btn-secondary btn-sm format-opt active" data-format="Goethe" style="padding:2px 8px; font-size:0.7rem; border-radius:4px; font-weight:700;">Goethe</button>
+              <button type="button" class="btn-secondary btn-sm format-opt" data-format="TELC" style="padding:2px 8px; font-size:0.7rem; border-radius:4px; font-weight:700;">TELC</button>
+            </div>
+          </div>
+          <div class="level-select-pill" id="level-select-pill" tabindex="0">
+            <span class="level-badge" id="current-level-badge">A1</span>
+            <div class="level-text">
+              <span class="level-name" id="current-level-name">Goethe-Zertifikat A1</span>
+              <span class="level-sub">Beginner</span>
+            </div>
+            <i data-lucide="chevron-down" class="level-chevron"></i>
+          </div>
+          <!-- Level Menu Popover -->
+          <div class="level-menu-dropdown" id="level-menu-dropdown" hidden>
+            <button type="button" class="level-opt active" data-level="A1">
+              <span class="lvl-tag">A1</span> Goethe A1 (Start Deutsch 1)
+            </button>
+            <button type="button" class="level-opt" data-level="A2">
+              <span class="lvl-tag">A2</span> Goethe A2 (Elementary)
+            </button>
+            <button type="button" class="level-opt" data-level="B1">
+              <span class="lvl-tag">B1</span> Goethe B1 (Intermediate)
+            </button>
+            <button type="button" class="level-opt" data-level="B2">
+              <span class="lvl-tag">B2</span> Goethe B2 (Vantage)
+            </button>
+            <button type="button" class="level-opt" data-level="C1">
+              <span class="lvl-tag">C1</span> Goethe C1 (Advanced)
+            </button>
+          </div>
+        </div>
+
+        <!-- Daily Credits Widget -->
+        <div class="sidebar-credits-card">
+          <div class="credits-header">
+            <div class="credits-title">
+              <i data-lucide="zap" class="credits-icon"></i>
+              <span>Daily Credits</span>
+            </div>
+            <span class="credits-count" id="sidebar-credits-count">2 / 2</span>
+          </div>
+          <div class="credits-bar-track">
+            <div class="credits-bar-fill" id="sidebar-credits-fill" style="width: 100%;"></div>
+          </div>
+          <div class="credits-footer">
+            <span class="credits-reset-time" id="sidebar-reset-timer">Resets every 24h</span>
+            <button class="credits-claim-btn" id="claim-bonus-btn" title="Claim Daily Bonus">+1 Credit</button>
+          </div>
+        </div>
+
+        <!-- Main Navigation Links -->
+        <nav class="sidebar-nav">
+          <span class="sidebar-label">MENU</span>
+          <a href="#dashboard" class="nav-item active" data-nav="dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="#mock-exams" class="nav-item" data-nav="mock-exams">
+            <i data-lucide="award"></i>
+            <span>Mock Exams</span>
+            <span class="nav-badge">Goethe</span>
+          </a>
+          <a href="#practice" class="nav-item" data-nav="practice">
+            <i data-lucide="layers"></i>
+            <span>Practice Hub</span>
+          </a>
+          <a href="#progress" class="nav-item" data-nav="progress">
+            <i data-lucide="line-chart"></i>
+            <span>Learning Progress</span>
+          </a>
+
+          <span class="sidebar-label margin-top">PRACTICE MODULES</span>
+          <a href="#practice?module=Lesen" class="nav-subitem" data-module="Lesen">
+            <i data-lucide="book-open"></i>
+            <span>Lesen (Reading)</span>
+          </a>
+          <a href="#practice?module=Hören" class="nav-subitem" data-module="Hören">
+            <i data-lucide="headphones"></i>
+            <span>Hören (Listening)</span>
+          </a>
+          <a href="#practice?module=Grammatik" class="nav-subitem" data-module="Grammatik">
+            <i data-lucide="file-code-2"></i>
+            <span>Grammatik (Grammar)</span>
+          </a>
+          <a href="#practice?module=Schreiben" class="nav-subitem" data-module="Schreiben">
+            <i data-lucide="pen-tool"></i>
+            <span>Schreiben (Writing)</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Footer Account Link -->
+        <div class="sidebar-footer">
+          <a href="../index.html#/account" class="sidebar-user-card">
+            <div class="user-avatar" id="sidebar-user-avatar">CG</div>
+            <div class="user-info">
+              <span class="user-name" id="sidebar-user-name">Learner Profile</span>
+              <span class="user-status" id="sidebar-user-plan">Free Member</span>
+            </div>
+            <i data-lucide="external-link" class="user-link-icon"></i>
+          </a>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT WRAPPER -->
+      <div class="app-main-wrapper">
+        <!-- TOP APP HEADER (STICKY) -->
+        <header class="app-topbar" id="app-topbar">
+          <div class="top-progress-bar" id="top-progress-bar" style="width: 0%; opacity: 0;"></div>
+          <div class="topbar-left">
+            <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Toggle Menu">
+              <i data-lucide="menu"></i>
+            </button>
+            <h1 class="topbar-title-text" id="topbar-title">Dashboard</h1>
+          </div>
+
+          <div class="topbar-right">
+            <!-- Day Streak Button / Chip -->
+            <div class="topbar-streak-chip" title="Current Daily Streak">
+              <i data-lucide="flame"></i>
+              <span id="topbar-streak-count">3 Day Streak</span>
+            </div>
+
+            <!-- Credits Button -->
+            <button class="topbar-action-btn topbar-credits-btn" id="topbar-credits-btn" title="View & Claim Credits">
+              <i data-lucide="zap"></i>
+              <span id="topbar-credits-text">2 Credits</span>
+            </button>
+
+            <!-- Level Switcher Button -->
+            <button class="topbar-action-btn topbar-level-btn" id="topbar-level-btn" title="Switch Target Level">
+              <span class="lvl-dot"></span>
+              <span id="topbar-level-text">Goethe A1</span>
+              <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- DYNAMIC VIEW PORT CONTAINER -->
+        <main class="app-viewport" id="app-viewport">
+          <!-- Views rendered dynamically via JS -->
+          <div id="view-loading-state" class="view-loading-card">
+            <div class="app-spinner"></div>
+            <p>Loading Coco Practice Hub...</p>
+          </div>
+        </main>
+      </div>
+
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+      <a href="#dashboard" class="bnav-item active" data-nav="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#mock-exams" class="bnav-item" data-nav="mock-exams">
+        <i data-lucide="award"></i>
+        <span>Mock</span>
+      </a>
+      
+      <!-- Plus Button Action Launcher -->
+      <button class="bnav-plus-btn" id="bnav-plus-btn" title="More Features">
+        <i data-lucide="plus"></i>
+      </button>
+
+      <a href="#practice" class="bnav-item" data-nav="practice">
+        <i data-lucide="layers"></i>
+        <span>Practice</span>
+      </a>
+      <button class="bnav-item" id="bnav-credits-btn">
+        <i data-lucide="zap"></i>
+        <span>Credits</span>
+      </button>
+    </nav>
+
+    <!-- QUICK ACTIONS MODAL / DRAWER -->
+    <div class="modal-backdrop" id="quick-actions-modal" hidden>
+      <div class="modal-card action-sheet-card">
+        <div class="modal-header">
+          <h3>Quick Features & Navigation</h3>
+          <button class="modal-close-btn" id="quick-actions-close"><i data-lucide="x"></i></button>
+        </div>
+        <div class="action-grid">
+          <a href="../index.html#/account" class="action-item">
+            <div class="action-icon icon-user"><i data-lucide="user"></i></div>
+            <span>Account</span>
+          </a>
+          <a href="../index.html" class="action-item">
+            <div class="action-icon icon-home"><i data-lucide="home"></i></div>
+            <span>Main Home</span>
+          </a>
+          <a href="../index.html#/resources" class="action-item">
+            <div class="action-icon icon-book"><i data-lucide="book-open"></i></div>
+            <span>Resources</span>
+          </a>
+          <a href="../index.html#/videos" class="action-item">
+            <div class="action-icon icon-video"><i data-lucide="play-circle"></i></div>
+            <span>Videos</span>
+          </a>
+          <a href="#progress" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+            <div class="action-icon icon-chart"><i data-lucide="line-chart"></i></div>
+            <span>Progress</span>
+          </a>
+          <a href="../index.html" class="action-item text-danger">
+            <div class="action-icon icon-exit"><i data-lucide="log-out"></i></div>
+            <span>Exit Hub</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREDITS DETAILS MODAL -->
+    <div class="modal-backdrop" id="credits-detail-modal" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i data-lucide="zap" style="color:var(--gold); fill:var(--gold); width:20px; height:20px;"></i>
+            <h3>Daily Credits Overview</h3>
+          </div>
+          <button class="modal-close-btn" id="credits-modal-close"><i data-lucide="x"></i></button>
+        </div>
+        
+        <div style="text-align:center; padding:16px 0;">
+          <div class="credits-count-big" id="modal-credits-big">2 / 2</div>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px;">Daily Credits Available Today</p>
+          
+          <div class="credits-bar-track" style="height:8px; max-width:280px; margin:0 auto 16px;">
+            <div class="credits-bar-fill" id="modal-credits-fill" style="width: 100%;"></div>
+          </div>
+          
+          <p style="font-size:0.78rem; color:var(--muted);" id="modal-credits-timer">Resets every 24 hours</p>
+        </div>
+
+        <div style="background:var(--paper); padding:14px; border-radius:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:6px;">
+            <span>Current Membership</span>
+            <span class="badge-pill badge-emerald" id="modal-user-plan">Free Learner</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--muted);">Free plan resets 2 daily credits every 24 hours. Pro members enjoy 100 daily credits and full writing access.</p>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button class="btn-primary" id="modal-claim-bonus" style="flex:1; justify-content:center;">
+            <i data-lucide="plus-circle"></i> Claim +1 Bonus Credit
+          </button>
+          <a href="../index.html#/membership" class="btn-secondary" style="justify-content:center;">
+            Upgrade Pro
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Component Scripts -->
+    <script src="components/dashboard.js"></script>
+    <script src="components/mock-exams.js"></script>
+    <script src="components/practice-hub.js"></script>
+    <script src="components/interactive-player.js"></script>
+    <script src="components/progress-tracker.js"></script>
+
+    <!-- Core App Router and Controller -->
+    <script src="practice-app.js"></script>
+  </body>
+</html>

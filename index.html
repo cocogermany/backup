@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Coco Germany publishes premium German learning resources, video lessons, and study material for serious learners."
+    />
+    <title>Coco Germany | German Education & Publishing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="logo" href="#/">
+          <img class="logo-mark" src="public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+          <span>
+            <strong>Coco Germany</strong>
+            <small>Education & Publishing</small>
+          </span>
+        </a>
+
+        <div class="desktop-nav">
+          <div class="nav-home-group">
+            <a href="#/" data-nav-home><i data-lucide="home"></i>Home <i class="nav-chevron" data-lucide="chevron-down"></i></a>
+            <div class="nav-home-sections" aria-label="Home sections">
+              <a href="#hero" data-scroll-section="hero">Hero</a>
+              <a href="#mock-exams" data-scroll-section="mock-exams">Mock Exams</a>
+              <a href="#practice" data-scroll-section="practice">Practice Centre</a>
+              <a href="#videos" data-scroll-section="videos">Video Lessons</a>
+              <a href="#study-materials" data-scroll-section="study-materials">Study Materials</a>
+              <a href="#membership" data-scroll-section="membership">Membership</a>
+            </div>
+          </div>
+          <a href="practice/index.html"><i data-lucide="pen-tool"></i>Practice App</a>
+          <a href="#/resources"><i data-lucide="book-open"></i>Resources</a>
+          <a href="#/videos"><i data-lucide="play-circle"></i>Videos</a>
+          <a href="#/about"><i data-lucide="circle-help"></i>About</a>
+          <a href="#/contact"><i data-lucide="message-circle"></i>Contact</a>
+          <a href="#/account" data-account-link><i data-lucide="user"></i>Account</a>
+          <a href="#/admin" data-admin-link hidden><i data-lucide="shield"></i>Admin Panel</a>
+        </div>
+        <button class="nav-scroll-control" type="button" aria-label="Show more navigation items"><i data-lucide="chevron-down"></i></button>
+      </nav>
+    </header>
+
+    <main id="app" tabindex="-1"></main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a class="logo" href="#/">
+            <img class="logo-mark" src="public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+            <span>
+              <strong>Coco Germany</strong>
+              <small>Education & Publishing</small>
+            </span>
+          </a>
+          
+        </div>
+        <div class="footer-col">
+          <h2>Publishing</h2>
+          <a href="practice/index.html">Practice App</a>
+          <a href="#/resources">Resources</a>
+          <a href="#/videos">Videos</a>
+          <a href="#/account">My Account</a>
+        </div>
+        <div class="footer-col">
+          <h2>Contact</h2>
+          <a href="#/contact">Contact Page</a>
+        </div>
+        <p class="footer-copyright">&copy; 2026 Coco Germany. Learn with clarity.</p>
+      </div>
+    </footer>
+
+    <nav class="bottom-nav" aria-label="Mobile navigation">
+      <a href="#/"><i data-lucide="home"></i><span>Home</span></a>
+      <a href="practice/index.html"><i data-lucide="pen-tool"></i><span>Practice App</span></a>
+      <a href="#/resources"><i data-lucide="book-open"></i><span>Resources</span></a>
+      <a href="#/account"><i data-lucide="user"></i><span>Account</span></a>
+    </nav>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="supabase.js" type="module"></script>
+    <script src="pages/account.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
