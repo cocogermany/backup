@@ -292,14 +292,76 @@ export default {
         const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
         const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
 
+        // 1. Fetch existing user record to determine membership
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        let existingUser = null;
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData && userData.length > 0) {
+            existingUser = userData[0];
+          }
+        }
+
+        const membershipCode = ((existingUser && existingUser.membership) || body.membership || "FREE").toUpperCase().trim();
+
+        // 2. Fetch matching plans.code to get authoritative plans.daily_practice_credits
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        let dailyPracticeCredits = 2; // Fallback if plan query fails
+        if (planRes.ok) {
+          const planData = await planRes.json();
+          if (planData && planData.length > 0 && typeof planData[0].daily_practice_credits === "number") {
+            dailyPracticeCredits = planData[0].daily_practice_credits;
+          }
+        }
+
+        // 3. Determine effective timezone and local date
+        const effectiveTimezone = timezone || (existingUser && existingUser.timezone) || "UTC";
+        let userLocalToday = "";
+        try {
+          const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: effectiveTimezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          userLocalToday = formatter.format(new Date());
+        } catch (tzErr) {
+          userLocalToday = new Date().toISOString().split("T")[0];
+        }
+
+        // 4. Construct learningUserPayload using dynamic plan allowance (never hardcoded)
         const learningUserPayload = {
           uid,
+          membership: membershipCode,
           current_level: currentLevel,
           format: format,
           updated_at: new Date().toISOString(),
         };
+
         if (timezone) {
           learningUserPayload.timezone = timezone;
+        }
+
+        // Initialize credits_remaining and last_reset from plans.daily_practice_credits for new users or uninitialized rows
+        if (!existingUser) {
+          learningUserPayload.credits_remaining = dailyPracticeCredits;
+          learningUserPayload.last_reset = userLocalToday;
+          learningUserPayload.created_at = new Date().toISOString();
+        } else if (typeof existingUser.credits_remaining !== "number") {
+          learningUserPayload.credits_remaining = dailyPracticeCredits;
+          learningUserPayload.last_reset = userLocalToday;
         }
 
         const supabaseRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
@@ -324,7 +386,7 @@ export default {
             success: true,
             message: `Learning user ${uid} preferences updated successfully`,
             data: supabaseData ? supabaseData[0] : learningUserPayload,
-            timezone: timezone || null,
+            timezone: effectiveTimezone || null,
           },
           200,
           request
@@ -381,7 +443,6 @@ export default {
             membership: "FREE",
             current_level: "A1",
             format: "goethe",
-            daily_credits: 2,
             credits_remaining: 2,
             last_reset: todayIsoDate,
             created_at: new Date().toISOString(),

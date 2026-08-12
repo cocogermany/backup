@@ -192,10 +192,9 @@ async function getOrCreateLearningUserSupabase(uid) {
       uid,
       membership: "FREE",
       current_level: "A1",
-      format: "Goethe",
-      daily_credits: 2,
+      format: "goethe",
       credits_remaining: 2,
-      last_reset: new Date().toISOString(),
+      last_reset: new Date().toISOString().split("T")[0],
       updated_at: new Date().toISOString(),
     };
 

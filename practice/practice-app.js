@@ -78,7 +78,7 @@
 
                   const { data, error } = await supabase
                     .from("learning_users")
-                    .select("uid, membership, current_level, daily_credits, credits_remaining, last_reset, format")
+                    .select("uid, membership, current_level, credits_remaining, last_reset, format")
                     .eq("uid", user.uid)
                     .maybeSingle();
 
@@ -87,7 +87,10 @@
                     if (data.format) AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
                     if (data.membership) AppState.userProfile.plan = data.membership;
                     
-                    const dailyTotal = typeof data.daily_credits === "number" ? data.daily_credits : 2;
+                    // Authoritative allowance from plans table
+                    const membershipCode = (data.membership || "FREE").toUpperCase();
+                    const { data: planData } = await supabase.from("plans").select("daily_practice_credits").eq("code", membershipCode).maybeSingle();
+                    const dailyTotal = planData && typeof planData.daily_practice_credits === "number" ? planData.daily_practice_credits : 2;
                     AppState.dailyCredits.total = dailyTotal;
 
                     // Daily Reset Check using DB last_reset date
@@ -102,12 +105,11 @@
                       AppState.dailyCredits.remaining = data.credits_remaining;
                     }
                   } else if (!data) {
-                    // Create new learning_users record adhering strictly to schema
+                    // Create new learning_users record adhering strictly to schema without daily_credits
                     const newRecord = {
                       uid: user.uid,
                       membership: "FREE",
                       current_level: AppState.currentLevel || "A1",
-                      daily_credits: 2,
                       credits_remaining: 2,
                       last_reset: todayStr,
                       format: (AppState.currentFormat || "Goethe").toLowerCase(),
