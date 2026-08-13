@@ -11,8 +11,8 @@
 
   // Application Global State
   const AppState = {
-    currentLevel: localStorage.getItem("coco_practice_level") || "A1",
-    currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
+    currentLevel: localStorage.getItem("coco_practice_level") || "",
+    currentFormat: localStorage.getItem("coco_practice_format") || "",
     // Do not render a cached credit balance before the Worker verifies it. Cached
     // values can be stale after a reset or a membership change.
     dailyCredits: {
@@ -42,16 +42,12 @@
       this.init();
     }
 
-    init() {
+    async init() {
       this.bindUIEvents();
       this.updateHeaderUI();
+      await this.loadUserProfile();
       this.handleRoute();
-      this.loadUserProfile();
-
-      // Fallback timer: guarantee page loader disappears even if network takes > 2.5s
-      setTimeout(() => {
-        this.hidePageLoader();
-      }, 2500);
+      this.hidePageLoader();
 
       window.addEventListener("hashchange", () => this.handleRoute());
     }
@@ -349,10 +345,10 @@
     }
 
     updateHeaderUI() {
-      const level = AppState.currentLevel || "A1";
-      const format = AppState.currentFormat || "Goethe";
+      const level = AppState.currentLevel;
+      const format = AppState.currentFormat;
       const credits = AppState.dailyCredits;
-      const displayFormatLevel = `${format} ${level}`;
+      const displayFormatLevel = format && level ? `${format} ${level}` : (format || level ? `${format || ''} ${level || ''}`.trim() : "Loading...");
 
       // Sidebar UI
       const badge = document.getElementById("current-level-badge");
