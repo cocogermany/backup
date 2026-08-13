@@ -115,7 +115,9 @@ async function saveProfilePreferences(event) {
       if (window.SupabaseService && typeof window.SupabaseService.submitLearningOnboarding === "function") {
         await window.SupabaseService.submitLearningOnboarding({ level, format, timezone }, idToken);
       } else {
-        const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
+        const workerBase = window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function"
+          ? window.SupabaseService.getWorkerBaseUrl()
+          : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
         await fetch(`${workerBase}/learning/onboarding`, {
           method: "POST",
           headers: {

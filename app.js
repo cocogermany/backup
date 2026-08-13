@@ -20,7 +20,7 @@ let examMaterials = [];
 let currentUserProfile = null;
 let homeSectionObserver = null;
 let pendingHomeSection = "";
-let R2_WORKER_URL = "https://cocogermany-r2-worker.workers.dev";
+let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
 async function getFirebaseTools() {
   if (!firebaseReady) return null;

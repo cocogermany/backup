@@ -10,8 +10,24 @@
 
 const DEFAULT_SUPABASE_URL = "https://ejpxjizncocktzduyqdb.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqcHhqaXpuY29ja3R6ZHV5cWRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTMyNDIsImV4cCI6MjEwMTY2OTI0Mn0.NaaCUM1Yxh3UhFuOZSvDc-CQtLQLWWg_vxMjH1GNOx8";
+const DEFAULT_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+const LEGACY_WORKER_URL = "https://cocogermany-r2-worker.workers.dev";
 
 let supabaseClient = null;
+
+/**
+ * Return the one production Worker URL used by the website and practice app.
+ * Older sessions can retain an obsolete workers.dev hostname in localStorage;
+ * discard only that known-invalid value so it cannot block profile loading.
+ */
+function getWorkerBaseUrl() {
+  const savedUrl = (localStorage.getItem("r2_worker_url") || "").trim().replace(/\/$/, "");
+  if (!savedUrl || savedUrl === LEGACY_WORKER_URL) {
+    if (savedUrl === LEGACY_WORKER_URL) localStorage.removeItem("r2_worker_url");
+    return DEFAULT_WORKER_URL;
+  }
+  return savedUrl;
+}
 
 /**
  * Get or initialize Supabase client instance
@@ -91,7 +107,7 @@ async function fetchMaterialByIdSupabase(id) {
  * Upsert material metadata record to Supabase
  */
 async function saveMaterialMetadataSupabase(material, idToken) {
-  const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
+  const workerBase = getWorkerBaseUrl();
   const endpoint = `${workerBase}/admin/material`;
 
   const payload = {
@@ -227,7 +243,7 @@ async function getPlanDetailsSupabase(planCode = "FREE") {
  * Submit Learning Onboarding preferences ({ level, format, timezone }) to Cloudflare Worker POST /learning/onboarding
  */
 async function submitLearningOnboardingSupabase({ level, format, timezone }, idToken) {
-  const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
+  const workerBase = getWorkerBaseUrl();
   const endpoint = `${workerBase}/learning/onboarding`;
 
   const tz = timezone || (typeof Intl !== "undefined" && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC");
@@ -257,7 +273,7 @@ async function submitLearningOnboardingSupabase({ level, format, timezone }, idT
  * Perform Learning Credits Check via Cloudflare Worker POST /learning/credits/check
  */
 async function checkLearningCreditsSupabase(idToken) {
-  const workerBase = (localStorage.getItem("r2_worker_url") || "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev").replace(/\/$/, "");
+  const workerBase = getWorkerBaseUrl();
   const endpoint = `${workerBase}/learning/credits/check`;
 
   const headers = {
@@ -296,6 +312,7 @@ const SupabaseService = {
   getPlanDetails: getPlanDetailsSupabase,
   submitLearningOnboarding: submitLearningOnboardingSupabase,
   checkLearningCredits: checkLearningCreditsSupabase,
+  getWorkerBaseUrl,
 };
 
 if (typeof window !== "undefined") {

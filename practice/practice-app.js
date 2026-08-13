@@ -158,8 +158,17 @@
     }
 
     async loadCreditsFromWorker(user) {
+      // supabase.js is a module and can finish loading after the regular app
+      // script. Wait for it instead of silently skipping the only authoritative
+      // profile request during that small startup window.
+      let retries = 0;
+      while ((!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") && retries < 50) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        retries += 1;
+      }
+
       if (!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") {
-        console.warn("PracticeApp: Credit service is unavailable; leaving credits unloaded.");
+        console.warn("PracticeApp: Credit service did not initialize; leaving credits unloaded.");
         return;
       }
 
