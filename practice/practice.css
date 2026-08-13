@@ -1648,7 +1648,13 @@ a {
 
 @media (max-width: 900px) {
   .app-sidebar {
+    width: min(280px, 85vw);
     transform: translateX(-100%);
+    z-index: 50;
+  }
+
+  .sidebar-overlay {
+    z-index: 45;
   }
 
   .app-sidebar.mobile-open {
@@ -1696,12 +1702,6 @@ a {
 
   .search-box {
     max-width: 100%;
-  }
-
-  /* Hide module sub-navigation items on mobile/smartphone view, showing only main section titles */
-  .sidebar-nav .nav-subitem,
-  .sidebar-nav .sidebar-label.margin-top {
-    display: none !important;
   }
 }
 
