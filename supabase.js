@@ -176,7 +176,8 @@ async function saveMockAttemptSupabase(attemptData) {
 // ===================================================
 
 /**
- * Fetch or initialize Learning User record in Supabase learning_users table
+ * Fetch a Learning User record. User creation and credit initialization are
+ * intentionally handled only by the authenticated Worker endpoint.
  */
 async function getOrCreateLearningUserSupabase(uid) {
   const supabase = await getSupabaseClient();
@@ -188,19 +189,8 @@ async function getOrCreateLearningUserSupabase(uid) {
 
     if (existing) return existing;
 
-    const newUser = {
-      uid,
-      membership: "FREE",
-      current_level: "A1",
-      format: "goethe",
-      credits_remaining: 2,
-      last_reset: new Date().toISOString().split("T")[0],
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data: created, error: insertErr } = await supabase.from("learning_users").insert([newUser]).select();
-    if (insertErr) throw insertErr;
-    return created ? created[0] : newUser;
+    console.warn("Learning user does not exist. Use the authenticated credit Worker to create it.");
+    return null;
   } catch (err) {
     console.error("Supabase getOrCreateLearningUser error:", err);
     return null;
@@ -208,25 +198,12 @@ async function getOrCreateLearningUserSupabase(uid) {
 }
 
 /**
- * Upsert learning user record into public.learning_users table in Supabase
+ * Deprecated client-side user creation entry point. The authenticated Worker
+ * owns learning_users creation so its plan allowance is always authoritative.
  */
 async function ensureLearningUserSupabase(uid) {
-  if (!uid) return null;
-  const supabase = await getSupabaseClient();
-  if (!supabase) return null;
-
-  try {
-    const { data, error } = await supabase
-      .from("learning_users")
-      .upsert({ uid }, { onConflict: "uid" })
-      .select();
-
-    if (error) throw error;
-    return data ? data[0] : null;
-  } catch (err) {
-    console.error(`Supabase ensureLearningUser error (${uid}):`, err);
-    return null;
-  }
+  if (uid) console.warn("ensureLearningUser is deprecated. Use the authenticated credit Worker instead.");
+  return null;
 }
 
 /**

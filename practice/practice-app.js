@@ -2,7 +2,8 @@
  * Coco Germany - Practice & Mock Exam Web Application Controller
  * practice/practice-app.js
  *
- * Bound to Supabase learning_users table (uid, membership, current_level, daily_credits, credits_remaining, last_reset, format, updated_at).
+ * Profile settings are read from Supabase. Displayed credits are read exclusively
+ * from the authenticated /learning/credits/check Worker endpoint.
  */
 
 (function () {
@@ -12,10 +13,12 @@
   const AppState = {
     currentLevel: localStorage.getItem("coco_practice_level") || "A1",
     currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
-    dailyCredits: JSON.parse(localStorage.getItem("coco_daily_credits")) || {
+    // Do not render a cached credit balance before the Worker verifies it. Cached
+    // values can be stale after a reset or a membership change.
+    dailyCredits: {
       remaining: null,
       total: null,
-      lastReset: new Date().toISOString().split("T")[0]
+      lastReset: null
     },
     streakDays: parseInt(localStorage.getItem("coco_streak") || "0", 10),
     userProfile: {
@@ -40,7 +43,6 @@
     }
 
     init() {
-      this.checkCreditsReset();
       this.bindUIEvents();
       this.updateHeaderUI();
       this.handleRoute();
@@ -85,15 +87,18 @@
             AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
             localStorage.setItem("coco_user_uid", user.uid);
 
+            // The Worker owns the credit calculation, daily reset, and creation
+            // of a new learning_users row. Nothing in the browser may substitute
+            // a plan allowance or reset a balance.
+            await this.loadCreditsFromWorker(user);
+
             if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
               try {
                 const supabase = await window.SupabaseService.getSupabaseClient();
                 if (supabase) {
-                  const todayStr = new Date().toISOString().split("T")[0];
-
                   const { data, error } = await supabase
                     .from("learning_users")
-                    .select("uid, membership, current_level, credits_remaining, last_reset, format")
+                    .select("uid, membership, current_level, format")
                     .eq("uid", user.uid)
                     .maybeSingle();
 
@@ -101,39 +106,10 @@
                     if (data.current_level) AppState.currentLevel = data.current_level;
                     if (data.format) AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
                     if (data.membership) AppState.userProfile.plan = data.membership;
-                    
-                    // Authoritative allowance from plans table
-                    const membershipCode = (data.membership || "FREE").toUpperCase();
-                    const { data: planData } = await supabase.from("plans").select("daily_practice_credits").eq("code", membershipCode).maybeSingle();
-                    const dailyTotal = planData && typeof planData.daily_practice_credits === "number" ? planData.daily_practice_credits : 2;
-                    AppState.dailyCredits.total = dailyTotal;
-
-                    // Daily Reset Check using DB last_reset date
-                    if (data.last_reset && data.last_reset !== todayStr) {
-                      AppState.dailyCredits.remaining = dailyTotal;
-                      await supabase.from("learning_users").update({
-                        credits_remaining: dailyTotal,
-                        last_reset: todayStr,
-                        updated_at: new Date().toISOString()
-                      }).eq("uid", user.uid);
-                    } else if (typeof data.credits_remaining === "number") {
-                      AppState.dailyCredits.remaining = data.credits_remaining;
-                    }
-                  } else if (!data) {
-                    // Create new learning_users record adhering strictly to schema without daily_credits
-                    const newRecord = {
-                      uid: user.uid,
-                      membership: "FREE",
-                      current_level: AppState.currentLevel || "A1",
-                      credits_remaining: 2,
-                      last_reset: todayStr,
-                      format: (AppState.currentFormat || "Goethe").toLowerCase(),
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString()
-                    };
-                    await supabase.from("learning_users").insert([newRecord]);
-                    AppState.dailyCredits.remaining = 2;
-                    AppState.dailyCredits.total = 2;
+                  } else if (error) {
+                    // A profile read failure must never be interpreted as a new
+                    // user or used to change credits.
+                    console.warn("PracticeApp: Supabase profile read error:", error);
                   }
                 }
               } catch (err) {
@@ -151,19 +127,36 @@
       }
     }
 
-    checkCreditsReset() {
-      const todayStr = new Date().toISOString().split("T")[0];
-      if (AppState.dailyCredits.lastReset !== todayStr) {
-        AppState.dailyCredits.remaining = AppState.dailyCredits.total || 2;
-        AppState.dailyCredits.lastReset = todayStr;
-        this.saveState();
+    async loadCreditsFromWorker(user) {
+      if (!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") {
+        console.warn("PracticeApp: Credit service is unavailable; leaving credits unloaded.");
+        return;
+      }
+
+      try {
+        const idToken = await user.getIdToken();
+        const creditRes = await window.SupabaseService.checkLearningCredits(idToken);
+        const remaining = creditRes && creditRes.credits_remaining;
+        const total = creditRes && creditRes.daily_practice_credits;
+
+        if (!creditRes || !creditRes.success || !Number.isFinite(remaining) || !Number.isFinite(total)) {
+          throw new Error("Credit service returned an invalid balance.");
+        }
+
+        AppState.dailyCredits.remaining = remaining;
+        AppState.dailyCredits.total = total;
+        AppState.dailyCredits.lastReset = creditRes.last_reset || null;
+        if (creditRes.membership) AppState.userProfile.plan = creditRes.membership;
+      } catch (err) {
+        // Keep the UI in its unloaded state rather than showing a fabricated
+        // allowance. A later page load will retry the authenticated request.
+        console.warn("PracticeApp: Worker credit check error:", err);
       }
     }
 
     saveState() {
       localStorage.setItem("coco_practice_level", AppState.currentLevel);
       localStorage.setItem("coco_practice_format", AppState.currentFormat);
-      localStorage.setItem("coco_daily_credits", JSON.stringify(AppState.dailyCredits));
       localStorage.setItem("coco_streak", AppState.streakDays.toString());
       localStorage.setItem("coco_stats", JSON.stringify(AppState.stats));
       localStorage.setItem("coco_history", JSON.stringify(AppState.testHistory));
@@ -286,6 +279,11 @@
       const modalClaimBtn = document.getElementById("modal-claim-bonus");
 
       const claimBonusAction = async () => {
+        if (!Number.isFinite(AppState.dailyCredits.remaining) || !Number.isFinite(AppState.dailyCredits.total)) {
+          alert("Credits are still loading. Please try again in a moment.");
+          return;
+        }
+
         if (AppState.dailyCredits.remaining < AppState.dailyCredits.total + 2) {
           AppState.dailyCredits.remaining += 1;
           this.saveState();
@@ -331,12 +329,12 @@
           const uid = AppState.userProfile.uid;
           if (supabase && uid && uid !== "local-user") {
             const todayStr = new Date().toISOString().split("T")[0];
-            await supabase.from("learning_users").upsert({
-              uid: uid,
-              current_level: AppState.currentLevel,
-              format: AppState.currentFormat.toLowerCase(),
-              updated_at: new Date().toISOString()
-            }, { onConflict: "uid" });
+              await supabase.from("learning_users").update({
+                uid: uid,
+                current_level: AppState.currentLevel,
+                format: AppState.currentFormat.toLowerCase(),
+                updated_at: new Date().toISOString()
+              }).eq("uid", uid);
           }
         } catch (e) {
           console.warn("PracticeApp: Supabase learning_users upsert warning:", e);

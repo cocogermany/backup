@@ -90,52 +90,10 @@ window.PracticeHubComponent = {
   },
 
   initHubData: async function (appState) {
-    // 1. Perform Credit Check via Worker ONCE during initial Hub loading
-    let idToken = "";
-    try {
-      const appModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-      const authModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
-      const firebaseConfig = {
-        apiKey: "AIzaSyCAmxLSnUWMuhuuH8oFshZMTajeP2iXvpY",
-        authDomain: "cocogermany-ba33f.firebaseapp.com",
-        projectId: "cocogermany-ba33f",
-        storageBucket: "cocogermany-ba33f.firebasestorage.app",
-        messagingSenderId: "689122181603",
-        appId: "1:689122181603:web:a8bd80e2c187695ac8a0d6",
-      };
-      let app = appModule.getApps().length === 0 ? appModule.initializeApp(firebaseConfig) : appModule.getApp();
-      const auth = authModule.getAuth(app);
-      const user = auth.currentUser || await new Promise((res) => { const u = authModule.onAuthStateChanged(auth, (usr) => { u(); res(usr); }); });
-      if (user) {
-        idToken = await user.getIdToken(true);
-      }
-    } catch (e) {
-      console.warn("PracticeHub: Auth token lookup note:", e);
-    }
+    // Credits are loaded once by PracticeApp from the authenticated Worker.
+    // This component only loads its own profile/material data.
 
-    if (idToken && window.SupabaseService && typeof window.SupabaseService.checkLearningCredits === "function") {
-      try {
-        const creditRes = await window.SupabaseService.checkLearningCredits(idToken);
-        if (creditRes && creditRes.success) {
-          if (appState) {
-            appState.dailyCredits.remaining = creditRes.credits_remaining;
-            appState.dailyCredits.total = creditRes.daily_practice_credits;
-            if (creditRes.membership) appState.userProfile.plan = creditRes.membership;
-          }
-          if (window.PracticeApp) {
-            window.PracticeApp.updateHeaderUI();
-            window.PracticeApp.updateCreditsModalUI();
-            if (typeof window.PracticeApp.hidePageLoader === "function") {
-              window.PracticeApp.hidePageLoader();
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("PracticeHub: Worker credit check error:", err);
-      }
-    }
-
-    // 2. Fetch user learning profile & completed materials list
+    // 1. Fetch user learning profile & completed materials list
     const profile = await this.fetchUserProfile();
     if (profile.level) {
       this.currentQuery.level = profile.level;

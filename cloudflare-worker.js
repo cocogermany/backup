@@ -301,11 +301,14 @@ export default {
         });
 
         let existingUser = null;
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          if (userData && userData.length > 0) {
-            existingUser = userData[0];
-          }
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        if (userData && userData.length > 0) {
+          existingUser = userData[0];
         }
 
         const membershipCode = ((existingUser && existingUser.membership) || body.membership || "FREE").toUpperCase().trim();
@@ -318,13 +321,17 @@ export default {
           },
         });
 
-        let dailyPracticeCredits = 2; // Fallback if plan query fails
-        if (planRes.ok) {
-          const planData = await planRes.json();
-          if (planData && planData.length > 0 && typeof planData[0].daily_practice_credits === "number") {
-            dailyPracticeCredits = planData[0].daily_practice_credits;
-          }
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
         }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        if (!plan || typeof plan.daily_practice_credits !== "number") {
+          return responseJSON({ error: `Plan '${membershipCode}' is missing a numeric daily_practice_credits value.` }, 500, request);
+        }
+        const dailyPracticeCredits = plan.daily_practice_credits;
 
         // 3. Determine effective timezone and local date
         const effectiveTimezone = timezone || (existingUser && existingUser.timezone) || "UTC";
@@ -435,15 +442,38 @@ export default {
         const userData = await userRes.json();
         let userRow = userData && userData.length > 0 ? userData[0] : null;
 
-        // If userRow does not exist, create default row
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Resolve the authoritative allowance before creating a user record.
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        if (!plan || typeof plan.daily_practice_credits !== "number") {
+          return responseJSON({ error: `Plan '${membershipCode}' is missing a numeric daily_practice_credits value.` }, 500, request);
+        }
+        const dailyPracticeCredits = plan.daily_practice_credits;
+
+        // Create missing users only after their allowance has been resolved from
+        // plans. A failed insert is an error, never an in-memory fallback.
         if (!userRow) {
           const todayIsoDate = new Date().toISOString().split("T")[0];
-          const defaultNewUser = {
+          const newUser = {
             uid,
-            membership: "FREE",
+            membership: membershipCode,
             current_level: "A1",
             format: "goethe",
-            credits_remaining: 2,
+            credits_remaining: dailyPracticeCredits,
             last_reset: todayIsoDate,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -457,36 +487,16 @@ export default {
               "Content-Type": "application/json",
               "Prefer": "resolution=merge-duplicates,return=representation",
             },
-            body: JSON.stringify([defaultNewUser]),
+            body: JSON.stringify([newUser]),
           });
 
-          if (createRes.ok) {
-            const createdData = await createRes.json();
-            userRow = createdData && createdData.length > 0 ? createdData[0] : defaultNewUser;
-          } else {
-            userRow = defaultNewUser;
+          if (!createRes.ok) {
+            const errText = await createRes.text();
+            return responseJSON({ error: `Supabase user creation error (${createRes.status}): ${errText}` }, createRes.status, request);
           }
-        }
 
-        const membershipCode = (userRow.membership || "FREE").toUpperCase();
-
-        // 2. Use learning_users.membership to find matching plans.code and plans.daily_practice_credits
-        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
-          headers: {
-            "apikey": serviceRoleKey,
-            "Authorization": `Bearer ${serviceRoleKey}`,
-          },
-        });
-
-        let dailyPracticeCredits = 2; // Default fallback
-        if (planRes.ok) {
-          const planData = await planRes.json();
-          if (planData && planData.length > 0) {
-            const planObj = planData[0];
-            if (typeof planObj.daily_practice_credits === "number") {
-              dailyPracticeCredits = planObj.daily_practice_credits;
-            }
-          }
+          const createdData = await createRes.json();
+          userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
         }
 
         // 3. Compute user's current local calendar date using learning_users.timezone (IANA value) and last_reset
