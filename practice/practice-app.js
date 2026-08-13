@@ -190,22 +190,38 @@
         });
       });
 
-      // Level Dropdown Events
+      // Level Dropdown & Popover Events
       const pill = document.getElementById("level-select-pill");
       const menu = document.getElementById("level-menu-dropdown");
       const topbarLevelBtn = document.getElementById("topbar-level-btn");
+      const topbarPopover = document.getElementById("topbar-level-popover");
 
-      const toggleLevelMenu = (e) => {
-        e.stopPropagation();
-        if (menu) menu.hidden = !menu.hidden;
-      };
+      if (topbarLevelBtn) {
+        topbarLevelBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (menu) menu.hidden = true;
+          if (topbarPopover) topbarPopover.hidden = !topbarPopover.hidden;
+        });
+      }
 
-      if (pill) pill.addEventListener("click", toggleLevelMenu);
-      if (topbarLevelBtn) topbarLevelBtn.addEventListener("click", toggleLevelMenu);
+      if (pill) {
+        pill.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (topbarPopover) topbarPopover.hidden = true;
+          if (menu) menu.hidden = !menu.hidden;
+        });
+      }
 
       document.addEventListener("click", () => {
         if (menu) menu.hidden = true;
+        if (topbarPopover) topbarPopover.hidden = true;
       });
+
+      if (topbarPopover) {
+        topbarPopover.addEventListener("click", (e) => {
+          e.stopPropagation();
+        });
+      }
 
       if (menu) {
         menu.querySelectorAll(".level-opt").forEach(btn => {
@@ -418,6 +434,17 @@
           creditsTextEl.textContent = `${credits.remaining} Credits`;
         }
       }
+
+      // Update Topbar Popover UI elements
+      const popoverBadge = document.getElementById("popover-level-badge");
+      const popoverTargetName = document.getElementById("popover-target-name");
+      const popoverFormatVal = document.getElementById("popover-format-val");
+      const popoverLevelVal = document.getElementById("popover-level-val");
+
+      if (popoverBadge) popoverBadge.textContent = level;
+      if (popoverTargetName) popoverTargetName.textContent = `${format} ${level}`;
+      if (popoverFormatVal) popoverFormatVal.textContent = format;
+      if (popoverLevelVal) popoverLevelVal.textContent = level;
 
       // Update level popover active class
       const menu = document.getElementById("level-menu-dropdown");

@@ -69,7 +69,7 @@ html, body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 button {
@@ -108,7 +108,7 @@ a {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
 }
 
@@ -569,12 +569,12 @@ a {
 /* TOP APP HEADER (STICKY) */
 .app-topbar {
   height: var(--topbar-height);
-  background: rgba(251, 250, 247, 0.92);
-  backdrop-filter: blur(12px);
+  background: rgba(251, 250, 247, 0.94);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -682,6 +682,140 @@ a {
   height: 7px;
   border-radius: 50%;
   background: var(--emerald);
+}
+
+/* TOPBAR LEVEL POPOVER */
+.topbar-level-wrapper {
+  position: relative;
+}
+
+.topbar-level-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 16px 36px rgba(37, 42, 106, 0.14);
+  padding: 18px;
+  z-index: 120;
+  animation: topbarPopoverFadeIn 180ms ease-out;
+}
+
+.topbar-level-popover[hidden] {
+  display: none !important;
+}
+
+@keyframes topbarPopoverFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popover-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.popover-subtitle {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.popover-target-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.popover-badge {
+  background: linear-gradient(135deg, #6359dc, #4d43c8);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.popover-target-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.popover-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.popover-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.popover-meta-row strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.popover-hint {
+  font-size: 0.75rem;
+  color: var(--ink-light);
+  line-height: 1.45;
+  margin-top: 4px;
+  background: rgba(99, 89, 220, 0.05);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 89, 220, 0.1);
+}
+
+.popover-hint code {
+  background: rgba(99, 89, 220, 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.popover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-change-levels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #6359dc, #4f46e5);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.88rem;
+  border-radius: 10px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(99, 89, 220, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.btn-change-levels:hover {
+  background: linear-gradient(135deg, #5348cc, #4338ca);
+  box-shadow: 0 6px 16px rgba(99, 89, 220, 0.35);
+  transform: translateY(-1px);
 }
 
 /* DYNAMIC VIEWPORT */
