@@ -11,8 +11,8 @@
 
   // Application Global State
   const AppState = {
-    currentLevel: localStorage.getItem("coco_practice_level") || "",
-    currentFormat: localStorage.getItem("coco_practice_format") || "",
+    currentLevel: localStorage.getItem("coco_practice_level") || "A1",
+    currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
     // Do not render a cached credit balance before the Worker verifies it. Cached
     // values can be stale after a reset or a membership change.
     dailyCredits: {
@@ -68,7 +68,13 @@
 
     async loadUserProfile() {
       const fetchSupabaseProfile = async (uid) => {
-        if (!uid || !window.SupabaseService || !window.SupabaseService.getSupabaseClient) return;
+        if (!uid) return;
+        let retries = 0;
+        while ((!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") && retries < 25) {
+          await new Promise(r => setTimeout(r, 100));
+          retries++;
+        }
+        if (!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") return;
         try {
           const supabase = await window.SupabaseService.getSupabaseClient();
           if (supabase) {
@@ -343,10 +349,10 @@
     }
 
     updateHeaderUI() {
-      const level = AppState.currentLevel;
-      const format = AppState.currentFormat;
+      const level = AppState.currentLevel || "A1";
+      const format = AppState.currentFormat || "Goethe";
       const credits = AppState.dailyCredits;
-      const displayFormatLevel = format && level ? `${format} ${level}` : format || level || "--";
+      const displayFormatLevel = `${format} ${level}`;
 
       // Sidebar UI
       const badge = document.getElementById("current-level-badge");
