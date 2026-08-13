@@ -11,8 +11,8 @@
 
   // Application Global State
   const AppState = {
-    currentLevel: localStorage.getItem("coco_practice_level") || "A1",
-    currentFormat: localStorage.getItem("coco_practice_format") || "Goethe",
+    currentLevel: localStorage.getItem("coco_practice_level") || "",
+    currentFormat: localStorage.getItem("coco_practice_format") || "",
     // Do not render a cached credit balance before the Worker verifies it. Cached
     // values can be stale after a reset or a membership change.
     dailyCredits: {
@@ -390,6 +390,7 @@
       const level = AppState.currentLevel;
       const format = AppState.currentFormat;
       const credits = AppState.dailyCredits;
+      const displayFormatLevel = format && level ? `${format} ${level}` : format || level || "--";
 
       // Sidebar UI
       const badge = document.getElementById("current-level-badge");
@@ -399,8 +400,8 @@
       const userName = document.getElementById("sidebar-user-name");
       const userPlan = document.getElementById("sidebar-user-plan");
 
-      if (badge) badge.textContent = level;
-      if (name) name.textContent = `${format} ${level}`;
+      if (badge) badge.textContent = level || "--";
+      if (name) name.textContent = displayFormatLevel;
       if (creditsCount) {
         if (credits.remaining === null || credits.remaining === undefined) {
           creditsCount.textContent = "-- / --";
@@ -426,7 +427,7 @@
       const creditsTextEl = document.getElementById("topbar-credits-text");
 
       if (streakEl) streakEl.textContent = `${AppState.streakDays} Day Streak`;
-      if (levelTextEl) levelTextEl.textContent = `${format} ${level}`;
+      if (levelTextEl) levelTextEl.textContent = displayFormatLevel;
       if (creditsTextEl) {
         if (credits.remaining === null || credits.remaining === undefined) {
           creditsTextEl.textContent = "-- Credits";
@@ -441,10 +442,10 @@
       const popoverFormatVal = document.getElementById("popover-format-val");
       const popoverLevelVal = document.getElementById("popover-level-val");
 
-      if (popoverBadge) popoverBadge.textContent = level;
-      if (popoverTargetName) popoverTargetName.textContent = `${format} ${level}`;
-      if (popoverFormatVal) popoverFormatVal.textContent = format;
-      if (popoverLevelVal) popoverLevelVal.textContent = level;
+      if (popoverBadge) popoverBadge.textContent = level || "--";
+      if (popoverTargetName) popoverTargetName.textContent = displayFormatLevel;
+      if (popoverFormatVal) popoverFormatVal.textContent = format || "--";
+      if (popoverLevelVal) popoverLevelVal.textContent = level || "--";
 
       // Update level popover active class
       const menu = document.getElementById("level-menu-dropdown");
