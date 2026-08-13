@@ -3135,7 +3135,13 @@ function updateAuthNavigation() {
   });
 
   document.querySelectorAll("[data-account-link]").forEach((link) => {
-    link.textContent = currentUser ? "My Account" : "Login";
+    const labelText = currentUser ? "My Account" : "Account";
+    const span = link.querySelector("span");
+    if (span) {
+      span.textContent = labelText;
+    } else {
+      link.innerHTML = `<i data-lucide="user"></i>${labelText}`;
+    }
   });
 }
 
@@ -3189,7 +3195,7 @@ async function loadRouteData(path, parts) {
 async function router() {
   const path = location.hash.replace("#", "") || "/";
   const parts = path.split("/").filter(Boolean);
-  document.body.classList.toggle("account-chrome-hidden", path === "/account" || path === "/register");
+  document.body.classList.remove("account-chrome-hidden");
 
   if (currentUser && !profileIsComplete() && path !== "/profile-setup") {
     renderProfileSetup();

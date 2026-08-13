@@ -2589,13 +2589,7 @@ html { scroll-padding-top: 28px; }
   .nav-home-group.is-collapsed .nav-chevron { transform:none; }
 }
 
-body.account-chrome-hidden .site-header,
-body.account-chrome-hidden .footer,
-body.account-chrome-hidden .bottom-nav { display:none; }
 
-@media (min-width:1024px) {
-  body.account-chrome-hidden #app { width:100%; margin-left:0; }
-}
 
 /* Shared desktop footer grid: every route uses the same aligned final row. */
 @media (min-width: 1024px) {
