@@ -54,58 +54,60 @@
           </button>
         </div>
 
-        <!-- Daily Credits Widget -->
-        <div class="sidebar-credits-card">
-          <div class="credits-header">
-            <div class="credits-title">
-              <i data-lucide="zap" class="credits-icon"></i>
-              <span>Daily Credits</span>
-            </div>
-            <span class="credits-count" id="sidebar-credits-count">-- / --</span>
-          </div>
-          <div class="credits-bar-track">
-            <div class="credits-bar-fill" id="sidebar-credits-fill" style="width: 0%;"></div>
-          </div>
-          <div class="credits-footer">
-            <span class="credits-reset-time" id="sidebar-reset-timer">Resets every 24h</span>
-            <button class="credits-claim-btn" id="claim-bonus-btn" title="Claim Daily Bonus">+1 Credit</button>
-          </div>
-        </div>
-
         <!-- Main Navigation Links -->
         <nav class="sidebar-nav">
-          <span class="sidebar-label">MENU</span>
-          <a href="#dashboard" class="nav-item active" data-nav="dashboard">
-            <i data-lucide="layout-dashboard"></i>
-            <span>Dashboard</span>
+          <span class="sidebar-label">NAVIGATION</span>
+
+          <!-- Foldable Dashboard Group -->
+          <div class="nav-group dashboard-nav-group expanded" id="dashboard-nav-group">
+            <div class="nav-group-header">
+              <a href="#dashboard" class="nav-item active" data-nav="dashboard">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Dashboard</span>
+              </a>
+              <button type="button" class="nav-group-toggle" id="dashboard-toggle-btn" title="Toggle Dashboard Modules">
+                <i data-lucide="chevron-down" class="toggle-icon"></i>
+              </button>
+            </div>
+            
+            <div class="nav-subitems-container" id="dashboard-subitems">
+              <a href="#practice?module=Lesen" class="nav-subitem" data-module="Lesen">
+                <i data-lucide="book-open"></i>
+                <span>Lesen</span>
+              </a>
+              <a href="#practice?module=Hören" class="nav-subitem" data-module="Hören">
+                <i data-lucide="headphones"></i>
+                <span>Hören</span>
+              </a>
+              <a href="#practice?module=Grammatik" class="nav-subitem" data-module="Grammatik">
+                <i data-lucide="file-code-2"></i>
+                <span>Grammatik</span>
+              </a>
+              <a href="#practice?module=Schreiben" class="nav-subitem" data-module="Schreiben">
+                <i data-lucide="pen-tool"></i>
+                <span>Schreiben</span>
+              </a>
+              <a href="#practice?module=Sprechen" class="nav-subitem" data-module="Sprechen">
+                <i data-lucide="mic"></i>
+                <span>Sprechen</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="nav-group-divider"></div>
+
+          <!-- Main Pages Outside Dashboard Group -->
+          <a href="#mock-exams" class="nav-item" data-nav="mock-exams">
+            <i data-lucide="award"></i>
+            <span>Mock Exam</span>
           </a>
           <a href="#practice" class="nav-item" data-nav="practice">
-            <i data-lucide="zap"></i>
-            <span>Quick access practice</span>
+            <i data-lucide="layers"></i>
+            <span>Practice</span>
           </a>
-          <a href="#practice?module=Lesen" class="nav-item" data-module="Lesen">
-            <i data-lucide="book-open"></i>
-            <span>Lesen (Reading)</span>
-          </a>
-          <a href="#practice?module=Hören" class="nav-item" data-module="Hören">
-            <i data-lucide="headphones"></i>
-            <span>Hören (Listening)</span>
-          </a>
-          <a href="#practice?module=Grammatik" class="nav-item" data-module="Grammatik">
-            <i data-lucide="file-code-2"></i>
-            <span>Grammatik (Grammar)</span>
-          </a>
-          <a href="#practice?module=Schreiben" class="nav-item" data-module="Schreiben">
-            <i data-lucide="pen-tool"></i>
-            <span>Schreiben (Writing)</span>
-          </a>
-          <a href="#practice?module=Sprechen" class="nav-item" data-module="Sprechen">
-            <i data-lucide="mic"></i>
-            <span>Sprechen (Speaking)</span>
-          </a>
-          <a href="#practice?module=Vokabeln" class="nav-item" data-module="Vokabeln">
-            <i data-lucide="book-marked"></i>
-            <span>Vocabs</span>
+          <a href="#progress" class="nav-item" data-nav="progress">
+            <i data-lucide="line-chart"></i>
+            <span>Progress</span>
           </a>
         </nav>
 
@@ -225,22 +227,22 @@
           <h3>Quick Features & Navigation</h3>
           <button class="modal-close-btn" id="quick-actions-close"><i data-lucide="x"></i></button>
         </div>
-        <div class="action-grid">
-          <a href="../index.html#/account" class="action-item">
-            <div class="action-icon icon-user"><i data-lucide="user"></i></div>
-            <span>Account</span>
+        <div class="action-sheet-grid">
+          <a href="#mock-exams" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+            <div class="action-icon icon-award"><i data-lucide="award"></i></div>
+            <span>Mock Exam</span>
           </a>
-          <a href="../index.html" class="action-item">
-            <div class="action-icon icon-home"><i data-lucide="home"></i></div>
-            <span>Main Home</span>
-          </a>
-          <a href="../index.html#/resources" class="action-item">
-            <div class="action-icon icon-book"><i data-lucide="book-open"></i></div>
-            <span>Resources</span>
+          <a href="#practice" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+            <div class="action-icon icon-practice"><i data-lucide="layers"></i></div>
+            <span>Practice</span>
           </a>
           <a href="../index.html#/videos" class="action-item">
             <div class="action-icon icon-video"><i data-lucide="play-circle"></i></div>
             <span>Videos</span>
+          </a>
+          <a href="../index.html#/resources" class="action-item">
+            <div class="action-icon icon-book"><i data-lucide="book-open"></i></div>
+            <span>Resources</span>
           </a>
           <a href="#progress" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
             <div class="action-icon icon-chart"><i data-lucide="line-chart"></i></div>
@@ -284,12 +286,9 @@
           <p style="font-size:0.75rem; color:var(--muted);">Your available credits reset according to your membership plan.</p>
         </div>
 
-        <div style="display:flex; gap:10px;">
-          <button class="btn-primary" id="modal-claim-bonus" style="flex:1; justify-content:center;">
-            <i data-lucide="plus-circle"></i> Claim +1 Bonus Credit
-          </button>
-          <a href="../index.html#/membership" class="btn-secondary" style="justify-content:center;">
-            Upgrade Pro
+        <div style="display:flex; justify-content:center;">
+          <a href="../index.html#/membership" class="btn-primary" style="justify-content:center; width:100%;">
+            <i data-lucide="sparkles"></i> Upgrade Plan
           </a>
         </div>
       </div>

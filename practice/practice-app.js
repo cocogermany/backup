@@ -197,6 +197,16 @@
         });
       });
 
+      // Dashboard Group Foldable Toggle
+      const dashToggle = document.getElementById("dashboard-toggle-btn");
+      const dashGroup = document.getElementById("dashboard-nav-group");
+      if (dashToggle && dashGroup) {
+        dashToggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          dashGroup.classList.toggle("expanded");
+        });
+      }
+
       // Topbar Level Popover Events
       const topbarLevelBtn = document.getElementById("topbar-level-btn");
       const topbarPopover = document.getElementById("topbar-level-popover");
@@ -274,44 +284,6 @@
         });
       }
 
-      // Claim Bonus Button Events
-      const claimBtn = document.getElementById("claim-bonus-btn");
-      const modalClaimBtn = document.getElementById("modal-claim-bonus");
-
-      const claimBonusAction = async () => {
-        if (!Number.isFinite(AppState.dailyCredits.remaining) || !Number.isFinite(AppState.dailyCredits.total)) {
-          alert("Credits are still loading. Please try again in a moment.");
-          return;
-        }
-
-        if (AppState.dailyCredits.remaining < AppState.dailyCredits.total + 2) {
-          AppState.dailyCredits.remaining += 1;
-          this.saveState();
-          this.updateHeaderUI();
-          this.updateCreditsModalUI();
-
-          if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
-            try {
-              const supabase = await window.SupabaseService.getSupabaseClient();
-              const uid = AppState.userProfile.uid;
-              if (supabase && uid && uid !== "local-user") {
-                await supabase.from("learning_users").update({
-                  credits_remaining: AppState.dailyCredits.remaining,
-                  updated_at: new Date().toISOString()
-                }).eq("uid", uid);
-              }
-            } catch (e) {
-              console.warn("PracticeApp: Supabase bonus credit update note:", e);
-            }
-          }
-          alert("🎉 +1 Bonus Credit added for today!");
-        } else {
-          alert("Maximum daily bonus credits claimed!");
-        }
-      };
-
-      if (claimBtn) claimBtn.addEventListener("click", claimBonusAction);
-      if (modalClaimBtn) modalClaimBtn.addEventListener("click", claimBonusAction);
     }
 
     async setLevelAndFormat(level, format) {
@@ -552,10 +524,16 @@
     }
 
     updateNavLinks(mainPath, searchParams) {
-      const activeModule = searchParams.get("module");
+      const activeModule = searchParams ? searchParams.get("module") : null;
+      const dashGroup = document.getElementById("dashboard-nav-group");
+
+      if (mainPath === "#dashboard" || activeModule) {
+        if (dashGroup) dashGroup.classList.add("expanded");
+      }
 
       document.querySelectorAll(".sidebar-nav .nav-item").forEach(link => {
-        if (link.getAttribute("href") === mainPath) {
+        const href = link.getAttribute("href");
+        if (href === mainPath && !activeModule) {
           link.classList.add("active");
         } else {
           link.classList.remove("active");
@@ -606,7 +584,7 @@
     async startMockExam(mockId) {
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
-        alert("⚡ Out of daily credits! Claim daily bonus or upgrade your account to continue.");
+        alert("⚡ You're out of daily credits. Upgrade your plan to continue.");
         return;
       }
 
@@ -616,7 +594,7 @@
     async openPlayer(materialId) {
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
-        alert("⚡ Out of daily credits! Claim daily bonus or upgrade your account to continue.");
+        alert("⚡ You're out of daily credits. Upgrade your plan to continue.");
         return;
       }
 

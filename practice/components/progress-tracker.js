@@ -40,12 +40,12 @@ window.ProgressTrackerComponent = {
           </div>
 
           <div class="card prog-stat-card">
-            <div class="prog-stat-icon" style="background:#fff7ed; color:#ea580c;">
-              <i data-lucide="flame"></i>
+            <div class="prog-stat-icon" style="background:#f0fdf4; color:#16a34a;">
+              <i data-lucide="target"></i>
             </div>
             <div class="prog-stat-info">
-              <h3>${streak} Days</h3>
-              <p>Active Study Streak</p>
+              <h3>${format} Format</h3>
+              <p>Active Exam Standard</p>
             </div>
           </div>
 

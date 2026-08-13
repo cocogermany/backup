@@ -90,92 +90,25 @@ window.PracticeHubComponent = {
   },
 
   initHubData: async function (appState) {
-    // Credits are loaded once by PracticeApp from the authenticated Worker.
-    // This component only loads its own profile/material data.
+    const level = appState ? (appState.currentLevel || "A1") : "A1";
+    const format = appState ? (appState.currentFormat || "Goethe") : "Goethe";
+    const membership = appState ? (appState.userProfile?.plan || "FREE") : "FREE";
 
-    // 1. Fetch user learning profile & completed materials list
-    const profile = await this.fetchUserProfile();
-    if (profile.level) {
-      this.currentQuery.level = profile.level;
-      if (appState) appState.currentLevel = profile.level;
-    }
-    if (profile.format) {
-      this.currentQuery.format = profile.format;
-    }
-    this.currentQuery.membership = profile.membership || "FREE";
-
-    // Store level/format in localStorage cache
-    localStorage.setItem("coco_practice_level", this.currentQuery.level);
-    localStorage.setItem("coco_practice_format", this.currentQuery.format);
+    this.currentQuery.level = level;
+    this.currentQuery.format = format;
+    this.currentQuery.membership = membership;
 
     // Update Header title if level changed
     const titleEl = document.getElementById("practice-hub-title");
     const badgeEl = document.getElementById("practice-hub-level-badge");
-    if (titleEl) titleEl.textContent = `Practice Hub (${this.currentQuery.level})`;
-    if (badgeEl) badgeEl.textContent = `${this.currentQuery.format} ${this.currentQuery.level} Collection`;
+    if (titleEl) titleEl.textContent = `Practice Hub (${level})`;
+    if (badgeEl) badgeEl.textContent = `${format} ${level} Collection`;
 
-    // 3. Fetch completed materials list for status badges
+    // Fetch completed materials list for status badges
     this.completedMaterialIds = await this.fetchCompletedMaterialIds();
 
-    // 4. Execute fetch & render
+    // Execute fetch & render
     await this.executeFetchAndRender();
-  },
-
-  fetchUserProfile: async function () {
-    let uid = null;
-    try {
-      const appModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-      const authModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
-      const firebaseConfig = {
-        apiKey: "AIzaSyCAmxLSnUWMuhuuH8oFshZMTajeP2iXvpY",
-        authDomain: "cocogermany-ba33f.firebaseapp.com",
-        projectId: "cocogermany-ba33f",
-        storageBucket: "cocogermany-ba33f.firebasestorage.app",
-        messagingSenderId: "689122181603",
-        appId: "1:689122181603:web:a8bd80e2c187695ac8a0d6",
-      };
-      let app = appModule.getApps().length === 0 ? appModule.initializeApp(firebaseConfig) : appModule.getApp();
-      const auth = authModule.getAuth(app);
-      if (auth.currentUser) {
-        uid = auth.currentUser.uid;
-      } else {
-        uid = await new Promise((resolve) => {
-          const unsub = authModule.onAuthStateChanged(auth, (user) => {
-            unsub();
-            resolve(user ? user.uid : null);
-          });
-        });
-      }
-    } catch (e) {
-      console.warn("PracticeHub: Firebase auth lookup note:", e);
-    }
-
-    let dbProfile = null;
-    if (uid && window.SupabaseService && window.SupabaseService.getSupabaseClient) {
-      try {
-        const supabase = await window.SupabaseService.getSupabaseClient();
-        if (supabase) {
-          const { data, error } = await supabase
-            .from("learning_users")
-            .select("uid, membership, current_level, format")
-            .eq("uid", uid)
-            .maybeSingle();
-
-          if (!error && data) {
-            dbProfile = data;
-          }
-        }
-      } catch (err) {
-        console.warn("PracticeHub: Supabase learning_users query error:", err);
-      }
-    }
-
-    return {
-      uid: uid || "local-user",
-      level: dbProfile?.current_level || localStorage.getItem("coco_practice_level") || "A1",
-      format: dbProfile?.format ? (dbProfile.format.toLowerCase() === "telc" ? "TELC" : "Goethe") : (localStorage.getItem("coco_practice_format") || "Goethe"),
-      membership: dbProfile?.membership || "FREE",
-    };
   },
 
   fetchCompletedMaterialIds: async function () {

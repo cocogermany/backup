@@ -90,8 +90,8 @@ window.DashboardComponent = {
             </div>
 
             <div class="hero-quick-start-box">
-              <span class="quick-start-text" id="dash-streak-text">🔥 ${streak} Days Active Streak</span>
-              <a href="#progress" class="btn-secondary btn-sm">Full Stats</a>
+              <span class="quick-start-text">Track your accuracy & learning progress</span>
+              <a href="#progress" class="btn-secondary btn-sm"><i data-lucide="line-chart" style="width:14px;height:14px;display:inline;"></i> Track Progress</a>
             </div>
           </div>
         </div>

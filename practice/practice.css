@@ -490,6 +490,75 @@ a {
   box-shadow: inset 3.5px 0 0 var(--brown);
 }
 
+/* FOLDABLE DASHBOARD NAV GROUP */
+.dashboard-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.nav-group-header .nav-item {
+  flex: 1;
+}
+
+.nav-group-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--muted);
+  transition: background 150ms ease, color 150ms ease;
+  z-index: 2;
+}
+
+.nav-group-toggle:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+
+.dashboard-nav-group .toggle-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 200ms ease;
+}
+
+.dashboard-nav-group:not(.expanded) .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.nav-subitems-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 2px solid var(--line);
+  transition: max-height 220ms ease, opacity 180ms ease;
+}
+
+.dashboard-nav-group:not(.expanded) .nav-subitems-container {
+  display: none;
+}
+
+.nav-group-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 10px 0;
+  opacity: 0.6;
+}
+
 /* Sidebar Footer User */
 .sidebar-footer {
   margin-top: auto;
