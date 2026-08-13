@@ -3055,16 +3055,31 @@ textarea:focus-visible {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.home-hero-actions .button-primary,
-.home-hero-actions .button {
-  background: linear-gradient(135deg, #81e7d7, #41bdb6) !important;
-  color: #102348 !important;
-  box-shadow: 0 14px 30px rgba(23, 179, 169, 0.24) !important;
+.home-hero-actions .button-primary {
+  background: #ffffff !important;
+  color: #2b2672 !important;
+  border: 1px solid #ffffff !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18) !important;
+}
+
+.home-hero-actions .button-primary:hover {
+  background: #f8fafc !important;
+  color: #2b2672 !important;
+}
+
+.home-hero-actions .button-secondary,
+.home-hero-actions .button-secondary * {
+  color: #ffffff !important;
 }
 
 .home-hero-actions .button-secondary {
-  background: rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   box-shadow: none !important;
+}
+
+.home-hero-actions .button-secondary:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
 }
 
 .home-trust-inner {
