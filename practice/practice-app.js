@@ -67,6 +67,40 @@
     }
 
     async loadUserProfile() {
+      const fetchSupabaseProfile = async (uid) => {
+        if (!uid || !window.SupabaseService || !window.SupabaseService.getSupabaseClient) return;
+        try {
+          const supabase = await window.SupabaseService.getSupabaseClient();
+          if (supabase) {
+            const { data, error } = await supabase
+              .from("learning_users")
+              .select("uid, membership, current_level, format")
+              .eq("uid", uid)
+              .maybeSingle();
+
+            if (!error && data) {
+              if (data.current_level) {
+                AppState.currentLevel = data.current_level;
+                localStorage.setItem("coco_practice_level", data.current_level);
+              }
+              if (data.format) {
+                AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
+                localStorage.setItem("coco_practice_format", AppState.currentFormat);
+              }
+              if (data.membership) AppState.userProfile.plan = data.membership;
+              this.updateHeaderUI();
+            }
+          }
+        } catch (err) {
+          console.warn("PracticeApp: Supabase learning_users profile error:", err);
+        }
+      };
+
+      const cachedUid = localStorage.getItem("coco_user_uid");
+      if (cachedUid) {
+        await fetchSupabaseProfile(cachedUid);
+      }
+
       try {
         const appModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
         const authModule = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
@@ -87,35 +121,8 @@
             AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
             localStorage.setItem("coco_user_uid", user.uid);
 
-            // The Worker owns the credit calculation, daily reset, and creation
-            // of a new learning_users row. Nothing in the browser may substitute
-            // a plan allowance or reset a balance.
             await this.loadCreditsFromWorker(user);
-
-            if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
-              try {
-                const supabase = await window.SupabaseService.getSupabaseClient();
-                if (supabase) {
-                  const { data, error } = await supabase
-                    .from("learning_users")
-                    .select("uid, membership, current_level, format")
-                    .eq("uid", user.uid)
-                    .maybeSingle();
-
-                  if (!error && data) {
-                    if (data.current_level) AppState.currentLevel = data.current_level;
-                    if (data.format) AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
-                    if (data.membership) AppState.userProfile.plan = data.membership;
-                  } else if (error) {
-                    // A profile read failure must never be interpreted as a new
-                    // user or used to change credits.
-                    console.warn("PracticeApp: Supabase profile read error:", error);
-                  }
-                }
-              } catch (err) {
-                console.warn("PracticeApp: Supabase learning_users profile error:", err);
-              }
-            }
+            await fetchSupabaseProfile(user.uid);
             this.saveState();
             this.updateHeaderUI();
             this.handleRoute();
@@ -190,47 +197,24 @@
         });
       });
 
-      // Level Dropdown & Popover Events
-      const pill = document.getElementById("level-select-pill");
-      const menu = document.getElementById("level-menu-dropdown");
+      // Topbar Level Popover Events
       const topbarLevelBtn = document.getElementById("topbar-level-btn");
       const topbarPopover = document.getElementById("topbar-level-popover");
 
       if (topbarLevelBtn) {
         topbarLevelBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (menu) menu.hidden = true;
           if (topbarPopover) topbarPopover.hidden = !topbarPopover.hidden;
         });
       }
 
-      if (pill) {
-        pill.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (topbarPopover) topbarPopover.hidden = true;
-          if (menu) menu.hidden = !menu.hidden;
-        });
-      }
-
       document.addEventListener("click", () => {
-        if (menu) menu.hidden = true;
         if (topbarPopover) topbarPopover.hidden = true;
       });
 
       if (topbarPopover) {
         topbarPopover.addEventListener("click", (e) => {
           e.stopPropagation();
-        });
-      }
-
-      if (menu) {
-        menu.querySelectorAll(".level-opt").forEach(btn => {
-          btn.addEventListener("click", (e) => {
-            const level = btn.getAttribute("data-level");
-            if (level) {
-              this.setLevelAndFormat(level, AppState.currentFormat);
-            }
-          });
         });
       }
 

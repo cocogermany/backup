@@ -54,43 +54,6 @@
           </button>
         </div>
 
-        <!-- Level Selector Dropdown -->
-        <div class="level-selector-wrapper">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <label class="sidebar-label" style="margin-bottom:0;">TARGET LEVEL</label>
-            <div style="display:flex; gap:4px;" id="format-select-group">
-              <button type="button" class="btn-secondary btn-sm format-opt active" data-format="Goethe" style="padding:2px 8px; font-size:0.7rem; border-radius:4px; font-weight:700;">Goethe</button>
-              <button type="button" class="btn-secondary btn-sm format-opt" data-format="TELC" style="padding:2px 8px; font-size:0.7rem; border-radius:4px; font-weight:700;">TELC</button>
-            </div>
-          </div>
-          <div class="level-select-pill" id="level-select-pill" tabindex="0">
-            <span class="level-badge" id="current-level-badge">--</span>
-            <div class="level-text">
-              <span class="level-name" id="current-level-name">--</span>
-              <span class="level-sub">Click to switch level</span>
-            </div>
-            <i data-lucide="chevron-down" class="level-chevron"></i>
-          </div>
-          <!-- Level Menu Popover -->
-          <div class="level-menu-dropdown" id="level-menu-dropdown" hidden>
-            <button type="button" class="level-opt active" data-level="A1">
-              <span class="lvl-tag">A1</span> Goethe A1 (Breakthrough)
-            </button>
-            <button type="button" class="level-opt" data-level="A2">
-              <span class="lvl-tag">A2</span> Goethe A2 (Elementary)
-            </button>
-            <button type="button" class="level-opt" data-level="B1">
-              <span class="lvl-tag">B1</span> Goethe B1 (Intermediate)
-            </button>
-            <button type="button" class="level-opt" data-level="B2">
-              <span class="lvl-tag">B2</span> Goethe B2 (Vantage)
-            </button>
-            <button type="button" class="level-opt" data-level="C1">
-              <span class="lvl-tag">C1</span> Goethe C1 (Advanced)
-            </button>
-          </div>
-        </div>
-
         <!-- Daily Credits Widget -->
         <div class="sidebar-credits-card">
           <div class="credits-header">
@@ -116,36 +79,33 @@
             <i data-lucide="layout-dashboard"></i>
             <span>Dashboard</span>
           </a>
-          <a href="#mock-exams" class="nav-item" data-nav="mock-exams">
-            <i data-lucide="award"></i>
-            <span>Mock Exams</span>
-            <span class="nav-badge">Goethe</span>
-          </a>
           <a href="#practice" class="nav-item" data-nav="practice">
-            <i data-lucide="layers"></i>
-            <span>Practice Hub</span>
+            <i data-lucide="zap"></i>
+            <span>Quick access practice</span>
           </a>
-          <a href="#progress" class="nav-item" data-nav="progress">
-            <i data-lucide="line-chart"></i>
-            <span>Learning Progress</span>
-          </a>
-
-          <span class="sidebar-label margin-top">PRACTICE MODULES</span>
-          <a href="#practice?module=Lesen" class="nav-subitem" data-module="Lesen">
+          <a href="#practice?module=Lesen" class="nav-item" data-module="Lesen">
             <i data-lucide="book-open"></i>
             <span>Lesen (Reading)</span>
           </a>
-          <a href="#practice?module=Hören" class="nav-subitem" data-module="Hören">
+          <a href="#practice?module=Hören" class="nav-item" data-module="Hören">
             <i data-lucide="headphones"></i>
             <span>Hören (Listening)</span>
           </a>
-          <a href="#practice?module=Grammatik" class="nav-subitem" data-module="Grammatik">
+          <a href="#practice?module=Grammatik" class="nav-item" data-module="Grammatik">
             <i data-lucide="file-code-2"></i>
             <span>Grammatik (Grammar)</span>
           </a>
-          <a href="#practice?module=Schreiben" class="nav-subitem" data-module="Schreiben">
+          <a href="#practice?module=Schreiben" class="nav-item" data-module="Schreiben">
             <i data-lucide="pen-tool"></i>
             <span>Schreiben (Writing)</span>
+          </a>
+          <a href="#practice?module=Sprechen" class="nav-item" data-module="Sprechen">
+            <i data-lucide="mic"></i>
+            <span>Sprechen (Speaking)</span>
+          </a>
+          <a href="#practice?module=Vokabeln" class="nav-item" data-module="Vokabeln">
+            <i data-lucide="book-marked"></i>
+            <span>Vocabs</span>
           </a>
         </nav>
 
@@ -175,11 +135,6 @@
           </div>
 
           <div class="topbar-right">
-            <!-- Day Streak Button / Chip -->
-            <div class="topbar-streak-chip" title="Current Daily Streak">
-              <i data-lucide="flame"></i>
-              <span id="topbar-streak-count">3 Day Streak</span>
-            </div>
 
             <!-- Credits Button -->
             <button class="topbar-action-btn topbar-credits-btn" id="topbar-credits-btn" title="View & Claim Credits">
