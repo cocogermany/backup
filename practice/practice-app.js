@@ -46,8 +46,6 @@
       this.bindUIEvents();
       this.updateHeaderUI();
       await this.loadUserProfile();
-      this.handleRoute();
-      this.hidePageLoader();
 
       window.addEventListener("hashchange", () => this.handleRoute());
     }
@@ -117,22 +115,45 @@
         let app = appModule.getApps().length === 0 ? appModule.initializeApp(firebaseConfig) : appModule.getApp();
         const auth = authModule.getAuth(app);
 
-        authModule.onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            AppState.userProfile.uid = user.uid;
-            AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
-            localStorage.setItem("coco_user_uid", user.uid);
+        // Wait for Firebase's first auth result before the app renders its pages.
+        // This prevents an empty AppState from rendering a permanent "Loading..."
+        // target while the signed-in user's database profile is still arriving.
+        await new Promise((resolve) => {
+          let settled = false;
+          const finish = () => {
+            if (!settled) {
+              settled = true;
+              resolve();
+            }
+          };
 
-            await this.loadCreditsFromWorker(user);
-            await fetchSupabaseProfile(user.uid);
-            this.saveState();
-            this.updateHeaderUI();
-            this.handleRoute();
-            this.hidePageLoader();
-          }
+          let unsubscribe = null;
+          unsubscribe = authModule.onAuthStateChanged(auth, async (user) => {
+            if (user) {
+              AppState.userProfile.uid = user.uid;
+              AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
+              localStorage.setItem("coco_user_uid", user.uid);
+
+              await this.loadCreditsFromWorker(user);
+              await fetchSupabaseProfile(user.uid);
+              this.saveState();
+              this.updateHeaderUI();
+            }
+
+            // Firebase normally invokes this asynchronously, but defer cleanup
+            // so the handler is also safe if a cached auth state fires at once.
+            Promise.resolve().then(() => {
+              if (unsubscribe) unsubscribe();
+            });
+            finish();
+          });
         });
+        this.handleRoute();
+        this.hidePageLoader();
       } catch (e) {
         console.warn("PracticeApp: Auth init note:", e);
+        this.handleRoute();
+        this.hidePageLoader();
       }
     }
 
@@ -156,6 +177,14 @@
         AppState.dailyCredits.total = total;
         AppState.dailyCredits.lastReset = creditRes.last_reset || null;
         if (creditRes.membership) AppState.userProfile.plan = creditRes.membership;
+        if (creditRes.current_level) {
+          AppState.currentLevel = String(creditRes.current_level).toUpperCase();
+          localStorage.setItem("coco_practice_level", AppState.currentLevel);
+        }
+        if (creditRes.format) {
+          AppState.currentFormat = String(creditRes.format).toLowerCase() === "telc" ? "TELC" : "Goethe";
+          localStorage.setItem("coco_practice_format", AppState.currentFormat);
+        }
       } catch (err) {
         // Keep the UI in its unloaded state rather than showing a fabricated
         // allowance. A later page load will retry the authenticated request.
@@ -419,10 +448,11 @@
 
       // Update format selector active class
       const formatRow = document.getElementById("format-select-group");
+      const normalizedFormat = String(format || "").toLowerCase();
       if (formatRow) {
         formatRow.querySelectorAll(".format-opt").forEach(btn => {
           const btnFmt = btn.getAttribute("data-format");
-          if (btnFmt && btnFmt.toLowerCase() === format.toLowerCase()) {
+          if (btnFmt && normalizedFormat && btnFmt.toLowerCase() === normalizedFormat) {
             btn.classList.add("active");
           } else {
             btn.classList.remove("active");

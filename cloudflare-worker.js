@@ -542,6 +542,8 @@ export default {
             success: true,
             uid,
             membership: userRow.membership || "FREE",
+            current_level: userRow.current_level || "A1",
+            format: userRow.format || "goethe",
             credits_remaining: creditsRemaining,
             daily_practice_credits: dailyPracticeCredits,
             last_reset: lastReset,
