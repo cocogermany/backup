@@ -2728,6 +2728,10 @@ body.exam-mode .app-viewport {
   animation: fadeInModal 0.2s ease-out;
 }
 
+.exam-custom-modal-backdrop[hidden] {
+  display: none;
+}
+
 @keyframes fadeInModal {
   from { opacity: 0; }
   to { opacity: 1; }
