@@ -45,21 +45,24 @@ window.PracticeHubComponent = {
 
         <!-- Filter Bar & Search -->
         <div class="filter-bar">
-          <div class="filter-tabs">
-            <button class="filter-tab-btn ${activeModule === "All" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('All')">
-              All Skills
+          <div class="filter-tabs" role="tablist" aria-label="Skill filters">
+            <button type="button" class="filter-tab-btn ${activeModule === "All" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('All')">
+              All
             </button>
-            <button class="filter-tab-btn ${activeModule === "Lesen" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Lesen')">
-              Lesen (Reading)
+            <button type="button" class="filter-tab-btn ${activeModule === "Lesen" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Lesen')">
+              Lesen
             </button>
-            <button class="filter-tab-btn ${activeModule === "Hören" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Hören')">
-              Hören (Listening)
+            <button type="button" class="filter-tab-btn ${activeModule === "Hören" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Hören')">
+              Hören
             </button>
-            <button class="filter-tab-btn ${activeModule === "Grammatik" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Grammatik')">
+            <button type="button" class="filter-tab-btn ${activeModule === "Grammatik" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Grammatik')">
               Grammatik
             </button>
-            <button class="filter-tab-btn ${activeModule === "Schreiben" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Schreiben')">
+            <button type="button" class="filter-tab-btn ${activeModule === "Schreiben" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Schreiben')">
               Schreiben
+            </button>
+            <button type="button" class="filter-tab-btn ${activeModule === "Sprechen" ? "active" : ""}" onclick="window.PracticeHubComponent.setModuleFilter('Sprechen')">
+              Sprechen
             </button>
           </div>
 
@@ -196,9 +199,6 @@ window.PracticeHubComponent = {
     if (this.currentQuery.format) {
       query = query.ilike("exam", this.currentQuery.format);
     }
-
-    // Keep Sprechen out of Practice Hub
-    query = query.neq("module", "Sprechen");
 
     if (this.currentQuery.activeModule && this.currentQuery.activeModule !== "All") {
       query = query.eq("module", this.currentQuery.activeModule);
