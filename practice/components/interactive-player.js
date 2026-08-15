@@ -2,24 +2,35 @@
  * Coco Germany Practice App - Interactive Player Component (CBT Exam Mode)
  * components/interactive-player.js
  *
- * Computer-based language examination interface with vertical split workspace,
- * independent document scrolling, layout controls, question navigator, and review mode.
+ * Computer-based language examination interface with:
+ * - Two Visual Modes: STYLE ON (Premium Coco) / STYLE OFF (Utilitarian Exam)
+ * - Fixed Top Header with Exit, Countdown / Overtime timer, Layout popover & Style toggle
+ * - Fixed Question Progress Navigator directly below header
+ * - Desktop & Mobile dynamic layout modes (50/50, 60/40, 40/60, Vertical, Full Focus)
+ * - Click-outside & Escape key popover dismissal
+ * - Custom Exit & Time-Expired Dialogs (No native alert/confirm)
+ * - Overtime negative timer (-00:01, -00:02...)
+ * - Zero feedback during exam; full review mode with green/red navigator post-submission
  */
 
 window.InteractivePlayerComponent = {
   activeTimerInterval: null,
   secondsRemaining: 0,
+  isOvertime: false,
+  overtimeSeconds: 0,
   userAnswers: {},
   currentMaterial: null,
   currentSettings: null,
   preloadedMaterial: null,
-  layoutMode: "balanced", // "balanced" (50/50), "reading" (60/40), "questions" (40/60)
-  textSize: "md", // "sm", "md", "lg"
+  styleMode: "on", // "on" (default) | "off"
+  layoutMode: "h-split", // "h-split", "reading-focus", "questions-focus", "v-split", "reading-full", "questions-full"
   activeMobileTab: "reading", // "reading" | "questions"
   isSubmitted: false,
   isReviewMode: false,
   lastScore: { score: 0, total: 0, pct: 0 },
   warningToastShown: false,
+  timeExpiredModalShown: false,
+  activeQuestionId: null,
 
   getPrepSettings: function () {
     try {
@@ -33,19 +44,34 @@ window.InteractivePlayerComponent = {
     };
   },
 
+  getSavedStyleMode: function () {
+    try {
+      const saved = localStorage.getItem("coco_exam_style_mode");
+      if (saved === "off" || saved === "on") return saved;
+    } catch (e) {}
+    return "on"; // Default ON
+  },
+
   render: function (appState, queryParams) {
     const materialId = queryParams ? queryParams.get("id") || "GoA1LM001" : "GoA1LM001";
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    const format = appState ? appState.currentFormat || "goethe" : "goethe";
 
     this.userAnswers = {};
     this.isSubmitted = false;
     this.isReviewMode = false;
     this.warningToastShown = false;
+    this.timeExpiredModalShown = false;
+    this.isOvertime = false;
+    this.overtimeSeconds = 0;
     this.activeMobileTab = "reading";
+    this.styleMode = this.getSavedStyleMode();
+    this.layoutMode = window.innerWidth <= 860 ? "v-split" : "h-split";
 
     const settings = this.currentSettings || this.getPrepSettings();
     this.currentSettings = settings;
+
+    // Attach global click-outside and keydown handlers
+    this.setupGlobalListeners();
 
     // Schedule async material fetch from Supabase (or reuse preloaded material)
     setTimeout(() => {
@@ -53,13 +79,14 @@ window.InteractivePlayerComponent = {
     }, 0);
 
     const isTimerHidden = settings.countdown === false;
+    const isStyleOn = this.styleMode === "on";
 
     return `
-      <div class="exam-cbt-root" id="player-main-container">
-        <!-- FIXED CBT EXAM HEADER -->
+      <div class="exam-cbt-root ${isStyleOn ? 'style-on' : 'style-off'}" id="player-main-container">
+        <!-- FIXED CBT EXAM HEADER (~58px) -->
         <header class="exam-cbt-header" id="exam-cbt-header">
           <div class="exam-cbt-header-left">
-            <button type="button" class="exam-cbt-btn" id="exam-exit-btn" onclick="window.InteractivePlayerComponent.handleExitExam()">
+            <button type="button" class="exam-cbt-btn" id="exam-exit-btn" onclick="window.InteractivePlayerComponent.openExitModal()" title="Leave Exam">
               <i data-lucide="arrow-left" style="width:15px;height:15px;"></i>
               <span>Exit</span>
             </button>
@@ -73,80 +100,58 @@ window.InteractivePlayerComponent = {
           </div>
 
           <div class="exam-cbt-header-right">
-            <!-- Layout / Display Toggle -->
-            <button type="button" class="exam-cbt-btn exam-cbt-btn-icon" id="exam-layout-btn" onclick="window.InteractivePlayerComponent.toggleLayoutPopover()" title="Layout & Display" aria-label="Layout & Display">
-              <i data-lucide="columns" style="width:16px;height:16px;"></i>
+            <!-- Display / Layout Button -->
+            <button type="button" class="exam-cbt-btn exam-cbt-btn-icon" id="exam-layout-btn" onclick="window.InteractivePlayerComponent.toggleLayoutPopover(event)" title="Display Layout" aria-label="Display Layout">
+              <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
             </button>
 
-            <!-- Settings Toggle -->
-            <button type="button" class="exam-cbt-btn exam-cbt-btn-icon" id="exam-settings-btn" onclick="window.InteractivePlayerComponent.toggleSettingsPopover()" title="Exam Settings" aria-label="Exam Settings">
-              <i data-lucide="sliders" style="width:16px;height:16px;"></i>
+            <!-- Dedicated Style Toggle: ON / OFF -->
+            <button type="button" class="exam-style-toggle-btn" id="exam-style-toggle-btn" onclick="window.InteractivePlayerComponent.toggleStyleMode()" title="Toggle Visual Style Mode">
+              <span>${isStyleOn ? '✨ Style ON' : 'Style OFF'}</span>
             </button>
           </div>
         </header>
 
-        <!-- 1-Minute Warning Banner (Injected dynamically) -->
+        <!-- FIXED QUESTION PROGRESS BAR (Directly below Header) -->
+        <nav class="exam-fixed-progress-bar" id="exam-fixed-progress-bar" aria-label="Question Progress">
+          <span class="exam-progress-label">Fragen:</span>
+          <div class="exam-progress-track" id="exam-progress-track">
+            <!-- Rendered dynamically -->
+          </div>
+        </nav>
+
+        <!-- 1-Minute Warning Banner -->
         <div id="exam-timer-toast-container"></div>
 
-        <!-- LAYOUT & DISPLAY POPOVER -->
-        <div class="exam-popover" id="exam-layout-popover" hidden>
-          <div class="exam-popover-header">Display & Layout</div>
-
-          <div class="exam-popover-label">Split View Ratio</div>
-          <div class="exam-layout-options">
-            <button type="button" class="exam-layout-opt ${this.layoutMode === 'balanced' ? 'active' : ''}" id="opt-layout-balanced" onclick="window.InteractivePlayerComponent.setLayoutMode('balanced')">
-              <span>Balanced</span>
+        <!-- FLOATING DISPLAY LAYOUT POPOVER -->
+        <div class="exam-popover" id="exam-layout-popover" hidden onclick="event.stopPropagation()">
+          <div class="exam-popover-header">Display Layout</div>
+          <div class="exam-layout-grid-options">
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'h-split' ? 'active' : ''}" id="opt-layout-h-split" onclick="window.InteractivePlayerComponent.setLayoutMode('h-split')">
+              <span>Horizontal</span>
               <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
             </button>
-            <button type="button" class="exam-layout-opt ${this.layoutMode === 'reading' ? 'active' : ''}" id="opt-layout-reading" onclick="window.InteractivePlayerComponent.setLayoutMode('reading')">
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'reading-focus' ? 'active' : ''}" id="opt-layout-reading-focus" onclick="window.InteractivePlayerComponent.setLayoutMode('reading-focus')">
               <span>Reading Focus</span>
               <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">60 / 40</span>
             </button>
-            <button type="button" class="exam-layout-opt ${this.layoutMode === 'questions' ? 'active' : ''}" id="opt-layout-questions" onclick="window.InteractivePlayerComponent.setLayoutMode('questions')">
-              <span>Questions Focus</span>
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'questions-focus' ? 'active' : ''}" id="opt-layout-questions-focus" onclick="window.InteractivePlayerComponent.setLayoutMode('questions-focus')">
+              <span>Question Focus</span>
               <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">40 / 60</span>
             </button>
-          </div>
-
-          <div class="exam-popover-label">Text Size</div>
-          <div class="exam-font-options">
-            <button type="button" class="exam-font-btn ${this.textSize === 'sm' ? 'active' : ''}" id="btn-font-sm" onclick="window.InteractivePlayerComponent.setTextSize('sm')">A−</button>
-            <button type="button" class="exam-font-btn ${this.textSize === 'md' ? 'active' : ''}" id="btn-font-md" onclick="window.InteractivePlayerComponent.setTextSize('md')">A</button>
-            <button type="button" class="exam-font-btn ${this.textSize === 'lg' ? 'active' : ''}" id="btn-font-lg" onclick="window.InteractivePlayerComponent.setTextSize('lg')">A+</button>
-          </div>
-        </div>
-
-        <!-- SETTINGS POPOVER -->
-        <div class="exam-popover" id="exam-settings-popover" hidden>
-          <div class="exam-popover-header">Exam Settings</div>
-
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <!-- Time Countdown -->
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <span style="font-size:0.82rem; font-weight:600;">Time Countdown</span>
-              <label class="switch-control">
-                <input type="checkbox" id="exam-setting-countdown" ${settings.countdown !== false ? 'checked' : ''} onchange="window.InteractivePlayerComponent.toggleSetting('countdown', this.checked)">
-                <span class="switch-track"></span>
-              </label>
-            </div>
-
-            <!-- Shuffle Questions -->
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <span style="font-size:0.82rem; font-weight:600;">Shuffle Questions</span>
-              <label class="switch-control">
-                <input type="checkbox" id="exam-setting-shuffle" ${settings.shuffle ? 'checked' : ''} onchange="window.InteractivePlayerComponent.toggleSetting('shuffle', this.checked)">
-                <span class="switch-track"></span>
-              </label>
-            </div>
-
-            <!-- Show Explanations (Review) -->
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <span style="font-size:0.82rem; font-weight:600;">Show Explanations</span>
-              <label class="switch-control">
-                <input type="checkbox" id="exam-setting-explanations" ${settings.showExplanations !== false ? 'checked' : ''} onchange="window.InteractivePlayerComponent.toggleSetting('showExplanations', this.checked)">
-                <span class="switch-track"></span>
-              </label>
-            </div>
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'v-split' ? 'active' : ''}" id="opt-layout-v-split" onclick="window.InteractivePlayerComponent.setLayoutMode('v-split')">
+              <span>Vertical</span>
+              <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
+            </button>
+            <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'reading-full' ? 'active' : ''}" id="opt-layout-reading-full" onclick="window.InteractivePlayerComponent.setLayoutMode('reading-full')">
+              <span>Reading</span>
+              <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Full Focus</span>
+            </button>
+            <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'questions-full' ? 'active' : ''}" id="opt-layout-questions-full" onclick="window.InteractivePlayerComponent.setLayoutMode('questions-full')">
+              <span>Questions</span>
+              <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Full Focus</span>
+            </button>
           </div>
         </div>
 
@@ -171,96 +176,120 @@ window.InteractivePlayerComponent = {
             </div>
           </div>
         </main>
+
+        <!-- CUSTOM EXIT CONFIRMATION DIALOG (No native confirm) -->
+        <div class="exam-custom-modal-backdrop" id="exam-exit-modal" hidden>
+          <div class="exam-custom-modal-card">
+            <h2 class="exam-custom-modal-title">Leave exam?</h2>
+            <p class="exam-custom-modal-desc">Your current answers will not be saved if you leave now.</p>
+            <div class="exam-custom-modal-actions">
+              <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.closeExitModal()">
+                Stay in Exam
+              </button>
+              <button type="button" class="btn-exam-primary" style="background:#b91c1c; border-color:#b91c1c;" onclick="window.InteractivePlayerComponent.confirmExitExam()">
+                Exit Exam
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CUSTOM TIME-EXPIRED DIALOG (No native alert) -->
+        <div class="exam-custom-modal-backdrop" id="exam-time-expired-modal" hidden>
+          <div class="exam-custom-modal-card">
+            <h2 class="exam-custom-modal-title">Time is up</h2>
+            <p class="exam-custom-modal-desc">Your allocated exam time has ended. Would you like to continue in overtime or complete the exam now?</p>
+            <div class="exam-custom-modal-actions">
+              <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.continueInOvertime()">
+                Continue (Overtime)
+              </button>
+              <button type="button" class="btn-exam-primary" onclick="window.InteractivePlayerComponent.completeExamNow()">
+                Complete Exam
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
   },
 
-  handleExitExam: function () {
-    if (this.isSubmitted) {
-      this.handleExitExamDirect();
-      return;
+  setupGlobalListeners: function () {
+    // Remove previous listeners if present
+    if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
+    if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
+
+    this._clickHandler = (e) => {
+      const popover = document.getElementById("exam-layout-popover");
+      const btn = document.getElementById("exam-layout-btn");
+      if (popover && !popover.hidden) {
+        if (!popover.contains(e.target) && !btn.contains(e.target)) {
+          popover.hidden = true;
+        }
+      }
+    };
+
+    this._keyHandler = (e) => {
+      if (e.key === "Escape") {
+        const popover = document.getElementById("exam-layout-popover");
+        if (popover) popover.hidden = true;
+        const exitModal = document.getElementById("exam-exit-modal");
+        if (exitModal && !exitModal.hidden) exitModal.hidden = true;
+      }
+    };
+
+    document.addEventListener("click", this._clickHandler);
+    document.addEventListener("keydown", this._keyHandler);
+  },
+
+  toggleStyleMode: function () {
+    this.styleMode = this.styleMode === "on" ? "off" : "on";
+    try {
+      localStorage.setItem("coco_exam_style_mode", this.styleMode);
+    } catch (e) {}
+
+    const container = document.getElementById("player-main-container");
+    const toggleBtn = document.getElementById("exam-style-toggle-btn");
+
+    if (container) {
+      container.classList.toggle("style-on", this.styleMode === "on");
+      container.classList.toggle("style-off", this.styleMode === "off");
     }
-    const confirmed = confirm("Are you sure you want to exit the exam? Your progress will not be saved.");
-    if (confirmed) {
-      if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-      window.location.hash = "#practice";
+
+    if (toggleBtn) {
+      toggleBtn.innerHTML = `<span>${this.styleMode === "on" ? '✨ Style ON' : 'Style OFF'}</span>`;
     }
   },
 
-  handleExitExamDirect: function () {
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-    window.location.hash = "#practice";
-    return true;
-  },
-
-  toggleLayoutPopover: function () {
-    const layoutPop = document.getElementById("exam-layout-popover");
-    const settingsPop = document.getElementById("exam-settings-popover");
-    if (settingsPop) settingsPop.hidden = true;
-
-    if (layoutPop) {
-      layoutPop.hidden = !layoutPop.hidden;
+  toggleLayoutPopover: function (e) {
+    if (e) e.stopPropagation();
+    const popover = document.getElementById("exam-layout-popover");
+    if (popover) {
+      popover.hidden = !popover.hidden;
     }
-  },
-
-  toggleSettingsPopover: function () {
-    const layoutPop = document.getElementById("exam-layout-popover");
-    const settingsPop = document.getElementById("exam-settings-popover");
-    if (layoutPop) layoutPop.hidden = true;
-
-    if (settingsPop) {
-      settingsPop.hidden = !settingsPop.hidden;
-      if (window.lucide) window.lucide.createIcons();
-    }
-  },
-
-  closeAllPopovers: function () {
-    const layoutPop = document.getElementById("exam-layout-popover");
-    const settingsPop = document.getElementById("exam-settings-popover");
-    if (layoutPop) layoutPop.hidden = true;
-    if (settingsPop) settingsPop.hidden = true;
   },
 
   setLayoutMode: function (mode) {
     this.layoutMode = mode;
-    const root = document.documentElement;
-
-    if (mode === "reading") {
-      root.style.setProperty("--exam-reading-w", "60%");
-      root.style.setProperty("--exam-questions-w", "40%");
-    } else if (mode === "questions") {
-      root.style.setProperty("--exam-reading-w", "40%");
-      root.style.setProperty("--exam-questions-w", "60%");
-    } else {
-      // balanced
-      root.style.setProperty("--exam-reading-w", "50%");
-      root.style.setProperty("--exam-questions-w", "50%");
+    const workspace = document.getElementById("exam-cbt-workspace");
+    if (workspace) {
+      // Remove previous layout classes
+      workspace.classList.remove(
+        "layout-h-split",
+        "layout-reading-focus",
+        "layout-questions-focus",
+        "layout-v-split",
+        "layout-reading-full",
+        "layout-questions-full"
+      );
+      workspace.classList.add(`layout-${mode}`);
     }
 
-    document.querySelectorAll(".exam-layout-opt").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".exam-layout-opt-btn").forEach(btn => btn.classList.remove("active"));
     const activeBtn = document.getElementById(`opt-layout-${mode}`);
     if (activeBtn) activeBtn.classList.add("active");
-  },
 
-  setTextSize: function (size) {
-    this.textSize = size;
-    const root = document.documentElement;
-
-    if (size === "sm") {
-      root.style.setProperty("--exam-font-scale", "0.9");
-      root.style.setProperty("--exam-passage-scale", "0.96rem");
-    } else if (size === "lg") {
-      root.style.setProperty("--exam-font-scale", "1.14");
-      root.style.setProperty("--exam-passage-scale", "1.18rem");
-    } else {
-      // md
-      root.style.setProperty("--exam-font-scale", "1");
-      root.style.setProperty("--exam-passage-scale", "1.05rem");
-    }
-
-    document.querySelectorAll(".exam-font-btn").forEach(btn => btn.classList.remove("active"));
-    const activeBtn = document.getElementById(`btn-font-${size}`);
-    if (activeBtn) activeBtn.classList.add("active");
+    // Close layout menu after selection
+    const popover = document.getElementById("exam-layout-popover");
+    if (popover) popover.hidden = true;
   },
 
   switchMobileTab: function (tab) {
@@ -277,27 +306,46 @@ window.InteractivePlayerComponent = {
     if (tabQuestions) tabQuestions.classList.toggle("active", tab === "questions");
   },
 
-  toggleSetting: function (key, value) {
-    if (!this.currentSettings) this.currentSettings = this.getPrepSettings();
-    this.currentSettings[key] = value;
-
-    try {
-      localStorage.setItem("coco_practice_prep_settings", JSON.stringify(this.currentSettings));
-    } catch (e) {}
-
-    if (key === "countdown") {
-      const timerBox = document.getElementById("exam-timer-box");
-      if (!value) {
-        if (timerBox) timerBox.style.display = "none";
-        if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-      } else {
-        if (timerBox) timerBox.style.display = "inline-flex";
-        const remaining = (this.secondsRemaining && this.secondsRemaining > 0)
-          ? this.secondsRemaining
-          : (this.currentMaterial && this.currentMaterial.estimatedSeconds) || 600;
-        this.startTimer(remaining);
-      }
+  openExitModal: function () {
+    if (this.isSubmitted) {
+      this.confirmExitExam();
+      return;
     }
+    const modal = document.getElementById("exam-exit-modal");
+    if (modal) modal.hidden = false;
+  },
+
+  closeExitModal: function () {
+    const modal = document.getElementById("exam-exit-modal");
+    if (modal) modal.hidden = true;
+  },
+
+  confirmExitExam: function () {
+    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
+    if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
+    window.location.hash = "#practice";
+  },
+
+  continueInOvertime: function () {
+    const modal = document.getElementById("exam-time-expired-modal");
+    if (modal) modal.hidden = true;
+
+    this.isOvertime = true;
+    const timerBox = document.getElementById("exam-timer-box");
+    if (timerBox) {
+      timerBox.classList.remove("timer-warning");
+      timerBox.classList.add("timer-overtime");
+    }
+
+    // Start negative count-up timer
+    this.startOvertimeTimer();
+  },
+
+  completeExamNow: function () {
+    const modal = document.getElementById("exam-time-expired-modal");
+    if (modal) modal.hidden = true;
+    this.submitAnswers(this.currentMaterial ? this.currentMaterial.id : null);
   },
 
   initPlayerMaterial: async function (materialId, appState) {
@@ -355,9 +403,8 @@ window.InteractivePlayerComponent = {
 
     this.currentMaterial = material;
 
-    // Apply default layout and text size
-    this.setLayoutMode(this.layoutMode || "balanced");
-    this.setTextSize(this.textSize || "md");
+    // Render fixed progress bar
+    this.renderFixedProgressBar(material.questions || []);
 
     // Timer logic
     const timerBox = document.getElementById("exam-timer-box");
@@ -380,8 +427,25 @@ window.InteractivePlayerComponent = {
           this.renderQuestionsOnlyInterface(material)}
       `;
       if (window.lucide) window.lucide.createIcons();
+      this.setLayoutMode(this.layoutMode);
       this.updateMobileTabQuestionCount();
     }
+  },
+
+  renderFixedProgressBar: function (questions) {
+    const track = document.getElementById("exam-progress-track");
+    if (!track) return;
+
+    if (!questions || questions.length === 0) {
+      track.innerHTML = `<span style="font-size:0.8rem; color:var(--exam-ink-muted);">Schreib-/Sprechaufgabe</span>`;
+      return;
+    }
+
+    track.innerHTML = questions.map((q, idx) => `
+      <button type="button" class="exam-progress-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${q.id}" onclick="window.InteractivePlayerComponent.scrollToQuestion('${q.id}')">
+        ${idx + 1}
+      </button>
+    `).join("");
   },
 
   renderReadingSplitInterface: function (material) {
@@ -389,8 +453,8 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-cbt-workspace" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
-        <!-- LEFT PANEL: READING DOCUMENT -->
+      <div class="exam-cbt-workspace layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
+        <!-- READING PANEL (Left / Top in vertical) -->
         <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Reading Document">
           <div class="exam-doc-meta">
             <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
@@ -405,20 +469,8 @@ window.InteractivePlayerComponent = {
           </article>
         </section>
 
-        <!-- RIGHT PANEL: QUESTIONS -->
+        <!-- QUESTIONS PANEL (Right / Bottom in vertical) -->
         <section class="exam-cbt-questions-panel" id="panel-questions" aria-label="Examination Questions">
-          <!-- Question Navigator -->
-          <nav class="exam-navigator-bar" aria-label="Question Navigator">
-            <span class="exam-nav-label">Fragen:</span>
-            <div class="exam-nav-pills">
-              ${questions.map((q, idx) => `
-                <button type="button" class="exam-nav-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${q.id}" onclick="window.InteractivePlayerComponent.scrollToQuestion('${q.id}')">
-                  ${idx + 1}
-                </button>
-              `).join("")}
-            </div>
-          </nav>
-
           <div class="exam-section-header">
             <h2 class="exam-section-title">Fragen</h2>
             <span class="exam-section-count">${totalQuestions} Fragen</span>
@@ -446,7 +498,7 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-cbt-workspace" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
+      <div class="exam-cbt-workspace layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
         <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Audio Track">
           <div class="exam-doc-meta">
             <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
@@ -475,17 +527,6 @@ window.InteractivePlayerComponent = {
         </section>
 
         <section class="exam-cbt-questions-panel" id="panel-questions" aria-label="Questions">
-          <nav class="exam-navigator-bar">
-            <span class="exam-nav-label">Fragen:</span>
-            <div class="exam-nav-pills">
-              ${questions.map((q, idx) => `
-                <button type="button" class="exam-nav-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${q.id}" onclick="window.InteractivePlayerComponent.scrollToQuestion('${q.id}')">
-                  ${idx + 1}
-                </button>
-              `).join("")}
-            </div>
-          </nav>
-
           <div class="exam-section-header">
             <h2 class="exam-section-title">Fragen</h2>
             <span class="exam-section-count">${totalQuestions} Fragen</span>
@@ -519,17 +560,6 @@ window.InteractivePlayerComponent = {
         </div>
 
         <h1 class="exam-doc-title" style="margin-bottom:20px;">${material.title || "Grammatik Drill"}</h1>
-
-        <nav class="exam-navigator-bar">
-          <span class="exam-nav-label">Fragen:</span>
-          <div class="exam-nav-pills">
-            ${questions.map((q, idx) => `
-              <button type="button" class="exam-nav-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${q.id}" onclick="window.InteractivePlayerComponent.scrollToQuestion('${q.id}')">
-                ${idx + 1}
-              </button>
-            `).join("")}
-          </div>
-        </nav>
 
         <div class="exam-questions-list">
           ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
@@ -629,11 +659,21 @@ window.InteractivePlayerComponent = {
   },
 
   scrollToQuestion: function (qId) {
+    this.activeQuestionId = qId;
     const el = document.getElementById(`exam-q-block-${qId}`);
     const panel = document.getElementById("panel-questions") || document.querySelector(".exam-single-panel-workspace");
     if (el && panel) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+
+    // Switch to questions tab on mobile if currently on reading
+    if (window.innerWidth <= 860 && this.activeMobileTab !== "questions") {
+      this.switchMobileTab("questions");
+    }
+
+    document.querySelectorAll(".exam-progress-pill").forEach(p => p.classList.remove("active"));
+    const activePill = document.getElementById(`nav-pill-${qId}`);
+    if (activePill) activePill.classList.add("active");
   },
 
   selectOption: function (qId, optionValue, element) {
@@ -649,7 +689,7 @@ window.InteractivePlayerComponent = {
       if (radio) radio.checked = true;
     }
 
-    // Update navigator pill
+    // Update fixed progress pill
     const pill = document.getElementById(`nav-pill-${qId}`);
     if (pill) {
       pill.classList.add("answered");
@@ -739,7 +779,7 @@ window.InteractivePlayerComponent = {
               <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i>
               <span>Try Again</span>
             </button>
-            <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.handleExitExamDirect()">
+            <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.confirmExitExam()">
               <i data-lucide="grid" style="width:16px;height:16px;"></i>
               <span>Return to Practice Hub</span>
             </button>
@@ -879,8 +919,18 @@ window.InteractivePlayerComponent = {
     this.isSubmitted = false;
     this.isReviewMode = false;
     this.warningToastShown = false;
+    this.timeExpiredModalShown = false;
+    this.isOvertime = false;
+    this.overtimeSeconds = 0;
+
+    const timerBox = document.getElementById("exam-timer-box");
+    if (timerBox) {
+      timerBox.classList.remove("timer-warning", "timer-overtime");
+    }
 
     if (this.currentMaterial) {
+      this.renderFixedProgressBar(this.currentMaterial.questions || []);
+
       const contentArea = document.getElementById("player-content-area");
       if (contentArea) {
         contentArea.innerHTML = `
@@ -903,6 +953,8 @@ window.InteractivePlayerComponent = {
     if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
     this.secondsRemaining = durationSec;
     this.warningToastShown = false;
+    this.timeExpiredModalShown = false;
+    this.isOvertime = false;
 
     const timerDisplay = document.getElementById("player-timer-display");
     const timerBox = document.getElementById("exam-timer-box");
@@ -920,7 +972,7 @@ window.InteractivePlayerComponent = {
     this.activeTimerInterval = setInterval(() => {
       this.secondsRemaining--;
 
-      // 1-Minute Remaining Warning
+      // 1-Minute Remaining Warning (at <= 60s)
       if (this.secondsRemaining <= 60 && this.secondsRemaining > 0) {
         if (!this.warningToastShown) {
           this.warningToastShown = true;
@@ -939,23 +991,48 @@ window.InteractivePlayerComponent = {
             setTimeout(() => {
               const t = document.getElementById("exam-timer-toast");
               if (t) t.remove();
-            }, 6000);
+            }, 5000);
           }
         }
       }
 
-      // 00:00 Auto Submit
+      // 00:00 Time Expired -> Open Custom Modal
       if (this.secondsRemaining <= 0) {
         clearInterval(this.activeTimerInterval);
         this.secondsRemaining = 0;
         if (timerDisplay) timerDisplay.textContent = "00:00";
-        if (timerBox) timerBox.classList.add("timer-danger");
-        this.submitAnswers(this.currentMaterial ? this.currentMaterial.id : null);
+
+        if (!this.timeExpiredModalShown && !this.isSubmitted) {
+          this.timeExpiredModalShown = true;
+          const timeModal = document.getElementById("exam-time-expired-modal");
+          if (timeModal) timeModal.hidden = false;
+        }
         return;
       }
 
       if (timerDisplay) {
         timerDisplay.textContent = renderDigits(this.secondsRemaining);
+      }
+    }, 1000);
+  },
+
+  startOvertimeTimer: function () {
+    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.overtimeSeconds = 0;
+    const timerDisplay = document.getElementById("player-timer-display");
+
+    const renderOvertime = (sec) => {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `-${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
+
+    if (timerDisplay) timerDisplay.textContent = "-00:00";
+
+    this.activeTimerInterval = setInterval(() => {
+      this.overtimeSeconds++;
+      if (timerDisplay) {
+        timerDisplay.textContent = renderOvertime(this.overtimeSeconds);
       }
     }, 1000);
   },
