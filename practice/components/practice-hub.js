@@ -234,6 +234,14 @@ window.PracticeHubComponent = {
 
     const isPaid = this.isPaidMembership(this.currentQuery.membership);
 
+    const defaultDescriptions = {
+      Lesen: "Reading comprehension passage with targeted practice questions.",
+      Hören: "Audio dialogue with listening comprehension questions.",
+      Grammatik: "Interactive grammar structure and vocabulary exercises.",
+      Schreiben: "Guided writing prompt with evaluation criteria.",
+      Sprechen: "Oral speaking drills and conversational prompts."
+    };
+
     container.innerHTML = materials.map((mat) => {
       const isSchreiben = mat.module === "Schreiben";
       const isLocked = isSchreiben && !isPaid;
@@ -241,37 +249,48 @@ window.PracticeHubComponent = {
 
       const timeStr = mat.module === "Schreiben" ? "20 mins" : mat.module === "Hören" ? "15 mins" : "10 mins";
       const diffStr = mat.difficulty || "Medium";
-      const descStr = `${mat.exam || "goethe"} ${mat.level} ${mat.module} drill - Material #${mat.material_number || 1}`;
+      const descText = mat.description || mat.summary || defaultDescriptions[mat.module] || "Structured skill practice exercise.";
 
-      const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky" : mat.module === "Hören" ? "badge-gold" : mat.module === "Grammatik" ? "badge-emerald" : "badge-rose";
-      const diffBadgeClass = diffStr === "Easy" ? "badge-emerald" : diffStr === "Medium" ? "badge-gold" : "badge-rose";
+      const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky"
+        : mat.module === "Hören" ? "badge-gold"
+        : mat.module === "Grammatik" ? "badge-emerald"
+        : mat.module === "Sprechen" ? "badge-sky"
+        : "badge-rose";
+
+      const diffBadgeClass = diffStr.toLowerCase() === "easy" ? "diff-easy"
+        : diffStr.toLowerCase() === "hard" ? "diff-hard"
+        : "diff-medium";
 
       const actionBtnHtml = isLocked
-        ? `<button class="btn-secondary btn-sm" onclick="window.PracticeHubComponent.showWritingLockedModal()" style="opacity:0.85; border-color:var(--rose); color:var(--rose);">
+        ? `<button type="button" class="btn-secondary btn-sm mat-action-btn" onclick="window.PracticeHubComponent.showWritingLockedModal()">
              <i data-lucide="lock"></i> Locked (Pro)
            </button>`
-        : `<button class="btn-primary btn-sm" onclick="window.PracticeApp.openPlayer('${mat.id}')">
+        : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="window.PracticeApp.openPlayer('${mat.id}')">
              <i data-lucide="play"></i> ${isCompleted ? 'Practice Again' : 'Practice'}
            </button>`;
 
       return `
-        <div class="card material-card mat-item-card" data-title="${mat.title.toLowerCase()}">
-          <div>
-            <div class="mat-card-header">
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span class="badge-pill ${moduleBadgeClass}">
-                  ${mat.module}
-                </span>
-                ${isCompleted ? `<span class="badge-pill badge-emerald"><i data-lucide="check" style="width:10px;height:10px;display:inline;"></i> Completed</span>` : ''}
-              </div>
-              <span style="font-size:0.75rem; color:var(--muted);"><i data-lucide="clock" style="width:12px;height:12px;display:inline;"></i> ${timeStr}</span>
+        <div class="card material-card mat-item-card" data-title="${(mat.title || '').toLowerCase()}">
+          <div class="mat-card-header">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="badge-pill ${moduleBadgeClass}">
+                ${mat.module}
+              </span>
+              ${isCompleted ? `<span class="badge-pill badge-emerald"><i data-lucide="check" style="width:10px;height:10px;display:inline;"></i> Completed</span>` : ''}
             </div>
+            <span class="mat-duration">
+              <i data-lucide="clock"></i>
+              ${timeStr}
+            </span>
+          </div>
+
+          <div class="mat-card-body">
             <h3 class="mat-card-title">${mat.title}</h3>
-            <p class="mat-card-desc">${descStr}</p>
+            <p class="mat-card-desc">${descText}</p>
           </div>
 
           <div class="mat-card-footer">
-            <span class="badge-pill ${diffBadgeClass}">
+            <span class="badge-pill diff-badge ${diffBadgeClass}">
               ${diffStr}
             </span>
             ${actionBtnHtml}

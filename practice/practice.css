@@ -1674,42 +1674,128 @@ a {
   width: 100%;
 }
 
+/* Practice Grid & Material Cards */
 .practice-materials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .material-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px 20px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04), 0 1px 2px rgba(28, 25, 23, 0.02);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
   height: 100%;
+}
+
+.material-card:hover {
+  transform: translateY(-3px);
+  border-color: #d6cfc4;
+  box-shadow: 0 10px 24px -4px rgba(28, 25, 23, 0.08), 0 4px 8px -2px rgba(28, 25, 23, 0.03);
+}
+
+.mat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mat-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.mat-duration i {
+  width: 13px;
+  height: 13px;
+  opacity: 0.85;
+}
+
+.mat-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
 }
 
 .mat-card-title {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 1.08rem;
   font-weight: 700;
   color: var(--ink);
-  margin-bottom: 6px;
-  line-height: 1.3;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: -0.012em;
 }
 
 .mat-card-desc {
-  font-size: 0.8rem;
+  font-size: 0.83rem;
   color: var(--muted);
-  margin-bottom: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .mat-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   border-top: 1px solid var(--line-subtle);
-  padding-top: 10px;
+  padding-top: 14px;
   margin-top: auto;
+}
+
+/* Polished Difficulty Badges */
+.diff-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+}
+
+.diff-easy {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.diff-medium {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.diff-hard {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+/* Action Button inside Material Card */
+.mat-action-btn {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
+}
+
+.mat-action-btn:hover {
+  box-shadow: 0 4px 10px rgba(111, 78, 55, 0.22);
 }
 
 /* Mock Exam Grid */
@@ -2515,13 +2601,11 @@ textarea:focus-visible,
   box-shadow: 0 0 0 4px rgba(99, 89, 220, 0.10);
 }
 
-.material-card,
 .mock-exam-card {
   position: relative;
   overflow: hidden;
 }
 
-.material-card::before,
 .mock-exam-card::before {
   position: absolute;
   top: 0;
@@ -2535,7 +2619,6 @@ textarea:focus-visible,
   transition: opacity var(--transition-fast);
 }
 
-.material-card:hover::before,
 .mock-exam-card:hover::before {
   opacity: 1;
 }
