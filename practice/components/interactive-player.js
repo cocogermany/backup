@@ -31,6 +31,7 @@ window.InteractivePlayerComponent = {
   warningToastShown: false,
   timeExpiredModalShown: false,
   activeQuestionId: null,
+  renderRequestId: 0,
 
   getPrepSettings: function () {
     try {
@@ -52,9 +53,125 @@ window.InteractivePlayerComponent = {
     return "on"; // Default ON
   },
 
+  escapeHtml: function (value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  },
+
+  escapeInlineJavaScript: function (value) {
+    return JSON.stringify(String(value ?? ""))
+      .replace(/'/g, "\\u0027")
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e");
+  },
+
+  sanitizeRichText: function (value) {
+    const text = String(value ?? "");
+    if (typeof document === "undefined") return this.escapeHtml(text);
+
+    const template = document.createElement("template");
+    template.innerHTML = text;
+    template.content.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((node) => node.remove());
+    template.content.querySelectorAll("*").forEach((node) => {
+      [...node.attributes].forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const value = attribute.value.trim().toLowerCase();
+        if (name.startsWith("on") || name === "srcdoc" || ((name === "href" || name === "src") && value.startsWith("javascript:"))) {
+          node.removeAttribute(attribute.name);
+        }
+      });
+    });
+    return template.innerHTML;
+  },
+
+  resolveWorkerUrl: function (path) {
+    const value = String(path || "").trim();
+    if (!value) return "";
+
+    try {
+      const workerBase = window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function"
+        ? window.SupabaseService.getWorkerBaseUrl()
+        : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+      return new URL(value, `${workerBase.replace(/\/$/, "")}/`).href;
+    } catch (error) {
+      console.warn("Player: Invalid material asset URL:", value);
+      return "";
+    }
+  },
+
+  normalizeMaterialContent: function (content) {
+    if (!content || typeof content !== "object") return {};
+
+    const sourceQuestions = Array.isArray(content.questions) ? content.questions : [];
+    const questions = sourceQuestions.map((question, index) => {
+      const options = Array.isArray(question?.options)
+        ? question.options.map((option) => String(option ?? "")).filter(Boolean)
+        : [];
+      if (!options.length) return null;
+
+      return {
+        id: String(question.id || `q-${index + 1}`),
+        question: String(question.question || question.prompt || ""),
+        options,
+        correctAnswer: String(question.correctAnswer ?? question.correct_answer ?? ""),
+        explanation: String(question.explanation || ""),
+      };
+    }).filter(Boolean);
+
+    const audioPath = content.audioUrl || content.audio_url || content.audioPath || content.audio_path;
+    return {
+      ...(typeof content.passage === "string" ? { passage: content.passage } : {}),
+      ...(typeof content.prompt === "string" ? { prompt: content.prompt } : {}),
+      ...(typeof content.title === "string" ? { contentTitle: content.title } : {}),
+      ...(questions.length ? { questions } : {}),
+      ...(audioPath ? { audioUrl: this.resolveWorkerUrl(audioPath) } : {}),
+    };
+  },
+
+  fetchMaterialContent: async function (contentPath) {
+    const contentUrl = this.resolveWorkerUrl(contentPath);
+    if (!contentUrl) return {};
+
+    try {
+      const response = await fetch(contentUrl, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return this.normalizeMaterialContent(await response.json());
+    } catch (error) {
+      console.warn("Player: Material content could not be loaded; using the available fallback.", error);
+      return {};
+    }
+  },
+
+  stopTimer: function () {
+    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.activeTimerInterval = null;
+  },
+
+  cleanup: function () {
+    this.renderRequestId += 1;
+    this.stopTimer();
+    if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
+    if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
+    if (this._routeHandler) window.removeEventListener("hashchange", this._routeHandler);
+    if (this._questionEventRoot && this._questionChangeHandler) {
+      this._questionEventRoot.removeEventListener("change", this._questionChangeHandler);
+    }
+    this._clickHandler = null;
+    this._keyHandler = null;
+    this._routeHandler = null;
+    this._questionEventRoot = null;
+    this._questionChangeHandler = null;
+  },
+
   render: function (appState, queryParams) {
     const materialId = queryParams ? queryParams.get("id") || "GoA1LM001" : "GoA1LM001";
-    const level = appState ? appState.currentLevel || "A1" : "A1";
+    const renderRequestId = ++this.renderRequestId;
+
+    this.stopTimer();
 
     this.userAnswers = {};
     this.isSubmitted = false;
@@ -75,7 +192,7 @@ window.InteractivePlayerComponent = {
 
     // Schedule async material fetch from Supabase (or reuse preloaded material)
     setTimeout(() => {
-      this.initPlayerMaterial(materialId, appState);
+      this.initPlayerMaterial(materialId, appState, renderRequestId);
     }, 0);
 
     const isTimerHidden = settings.countdown === false;
@@ -216,6 +333,7 @@ window.InteractivePlayerComponent = {
     // Remove previous listeners if present
     if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
     if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
+    if (this._routeHandler) window.removeEventListener("hashchange", this._routeHandler);
 
     this._clickHandler = (e) => {
       const popover = document.getElementById("exam-layout-popover");
@@ -236,8 +354,13 @@ window.InteractivePlayerComponent = {
       }
     };
 
+    this._routeHandler = () => {
+      if (window.location.hash.split("?")[0] !== "#player") this.cleanup();
+    };
+
     document.addEventListener("click", this._clickHandler);
     document.addEventListener("keydown", this._keyHandler);
+    window.addEventListener("hashchange", this._routeHandler);
   },
 
   toggleStyleMode: function () {
@@ -321,9 +444,7 @@ window.InteractivePlayerComponent = {
   },
 
   confirmExitExam: function () {
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-    if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
-    if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
+    this.cleanup();
     window.location.hash = "#practice";
   },
 
@@ -348,7 +469,7 @@ window.InteractivePlayerComponent = {
     this.submitAnswers(this.currentMaterial ? this.currentMaterial.id : null);
   },
 
-  initPlayerMaterial: async function (materialId, appState) {
+  initPlayerMaterial: async function (materialId, appState, renderRequestId = this.renderRequestId) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
     let material = this.preloadedMaterial && this.preloadedMaterial.id === materialId ? this.preloadedMaterial : null;
 
@@ -360,6 +481,7 @@ window.InteractivePlayerComponent = {
             .from("materials")
             .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
             .eq("id", materialId)
+            .eq("active", true)
             .maybeSingle();
 
           if (dbMat) {
@@ -383,6 +505,14 @@ window.InteractivePlayerComponent = {
       }
     }
 
+    if (renderRequestId !== this.renderRequestId) return;
+
+    if (material && material.contentPath) {
+      const content = await this.fetchMaterialContent(material.contentPath);
+      if (renderRequestId !== this.renderRequestId) return;
+      material = { ...material, ...content };
+    }
+
     if (!material) {
       material = this.getFallbackMaterialContent(materialId, level);
     } else if (!material.passage && !material.questions && !material.prompt) {
@@ -390,9 +520,11 @@ window.InteractivePlayerComponent = {
       material.passage = fallback.passage;
       material.questions = fallback.questions ? JSON.parse(JSON.stringify(fallback.questions)) : [];
       material.prompt = fallback.prompt;
-      material.isWriting = material.module === "Schreiben";
-      material.isSpeaking = material.module === "Sprechen";
     }
+
+    material.isWriting = material.module === "Schreiben";
+    material.isSpeaking = material.module === "Sprechen";
+    material.questions = Array.isArray(material.questions) ? material.questions : [];
 
     const settings = this.currentSettings || this.getPrepSettings();
     this.currentSettings = settings;
@@ -417,19 +549,24 @@ window.InteractivePlayerComponent = {
     }
 
     // Render workspace
-    const contentArea = document.getElementById("player-content-area");
-    if (contentArea) {
-      contentArea.innerHTML = `
-        ${material.isWriting ? this.renderWritingInterface(material) : 
-          material.isSpeaking ? this.renderSpeakingInterface(material) : 
-          material.module === "Hören" ? this.renderListeningInterface(material) :
-          material.passage ? this.renderReadingSplitInterface(material) : 
-          this.renderQuestionsOnlyInterface(material)}
-      `;
-      if (window.lucide) window.lucide.createIcons();
-      this.setLayoutMode(this.layoutMode);
-      this.updateMobileTabQuestionCount();
-    }
+    this.mountMaterialWorkspace(document.getElementById("player-content-area"), material);
+  },
+
+  renderMaterialWorkspace: function (material) {
+    if (material.isWriting) return this.renderWritingInterface(material);
+    if (material.isSpeaking) return this.renderSpeakingInterface(material);
+    if (material.module === "Hören") return this.renderListeningInterface(material);
+    if (material.passage) return this.renderReadingSplitInterface(material);
+    return this.renderQuestionsOnlyInterface(material);
+  },
+
+  mountMaterialWorkspace: function (contentArea, material) {
+    if (!contentArea) return;
+    contentArea.innerHTML = this.renderMaterialWorkspace(material);
+    this.bindQuestionOptionEvents(contentArea);
+    if (window.lucide) window.lucide.createIcons();
+    this.setLayoutMode(this.layoutMode);
+    this.updateMobileTabQuestionCount();
   },
 
   renderFixedProgressBar: function (questions) {
@@ -442,7 +579,7 @@ window.InteractivePlayerComponent = {
     }
 
     track.innerHTML = questions.map((q, idx) => `
-      <button type="button" class="exam-progress-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${q.id}" onclick="window.InteractivePlayerComponent.scrollToQuestion('${q.id}')">
+      <button type="button" class="exam-progress-pill ${this.userAnswers[q.id] ? 'answered' : ''}" id="nav-pill-${this.escapeHtml(q.id)}" onclick='window.InteractivePlayerComponent.scrollToQuestion(${this.escapeInlineJavaScript(q.id)})'>
         ${idx + 1}
       </button>
     `).join("");
@@ -457,15 +594,15 @@ window.InteractivePlayerComponent = {
         <!-- READING PANEL (Left / Top in vertical) -->
         <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Reading Document">
           <div class="exam-doc-meta">
-            <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
+            <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
             <span>·</span>
-            <span>${material.module || "Lesen"}</span>
+            <span>${this.escapeHtml(material.module || "Lesen")}</span>
           </div>
 
-          <h1 class="exam-doc-title">${material.title || "Lesetext"}</h1>
+          <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Lesetext")}</h1>
 
           <article class="exam-doc-body">
-            ${material.passage}
+            ${this.sanitizeRichText(material.passage)}
           </article>
         </section>
 
@@ -483,7 +620,7 @@ window.InteractivePlayerComponent = {
 
           <!-- Submit Bar -->
           <div class="exam-submit-bar">
-            <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick="window.InteractivePlayerComponent.submitAnswers('${material.id}', this)">
+            <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
               <i data-lucide="check" style="width:16px;height:16px;"></i>
               <span>Prüfung abgeben (Submit Exam)</span>
             </button>
@@ -501,27 +638,26 @@ window.InteractivePlayerComponent = {
       <div class="exam-cbt-workspace layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
         <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Audio Track">
           <div class="exam-doc-meta">
-            <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
+            <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
             <span>·</span>
             <span>Hören</span>
           </div>
 
-          <h1 class="exam-doc-title">${material.title || "Hörtext"}</h1>
+          <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
 
-          <div style="background:#f8fafc; border:1px solid var(--exam-border-color); border-radius:4px; padding:16px; margin-bottom:20px;">
+          <div class="exam-audio-card">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
               <i data-lucide="volume-2" style="width:18px;height:18px;color:#1e293b;"></i>
               <span style="font-size:0.85rem; font-weight:700;">Audio Track</span>
             </div>
-            <audio controls style="width:100%;">
-              <source src="${material.audioUrl || ""}" type="audio/mpeg">
-              Your browser does not support audio playback.
-            </audio>
+            ${material.audioUrl
+              ? `<audio controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
+              : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
           </div>
 
           ${material.passage ? `
             <article class="exam-doc-body">
-              ${material.passage}
+              ${this.sanitizeRichText(material.passage)}
             </article>
           ` : ""}
         </section>
@@ -537,7 +673,7 @@ window.InteractivePlayerComponent = {
           </div>
 
           <div class="exam-submit-bar">
-            <button type="button" class="exam-primary-submit-btn" onclick="window.InteractivePlayerComponent.submitAnswers('${material.id}', this)">
+            <button type="button" class="exam-primary-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
               <i data-lucide="check" style="width:16px;height:16px;"></i>
               <span>Prüfung abgeben (Submit Exam)</span>
             </button>
@@ -554,19 +690,19 @@ window.InteractivePlayerComponent = {
     return `
       <div class="exam-single-panel-workspace">
         <div class="exam-doc-meta">
-          <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
+          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
-          <span>${material.module || "Grammatik"}</span>
+          <span>${this.escapeHtml(material.module || "Grammatik")}</span>
         </div>
 
-        <h1 class="exam-doc-title" style="margin-bottom:20px;">${material.title || "Grammatik Drill"}</h1>
+        <h1 class="exam-doc-title" style="margin-bottom:20px;">${this.escapeHtml(material.contentTitle || material.title || "Grammatik Drill")}</h1>
 
         <div class="exam-questions-list">
           ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
         </div>
 
         <div class="exam-submit-bar">
-          <button type="button" class="exam-primary-submit-btn" onclick="window.InteractivePlayerComponent.submitAnswers('${material.id}', this)">
+          <button type="button" class="exam-primary-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
             <i data-lucide="check" style="width:16px;height:16px;"></i>
             <span>Prüfung abgeben (Submit Exam)</span>
           </button>
@@ -577,20 +713,21 @@ window.InteractivePlayerComponent = {
 
   renderQuestionBlock: function (q, idx, total) {
     const isAnswered = Boolean(this.userAnswers[q.id]);
+    const questionId = String(q.id || `q-${idx + 1}`);
 
     return `
-      <div class="exam-q-block" id="exam-q-block-${q.id}">
+      <div class="exam-q-block" id="exam-q-block-${this.escapeHtml(questionId)}">
         <div class="exam-q-counter">${idx + 1} / ${total}</div>
-        <div class="exam-q-text">${q.question}</div>
+        <div class="exam-q-text">${this.escapeHtml(q.question)}</div>
 
         <div class="exam-radio-list">
           ${q.options.map((opt) => {
             const isSelected = this.userAnswers[q.id] === opt;
             return `
-              <label class="exam-radio-item ${isSelected ? 'selected' : ''}" onclick="window.InteractivePlayerComponent.selectOption('${q.id}', '${opt.replace(/'/g, "\\'")}', this)">
-                <input type="radio" name="q_${q.id}" value="${opt.replace(/"/g, '&quot;')}" ${isSelected ? 'checked' : ''}>
+              <label class="exam-radio-item ${isSelected ? 'selected' : ''}">
+                <input class="exam-radio-input" type="radio" name="q_${this.escapeHtml(questionId)}" value="${this.escapeHtml(opt)}" data-question-id="${this.escapeHtml(questionId)}" data-option-value="${this.escapeHtml(opt)}" ${isSelected ? 'checked' : ''}>
                 <span class="exam-radio-circle"></span>
-                <span class="exam-radio-label">${opt}</span>
+                <span class="exam-radio-label">${this.escapeHtml(opt)}</span>
               </label>
             `;
           }).join("")}
@@ -605,15 +742,15 @@ window.InteractivePlayerComponent = {
     return `
       <div class="exam-single-panel-workspace">
         <div class="exam-doc-meta">
-          <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
+          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
           <span>Schreiben</span>
         </div>
 
-        <h1 class="exam-doc-title">${material.title || "Schreibaufgabe"}</h1>
+        <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Schreibaufgabe")}</h1>
 
-        <div style="background:#ffffff; border:1px solid var(--exam-border-color); border-radius:4px; padding:20px; margin-bottom:20px;">
-          <p style="font-size:0.95rem; color:#1e293b; line-height:1.6; margin:0 0 16px 0;">${material.prompt || "Write a response to the prompt."}</p>
+        <div class="exam-prompt-card">
+          <p class="exam-prompt-text">${this.escapeHtml(material.prompt || "Write a response to the prompt.")}</p>
           <textarea class="writing-textarea" id="writing-input" placeholder="Liebe/r ..., ich schreibe dir, weil..." oninput="window.InteractivePlayerComponent.updateWordCount(this)"></textarea>
           <div style="margin-top:10px; font-size:0.8rem; color:var(--exam-ink-muted);" id="word-count-display">
             Word Count: 0 words (Recommended: 30-40 words)
@@ -632,12 +769,12 @@ window.InteractivePlayerComponent = {
     return `
       <div class="exam-single-panel-workspace">
         <div class="exam-doc-meta">
-          <span>${(material.exam || "Goethe").toUpperCase()} ${material.level || "A1"}</span>
+          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
           <span>Sprechen</span>
         </div>
 
-        <h1 class="exam-doc-title">${material.title || "Mündliche Prüfung"}</h1>
+        <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Mündliche Prüfung")}</h1>
 
         <div class="speaking-prep-box" style="border-radius:4px; margin-bottom:20px;">
           <i data-lucide="mic" style="width:32px;height:32px;color:#059669;margin-bottom:6px;"></i>
@@ -646,8 +783,8 @@ window.InteractivePlayerComponent = {
           <p style="font-size:0.82rem; color:#047857; margin:0;">Read the prompt card and prepare your spoken German response.</p>
         </div>
 
-        <div style="background:#ffffff; border:1px solid var(--exam-border-color); border-radius:4px; padding:20px; margin-bottom:20px;">
-          <p style="font-size:0.95rem; color:#1e293b; line-height:1.6; margin:0;">${material.prompt}</p>
+        <div class="exam-prompt-card">
+          <p class="exam-prompt-text">${this.escapeHtml(material.prompt || "Prepare a short spoken response to the prompt.")}</p>
         </div>
 
         <button type="button" class="exam-primary-submit-btn" onclick="window.InteractivePlayerComponent.finishSpeaking()">
@@ -676,17 +813,31 @@ window.InteractivePlayerComponent = {
     if (activePill) activePill.classList.add("active");
   },
 
+  bindQuestionOptionEvents: function (root) {
+    if (!root) return;
+    if (this._questionEventRoot && this._questionChangeHandler) {
+      this._questionEventRoot.removeEventListener("change", this._questionChangeHandler);
+    }
+
+    this._questionEventRoot = root;
+    this._questionChangeHandler = (event) => {
+      const input = event.target.closest(".exam-radio-input");
+      if (!input || !input.checked) return;
+      this.selectOption(input.dataset.questionId, input.dataset.optionValue, input);
+    };
+    root.addEventListener("change", this._questionChangeHandler);
+  },
+
   selectOption: function (qId, optionValue, element) {
     if (this.isSubmitted && this.isReviewMode) return;
 
     this.userAnswers[qId] = optionValue;
 
-    const block = element.closest(".exam-q-block");
+    const optionItem = element.closest(".exam-radio-item");
+    const block = optionItem?.closest(".exam-q-block");
     if (block) {
       block.querySelectorAll(".exam-radio-item").forEach(item => item.classList.remove("selected"));
-      element.classList.add("selected");
-      const radio = element.querySelector("input[type='radio']");
-      if (radio) radio.checked = true;
+      if (optionItem) optionItem.classList.add("selected");
     }
 
     // Update fixed progress pill
@@ -809,10 +960,12 @@ window.InteractivePlayerComponent = {
           Back to Summary
         </button>
       </div>
-      ${material.passage ? this.renderReadingSplitInterface(material) : this.renderQuestionsOnlyInterface(material)}
+      ${this.renderMaterialWorkspace(material)}
     `;
 
+    this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
+    this.setLayoutMode(this.layoutMode);
 
     // Fill review feedback on each question
     const questions = material.questions || [];
@@ -823,7 +976,7 @@ window.InteractivePlayerComponent = {
       const fb = document.getElementById(`feedback-${q.id}`);
       const navPill = document.getElementById(`nav-pill-${q.id}`);
       const isCorrect = userAns === q.correctAnswer;
-      const explHtml = (showExpl && q.explanation) ? `<div style="margin-top:6px; font-size:0.8rem; opacity:0.9;">${q.explanation}</div>` : "";
+      const explHtml = (showExpl && q.explanation) ? `<div style="margin-top:6px; font-size:0.8rem; opacity:0.9;">${this.escapeHtml(q.explanation)}</div>` : "";
 
       if (fb) {
         fb.hidden = false;
@@ -832,7 +985,7 @@ window.InteractivePlayerComponent = {
           fb.innerHTML = `<strong>✓ Richtig (Correct)!</strong>${explHtml}`;
         } else {
           fb.className = "exam-review-feedback feedback-incorrect";
-          fb.innerHTML = `<strong>✗ Falsch (Incorrect).</strong> Richtige Antwort: <strong>${q.correctAnswer}</strong>.${explHtml}`;
+          fb.innerHTML = `<strong>✗ Falsch (Incorrect).</strong> Richtige Antwort: <strong>${this.escapeHtml(q.correctAnswer)}</strong>.${explHtml}`;
         }
       }
 
@@ -933,13 +1086,7 @@ window.InteractivePlayerComponent = {
 
       const contentArea = document.getElementById("player-content-area");
       if (contentArea) {
-        contentArea.innerHTML = `
-          ${this.currentMaterial.isWriting ? this.renderWritingInterface(this.currentMaterial) : 
-            this.currentMaterial.isSpeaking ? this.renderSpeakingInterface(this.currentMaterial) : 
-            this.currentMaterial.passage ? this.renderReadingSplitInterface(this.currentMaterial) : 
-            this.renderQuestionsOnlyInterface(this.currentMaterial)}
-        `;
-        if (window.lucide) window.lucide.createIcons();
+        this.mountMaterialWorkspace(contentArea, this.currentMaterial);
       }
 
       const settings = this.currentSettings || this.getPrepSettings();
@@ -1038,12 +1185,13 @@ window.InteractivePlayerComponent = {
   },
 
   getFallbackMaterialContent: function (id, level = "A1") {
+    const normalizedId = String(id || "").toLowerCase();
     return {
       id: id,
       title: `${level} Practice Material (${id})`,
       exam: "goethe",
       level: level,
-      module: id.includes("hoeren") ? "Hören" : id.includes("schreiben") ? "Schreiben" : id.includes("sprechen") ? "Sprechen" : "Lesen",
+      module: normalizedId.includes("hoeren") ? "Hören" : normalizedId.includes("schreiben") ? "Schreiben" : normalizedId.includes("sprechen") ? "Sprechen" : "Lesen",
       estimatedSeconds: 600,
       passage: `
         <p><strong>Von:</strong> Anna Berger &lt;anna.b@gmx.de&gt;<br>
@@ -1083,9 +1231,9 @@ window.InteractivePlayerComponent = {
           explanation: "Anna bittet: 'Kannst du bitte einen Salat oder einen Kuchen mitbringen?'"
         }
       ],
-      prompt: id.includes("schreiben") ? "Ihr Freund Thomas hat Sie zu seiner Hochzeit am Samstag eingeladen. Schreiben Sie eine kurze E-Mail: Bestätigen Sie Ihr Kommen und fragen Sie nach der Uhrzeit." : "Stellen Sie sich vor: Name, Alter, Land, Wohnort, Sprachen, Beruf.",
-      isWriting: id.includes("schreiben"),
-      isSpeaking: id.includes("sprechen")
+      prompt: normalizedId.includes("schreiben") ? "Ihr Freund Thomas hat Sie zu seiner Hochzeit am Samstag eingeladen. Schreiben Sie eine kurze E-Mail: Bestätigen Sie Ihr Kommen und fragen Sie nach der Uhrzeit." : "Stellen Sie sich vor: Name, Alter, Land, Wohnort, Sprachen, Beruf.",
+      isWriting: normalizedId.includes("schreiben"),
+      isSpeaking: normalizedId.includes("sprechen")
     };
   }
 };
