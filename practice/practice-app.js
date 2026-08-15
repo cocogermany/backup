@@ -40,6 +40,10 @@
   class PracticeApp {
     constructor() {
       window.PracticeApp = this;
+      // Firebase is loaded with the modular SDK, which does not create the
+      // legacy `window.firebase` global. Keep the signed-in user for Worker
+      // calls that require a Firebase ID token.
+      this.currentFirebaseUser = null;
       this.init();
     }
 
@@ -130,6 +134,7 @@
 
           let unsubscribe = null;
           unsubscribe = authModule.onAuthStateChanged(auth, async (user) => {
+            this.currentFirebaseUser = user || null;
             if (user) {
               AppState.userProfile.uid = user.uid;
               AppState.userProfile.name = user.displayName || user.email?.split("@")[0] || "Learner";
@@ -200,6 +205,10 @@
         // allowance. A later page load will retry the authenticated request.
         console.warn("PracticeApp: Worker credit check error:", err);
       }
+    }
+
+    async getFirebaseIdToken() {
+      return this.currentFirebaseUser ? this.currentFirebaseUser.getIdToken() : "";
     }
 
     saveState() {
@@ -828,11 +837,7 @@
       let newRemaining = null;
 
       try {
-        let idToken = "";
-        if (window.firebase && window.firebase.auth) {
-          const user = window.firebase.auth().currentUser;
-          if (user) idToken = await user.getIdToken();
-        }
+        const idToken = await this.getFirebaseIdToken();
 
         if (window.SupabaseService && window.SupabaseService.consumeCreditWorker) {
           const res = await window.SupabaseService.consumeCreditWorker(idToken);
@@ -889,11 +894,7 @@
       let deductOk = false;
       let newRemaining = null;
       try {
-        let idToken = "";
-        if (window.firebase && window.firebase.auth) {
-          const user = window.firebase.auth().currentUser;
-          if (user) idToken = await user.getIdToken();
-        }
+        const idToken = await this.getFirebaseIdToken();
         if (window.SupabaseService && window.SupabaseService.consumeCreditWorker) {
           const res = await window.SupabaseService.consumeCreditWorker(idToken);
           if (res && res.success) {

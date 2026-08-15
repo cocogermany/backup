@@ -600,11 +600,6 @@ export default {
 
         const userData = await userRes.json();
         let userRow = userData && userData.length > 0 ? userData[0] : null;
-
-        if (!userRow) {
-          return responseJSON({ error: "User record not found." }, 404, request);
-        }
-
         const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
 
         // 2. Fetch plan daily credits
@@ -623,7 +618,40 @@ export default {
           }
         }
 
-        // 3. Reset credits if local date changed
+        // Initialize user if missing
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const newUser = {
+            uid,
+            membership: membershipCode,
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: dailyPracticeCredits,
+            last_reset: todayIsoDate,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (createRes.ok) {
+            const createdData = await createRes.json();
+            userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
+          } else {
+            userRow = newUser;
+          }
+        }
+
+        // 3. Check timezone & calendar day
         const userTimezone = userRow.timezone || "UTC";
         let userLocalToday = "";
         try {
@@ -641,26 +669,73 @@ export default {
         let creditsRemaining = typeof userRow.credits_remaining === "number" ? userRow.credits_remaining : dailyPracticeCredits;
         let lastReset = userRow.last_reset ? String(userRow.last_reset).split("T")[0] : "";
 
+        // Case A: New calendar day in user's timezone -> Reset allowance & deduct 1 credit
         if (!lastReset || userLocalToday > lastReset) {
-          creditsRemaining = dailyPracticeCredits;
-          lastReset = userLocalToday;
-        }
+          if (dailyPracticeCredits <= 0) {
+            return responseJSON(
+              {
+                success: false,
+                error: "insufficient_credits",
+                credits_remaining: 0,
+                membership: membershipCode,
+              },
+              200,
+              request
+            );
+          }
 
-        // 4. Verify credits > 0
-        if (creditsRemaining <= 0) {
+          const newCredits = dailyPracticeCredits - 1;
+          const resetRes = await fetch(
+            `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`,
+            {
+              method: "PATCH",
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+              },
+              body: JSON.stringify({
+                credits_remaining: newCredits,
+                last_reset: userLocalToday,
+                updated_at: new Date().toISOString(),
+              }),
+            }
+          );
+
+          if (!resetRes.ok) {
+            const errText = await resetRes.text();
+            return responseJSON({ error: `Supabase credit update error (${resetRes.status}): ${errText}` }, resetRes.status, request);
+          }
+
+          const resetData = await resetRes.json();
+          const updatedUser = resetData && resetData.length > 0 ? resetData[0] : { credits_remaining: newCredits, membership: membershipCode };
           return responseJSON(
             {
-              success: false,
-              error: "insufficient_credits",
-              credits_remaining: 0,
-              membership: userRow.membership || "FREE",
+              success: true,
+              credits_remaining: updatedUser.credits_remaining,
+              membership: updatedUser.membership || membershipCode,
+              uid,
             },
             200,
             request
           );
         }
 
-        // 5. ATOMIC decrement: PATCH with filter credits_remaining=gt.0
+        // Case B: Same calendar day -> Check remaining credits & perform ATOMIC conditional decrement
+        if (creditsRemaining <= 0) {
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              credits_remaining: 0,
+              membership: membershipCode,
+            },
+            200,
+            request
+          );
+        }
+
         const newCredits = creditsRemaining - 1;
         const deductRes = await fetch(
           `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&credits_remaining=gt.0`,
@@ -674,7 +749,6 @@ export default {
             },
             body: JSON.stringify({
               credits_remaining: newCredits,
-              last_reset: lastReset,
               updated_at: new Date().toISOString(),
             }),
           }
@@ -687,13 +761,13 @@ export default {
 
         const deductData = await deductRes.json();
         if (!deductData || deductData.length === 0) {
-          // Conditional check failed (concurrent tab consumed last credit)
+          // Conditional check matched 0 rows (concurrent tab already consumed last credit)
           return responseJSON(
             {
               success: false,
               error: "insufficient_credits",
               credits_remaining: 0,
-              membership: userRow.membership || "FREE",
+              membership: membershipCode,
             },
             200,
             request
@@ -705,7 +779,7 @@ export default {
           {
             success: true,
             credits_remaining: updatedUser.credits_remaining,
-            membership: updatedUser.membership || userRow.membership || "FREE",
+            membership: updatedUser.membership || membershipCode,
             uid,
           },
           200,
