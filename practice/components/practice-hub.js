@@ -8,7 +8,7 @@
 window.PracticeHubComponent = {
   currentQuery: {
     level: "A1",
-    format: "Goethe",
+    format: "goethe",
     membership: "FREE",
     activeModule: "All",
     page: 1,
@@ -86,7 +86,7 @@ window.PracticeHubComponent = {
 
   initHubData: async function (appState) {
     const level = appState ? (appState.currentLevel || "A1") : "A1";
-    const format = appState ? (appState.currentFormat || "Goethe") : "Goethe";
+    const format = appState ? (appState.currentFormat || "goethe") : "goethe";
     const membership = appState ? (appState.userProfile?.plan || "FREE") : "FREE";
 
     this.currentQuery.level = level;
@@ -183,7 +183,7 @@ window.PracticeHubComponent = {
     }
 
     if (this.currentQuery.format) {
-      query = query.ilike("exam", this.currentQuery.format);
+      query = query.in("exam", [this.currentQuery.format.toLowerCase(), "both"]);
     }
 
     if (this.currentQuery.activeModule && this.currentQuery.activeModule !== "All") {
@@ -241,7 +241,7 @@ window.PracticeHubComponent = {
 
       const timeStr = mat.module === "Schreiben" ? "20 mins" : mat.module === "Hören" ? "15 mins" : "10 mins";
       const diffStr = mat.difficulty || "Medium";
-      const descStr = `${mat.exam || "Goethe"} ${mat.level} ${mat.module} drill - Material #${mat.material_number || 1}`;
+      const descStr = `${mat.exam || "goethe"} ${mat.level} ${mat.module} drill - Material #${mat.material_number || 1}`;
 
       const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky" : mat.module === "Hören" ? "badge-gold" : mat.module === "Grammatik" ? "badge-emerald" : "badge-rose";
       const diffBadgeClass = diffStr === "Easy" ? "badge-emerald" : diffStr === "Medium" ? "badge-gold" : "badge-rose";

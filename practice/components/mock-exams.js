@@ -8,7 +8,7 @@
 window.MockExamsComponent = {
   render: function (appState) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    const format = appState ? appState.currentFormat || "Goethe" : "Goethe";
+    const format = appState ? appState.currentFormat || "goethe" : "goethe";
 
     const mockExamData = [
       {
@@ -178,7 +178,7 @@ window.MockExamsComponent = {
 
       const uid = appState?.userProfile?.uid || "local-user";
       const level = appState?.currentLevel || "A1";
-      const format = appState?.currentFormat || "Goethe";
+      const format = appState?.currentFormat || "goethe";
 
       const payload = {
         uid: uid,

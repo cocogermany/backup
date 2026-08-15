@@ -2635,7 +2635,7 @@ async function submitPurchaseRequest(event) {
 // --- Exam Materials CMS Functions (Metadata Only) ---
 
 function generateExamMaterialId(exam, level, moduleName, number) {
-  const examPrefix = exam === "telc" ? "Te" : "Go";
+  const examPrefix = exam === "telc" ? "Te" : exam === "both" ? "Bo" : "Go";
   const levelCode = level || "A1";
   const moduleCodes = {
     Lesen: "LM",
@@ -2651,7 +2651,7 @@ function generateExamMaterialId(exam, level, moduleName, number) {
 }
 
 function getNextExamMaterialNumber(exam, level, moduleName) {
-  const examPrefix = exam === "telc" ? "Te" : "Go";
+  const examPrefix = exam === "telc" ? "Te" : exam === "both" ? "Bo" : "Go";
   const levelCode = level || "A1";
   const moduleCodes = {
     Lesen: "LM",
@@ -2712,7 +2712,7 @@ async function saveExamMaterial(event) {
 
   try {
     const formData = new FormData(form);
-    const exam = String(formData.get("exam") || "Goethe");
+    const exam = String(formData.get("exam") || "goethe");
     const level = String(formData.get("level") || "A1");
     const moduleName = String(formData.get("module") || "Lesen");
     const materialNumber = parseInt(formData.get("materialNumber") || "1", 10);
@@ -2773,7 +2773,7 @@ function fillExamMaterialForm(id) {
   const form = document.querySelector("#exam-material-form");
   if (!form) return;
 
-  form.elements.exam.value = item.exam || "Goethe";
+  form.elements.exam.value = item.exam || "goethe";
   form.elements.level.value = item.level || "A1";
   form.elements.module.value = item.module || "Lesen";
   form.elements.materialNumber.value = item.materialNumber || 1;
@@ -2822,8 +2822,9 @@ function renderAdminExamMaterials() {
               <label class="field">
                 Exam
                 <select name="exam">
-                  <option value="Goethe">Goethe Institute</option>
+                  <option value="goethe">Goethe</option>
                   <option value="telc">telc</option>
+                  <option value="both">Both</option>
                 </select>
               </label>
 

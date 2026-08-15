@@ -14,6 +14,7 @@ window.InteractivePlayerComponent = {
   render: function (appState, queryParams) {
     const materialId = queryParams ? queryParams.get("id") || "GoA1LM001" : "GoA1LM001";
     const level = appState ? appState.currentLevel || "A1" : "A1";
+    const format = appState ? appState.currentFormat || "goethe" : "goethe";
 
     this.userAnswers = {};
 
@@ -31,7 +32,7 @@ window.InteractivePlayerComponent = {
               <i data-lucide="arrow-left"></i> Exit
             </button>
             <div>
-              <span class="badge-pill badge-sky" id="player-exam-badge">Goethe ${level}</span>
+              <span class="badge-pill badge-sky" id="player-exam-badge">${format} ${level}</span>
               <h2 style="font-family:var(--font-heading); font-size:1.1rem; font-weight:700; display:inline-block; margin-left:8px;" id="player-material-title">
                 Loading practice material...
               </h2>
@@ -90,7 +91,7 @@ window.InteractivePlayerComponent = {
             material = {
               id: dbMat.id,
               title: dbMat.title,
-              exam: dbMat.exam || "Goethe",
+              exam: dbMat.exam || "goethe",
               level: dbMat.level || level,
               module: dbMat.module || "Lesen",
               difficulty: dbMat.difficulty || "Medium",
@@ -359,7 +360,7 @@ window.InteractivePlayerComponent = {
       btnEl.innerHTML = `<span class="btn-spinner"></span> Analyzing Writing Rubric...`;
     }
 
-    const material = this.currentMaterial || { id: "writing-1", module: "Schreiben", level: "A1", exam: "Goethe" };
+    const material = this.currentMaterial || { id: "writing-1", module: "Schreiben", level: "A1", exam: "goethe" };
     clearInterval(this.activeTimerInterval);
 
     const scoreCard = document.getElementById("player-score-card");
@@ -383,7 +384,7 @@ window.InteractivePlayerComponent = {
   },
 
   finishSpeaking: async function () {
-    const material = this.currentMaterial || { id: "speaking-1", module: "Sprechen", level: "A1", exam: "Goethe" };
+    const material = this.currentMaterial || { id: "speaking-1", module: "Sprechen", level: "A1", exam: "goethe" };
     clearInterval(this.activeTimerInterval);
 
     const scoreCard = document.getElementById("player-score-card");
@@ -415,7 +416,7 @@ window.InteractivePlayerComponent = {
         uid: uid,
         material_id: material.id,
         level: material.level || "A1",
-        format: material.exam || "Goethe",
+        format: material.exam || "goethe",
         module: material.module || "Lesen",
         correct_answers: parseInt(correctAnswers || 0, 10),
         total_questions: parseInt(totalQuestions || 1, 10),
@@ -464,7 +465,7 @@ window.InteractivePlayerComponent = {
     return {
       id: id,
       title: `${level} Practice Material (${id})`,
-      exam: "Goethe",
+      exam: "goethe",
       level: level,
       module: id.includes("hoeren") ? "Hören" : id.includes("schreiben") ? "Schreiben" : id.includes("sprechen") ? "Sprechen" : "Lesen",
       estimatedSeconds: 600,

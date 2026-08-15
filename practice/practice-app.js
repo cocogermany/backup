@@ -84,7 +84,7 @@
                 localStorage.setItem("coco_practice_level", data.current_level);
               }
               if (data.format) {
-                AppState.currentFormat = data.format.toLowerCase() === "telc" ? "TELC" : "Goethe";
+                AppState.currentFormat = data.format.toLowerCase();
                 localStorage.setItem("coco_practice_format", AppState.currentFormat);
               }
               if (data.membership) AppState.userProfile.plan = data.membership;
@@ -191,7 +191,7 @@
           localStorage.setItem("coco_practice_level", AppState.currentLevel);
         }
         if (creditRes.format) {
-          AppState.currentFormat = String(creditRes.format).toLowerCase() === "telc" ? "TELC" : "Goethe";
+          AppState.currentFormat = String(creditRes.format).toLowerCase();
           localStorage.setItem("coco_practice_format", AppState.currentFormat);
         }
       } catch (err) {

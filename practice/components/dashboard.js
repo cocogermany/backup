@@ -8,7 +8,7 @@
 window.DashboardComponent = {
   render: function (appState) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    const format = appState ? appState.currentFormat || "Goethe" : "Goethe";
+    const format = appState ? appState.currentFormat || "goethe" : "goethe";
     const creditsObj = appState ? appState.dailyCredits : null;
     const creditsText = (creditsObj && typeof creditsObj.remaining === "number")
       ? `${creditsObj.remaining} / ${creditsObj.total || creditsObj.remaining}`
@@ -207,7 +207,7 @@ window.DashboardComponent = {
 
       const uid = appState?.userProfile?.uid || "local-user";
       const level = appState?.currentLevel || "A1";
-      const format = appState?.currentFormat || "Goethe";
+      const format = appState?.currentFormat || "goethe";
 
       // Update credits text in DOM if appState contains credits
       const dashCreditsStrong = document.getElementById("dash-credits-strong");

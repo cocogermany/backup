@@ -8,7 +8,7 @@
 window.ProgressTrackerComponent = {
   render: function (appState) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    const format = appState ? appState.currentFormat || "Goethe" : "Goethe";
+    const format = appState ? appState.currentFormat || "goethe" : "goethe";
     const streak = appState ? appState.streakDays || 0 : 0;
     const stats = appState ? appState.stats || { Lesen: 0, Hören: 0, Grammatik: 0, Schreiben: 0, Sprechen: 0, totalCompleted: 0 } : { Lesen: 0, Hören: 0, Grammatik: 0, Schreiben: 0, Sprechen: 0, totalCompleted: 0 };
 

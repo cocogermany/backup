@@ -220,7 +220,7 @@ export default {
         const payload = {
           id: String(material.id).trim(),
           title: String(material.title || "").trim(),
-          exam: String(material.exam || "Goethe").trim(),
+          exam: String(material.exam || "goethe").trim(),
           level: String(material.level || "A1").trim(),
           module: String(material.module || "Lesen").trim(),
           material_number: parseInt(material.material_number || material.materialNumber || "1", 10),
