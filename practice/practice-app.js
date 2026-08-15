@@ -39,6 +39,7 @@
 
   class PracticeApp {
     constructor() {
+      window.PracticeApp = this;
       this.init();
     }
 
@@ -598,6 +599,55 @@
       });
     }
 
+    isLoggedIn() {
+      const uid = AppState.userProfile && AppState.userProfile.uid;
+      const cachedUid = localStorage.getItem("coco_user_uid");
+      if (uid && uid !== "local-user" && uid !== "anonymous") return true;
+      if (cachedUid && cachedUid !== "local-user" && cachedUid !== "anonymous") return true;
+      return false;
+    }
+
+    requireLogin(featureMessage, returnTarget) {
+      if (!this.isLoggedIn()) {
+        const returnUrl = returnTarget
+          ? (returnTarget.startsWith("http") ? returnTarget : `${window.location.origin}${window.location.pathname}${returnTarget.startsWith("#") ? returnTarget : "#" + returnTarget}`)
+          : window.location.href;
+        localStorage.setItem("loginRedirect", returnUrl);
+        alert(featureMessage || "Please log in to access this feature.");
+        window.location.href = "../index.html#/login";
+        return false;
+      }
+      return true;
+    }
+
+    requireLoginAndNavigate(targetHash, featureName) {
+      if (!this.isLoggedIn()) {
+        const returnUrl = targetHash
+          ? `${window.location.origin}${window.location.pathname}${targetHash.startsWith("#") ? targetHash : "#" + targetHash}`
+          : window.location.href;
+        localStorage.setItem("loginRedirect", returnUrl);
+        alert("Please log in to access this feature.");
+        window.location.href = "../index.html#/login";
+        return false;
+      }
+      if (targetHash) {
+        window.location.hash = targetHash.startsWith("#") ? targetHash : "#" + targetHash;
+      }
+      return true;
+    }
+
+    handleUpgradePlan(event) {
+      if (event) event.preventDefault();
+      if (!this.isLoggedIn()) {
+        localStorage.setItem("loginRedirect", window.location.href);
+        alert("Please log in first to upgrade your plan.");
+        window.location.href = "../index.html#/login";
+        return false;
+      }
+      window.location.href = "../index.html#/membership";
+      return true;
+    }
+
     async deductCreditAndPersist() {
       if (AppState.dailyCredits.remaining <= 0) return false;
 
@@ -623,6 +673,10 @@
     }
 
     async startMockExam(mockId) {
+      if (!this.requireLogin("Please log in to access this feature.", `#player?id=${mockId}`)) {
+        return;
+      }
+
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
         alert("⚡ You're out of daily credits. Upgrade your plan to continue.");
@@ -633,6 +687,10 @@
     }
 
     async openPlayer(materialId) {
+      if (!this.requireLogin("Please log in to access this feature.", `#player?id=${materialId}`)) {
+        return;
+      }
+
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
         alert("⚡ You're out of daily credits. Upgrade your plan to continue.");

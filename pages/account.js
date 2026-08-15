@@ -134,6 +134,10 @@ async function saveProfilePreferences(event) {
     if (form.id === "profile-setup-form") {
       const destination = localStorage.getItem("loginRedirect") || "#/account";
       localStorage.removeItem("loginRedirect");
+      if (destination.includes("practice") || destination.startsWith("http")) {
+        window.location.href = destination;
+        return;
+      }
       location.hash = destination.replace("#", "");
     } else {
       renderAccount();

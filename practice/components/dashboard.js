@@ -50,10 +50,10 @@ window.DashboardComponent = {
               </p>
             </div>
             <div class="welcome-actions">
-              <a href="#mock-exams" class="btn-primary">
+              <a href="#mock-exams" class="btn-primary" onclick="return window.PracticeApp.requireLoginAndNavigate('#mock-exams', 'Mock Exam');">
                 <i data-lucide="award"></i> Start ${level} Mock Exam
               </a>
-              <a href="#practice" class="btn-secondary" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3);">
+              <a href="#practice" class="btn-secondary" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice', 'Daily Practice');" style="background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3);">
                 <i data-lucide="play-circle"></i> Daily Practice
               </a>
             </div>
@@ -91,7 +91,7 @@ window.DashboardComponent = {
 
             <div class="hero-quick-start-box">
               <span class="quick-start-text">Track your accuracy & learning progress</span>
-              <a href="#progress" class="btn-secondary btn-sm"><i data-lucide="line-chart" style="width:14px;height:14px;display:inline;"></i> Track Progress</a>
+              <a href="#progress" class="btn-secondary btn-sm" onclick="return window.PracticeApp.requireLoginAndNavigate('#progress', 'Learning Progress');"><i data-lucide="line-chart" style="width:14px;height:14px;display:inline;"></i> Track Progress</a>
             </div>
           </div>
         </div>
@@ -99,12 +99,12 @@ window.DashboardComponent = {
         <!-- Practice Modules Grid -->
         <h2 class="dashboard-section-title">
           <span>PRACTICE MODULES (${format} ${level})</span>
-          <a href="#practice" style="font-size:0.85rem; font-weight:500; color:var(--brown);">Explore All &rarr;</a>
+          <a href="#practice" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice', 'Practice Hub');" style="font-size:0.85rem; font-weight:500; color:var(--brown);">Explore All &rarr;</a>
         </h2>
 
         <div class="modules-grid" id="dash-modules-grid">
           <!-- Lesen Card -->
-          <div class="module-card" onclick="window.location.hash='#practice?module=Lesen'">
+          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Lesen', 'Lesen')">
             <div class="module-card-icon icon-reading">
               <i data-lucide="book-open"></i>
             </div>
@@ -119,7 +119,7 @@ window.DashboardComponent = {
           </div>
 
           <!-- Hören Card -->
-          <div class="module-card" onclick="window.location.hash='#practice?module=Hören'">
+          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Hören', 'Hören')">
             <div class="module-card-icon icon-listening">
               <i data-lucide="headphones"></i>
             </div>
@@ -134,7 +134,7 @@ window.DashboardComponent = {
           </div>
 
           <!-- Grammatik Card -->
-          <div class="module-card" onclick="window.location.hash='#practice?module=Grammatik'">
+          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Grammatik', 'Grammatik')">
             <div class="module-card-icon icon-grammar">
               <i data-lucide="file-code-2"></i>
             </div>
@@ -149,7 +149,7 @@ window.DashboardComponent = {
           </div>
 
           <!-- Schreiben Card -->
-          <div class="module-card" onclick="window.location.hash='#practice?module=Schreiben'">
+          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Schreiben', 'Schreiben')">
             <div class="module-card-icon icon-writing">
               <i data-lucide="pen-tool"></i>
             </div>
@@ -164,7 +164,7 @@ window.DashboardComponent = {
           </div>
 
           <!-- Sprechen Card -->
-          <div class="module-card" onclick="window.location.hash='#practice?module=Sprechen'">
+          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Sprechen', 'Sprechen')">
             <div class="module-card-icon icon-speaking">
               <i data-lucide="mic"></i>
             </div>
@@ -190,7 +190,7 @@ window.DashboardComponent = {
               <p style="font-size:0.82rem; color:var(--muted);">Complete simulated test with automatic grading across all exam parts.</p>
             </div>
           </div>
-          <a href="#mock-exams" class="btn-primary">
+          <a href="#mock-exams" class="btn-primary" onclick="return window.PracticeApp.requireLoginAndNavigate('#mock-exams', 'Exam Simulation');">
             <i data-lucide="play"></i> Launch Exam Simulation
           </a>
         </div>

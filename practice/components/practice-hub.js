@@ -373,6 +373,12 @@ window.PracticeHubComponent = {
   },
 
   showWritingLockedModal: function () {
+    if (window.PracticeApp && !window.PracticeApp.isLoggedIn()) {
+      localStorage.setItem("loginRedirect", window.location.href);
+      alert("Please log in to access this feature.");
+      window.location.href = "../index.html#/login";
+      return;
+    }
     alert("🔒 Writing (Schreiben) drills require a Pro or Paid membership plan. Upgrade your plan to access full writing prompts!");
   },
 

@@ -239,6 +239,10 @@ function friendlyError(error) {
 function redirectAfterLogin() {
   const destination = localStorage.getItem("loginRedirect") || "#/account";
   localStorage.removeItem("loginRedirect");
+  if (destination.includes("practice") || destination.startsWith("http")) {
+    window.location.href = destination;
+    return;
+  }
   location.hash = profileIsComplete() ? destination.replace("#", "") : "/profile-setup";
 }
 
@@ -267,6 +271,7 @@ function normalizeCdnImageUrl(value) {
 function isProductImageLink(value) {
   return /^https:\/\/(raw\.githubusercontent\.com|github\.com|cdn\.jsdelivr\.net\/gh)\//i.test(String(value || ""));
 }
+
 
 function parseImageLinks(value) {
   const list = Array.isArray(value)

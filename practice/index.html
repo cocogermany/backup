@@ -71,23 +71,23 @@
             </div>
             
             <div class="nav-subitems-container" id="dashboard-subitems">
-              <a href="#practice?module=Lesen" class="nav-subitem" data-module="Lesen">
+              <a href="#practice?module=Lesen" class="nav-subitem" data-module="Lesen" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice?module=Lesen');">
                 <i data-lucide="book-open"></i>
                 <span>Lesen</span>
               </a>
-              <a href="#practice?module=Hören" class="nav-subitem" data-module="Hören">
+              <a href="#practice?module=Hören" class="nav-subitem" data-module="Hören" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice?module=Hören');">
                 <i data-lucide="headphones"></i>
                 <span>Hören</span>
               </a>
-              <a href="#practice?module=Grammatik" class="nav-subitem" data-module="Grammatik">
+              <a href="#practice?module=Grammatik" class="nav-subitem" data-module="Grammatik" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice?module=Grammatik');">
                 <i data-lucide="file-code-2"></i>
                 <span>Grammatik</span>
               </a>
-              <a href="#practice?module=Schreiben" class="nav-subitem" data-module="Schreiben">
+              <a href="#practice?module=Schreiben" class="nav-subitem" data-module="Schreiben" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice?module=Schreiben');">
                 <i data-lucide="pen-tool"></i>
                 <span>Schreiben</span>
               </a>
-              <a href="#practice?module=Sprechen" class="nav-subitem" data-module="Sprechen">
+              <a href="#practice?module=Sprechen" class="nav-subitem" data-module="Sprechen" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice?module=Sprechen');">
                 <i data-lucide="mic"></i>
                 <span>Sprechen</span>
               </a>
@@ -97,15 +97,15 @@
           <div class="nav-group-divider"></div>
 
           <!-- Main Pages Outside Dashboard Group -->
-          <a href="#mock-exams" class="nav-item" data-nav="mock-exams">
+          <a href="#mock-exams" class="nav-item" data-nav="mock-exams" onclick="return window.PracticeApp.requireLoginAndNavigate('#mock-exams');">
             <i data-lucide="award"></i>
             <span>Mock Exam</span>
           </a>
-          <a href="#practice" class="nav-item" data-nav="practice">
+          <a href="#practice" class="nav-item" data-nav="practice" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice');">
             <i data-lucide="layers"></i>
             <span>Practice</span>
           </a>
-          <a href="#progress" class="nav-item" data-nav="progress">
+          <a href="#progress" class="nav-item" data-nav="progress" onclick="return window.PracticeApp.requireLoginAndNavigate('#progress');">
             <i data-lucide="line-chart"></i>
             <span>Progress</span>
           </a>
@@ -113,7 +113,7 @@
 
         <!-- Sidebar Footer Account Link -->
         <div class="sidebar-footer">
-          <a href="../index.html#/account" class="sidebar-user-card">
+          <a href="../index.html#/account" class="sidebar-user-card" onclick="return window.PracticeApp.requireLogin('Please log in to view your account.', '../index.html#/account');">
             <div class="user-avatar" id="sidebar-user-avatar">CG</div>
             <div class="user-info">
               <span class="user-name" id="sidebar-user-name">Learner Profile</span>
@@ -177,7 +177,7 @@
                 </div>
 
                 <div class="popover-actions">
-                  <a href="../index.html#/account" class="btn-change-levels" id="popover-change-levels-btn">
+                  <a href="../index.html#/account" class="btn-change-levels" id="popover-change-levels-btn" onclick="return window.PracticeApp.requireLogin('Please log in to edit your learning levels.', '../index.html#/account');">
                     <i data-lucide="settings"></i> Change Levels
                   </a>
                 </div>
@@ -200,7 +200,7 @@
         <i data-lucide="layout-dashboard"></i>
         <span>Dashboard</span>
       </a>
-      <a href="#mock-exams" class="bnav-item" data-nav="mock-exams">
+      <a href="#mock-exams" class="bnav-item" data-nav="mock-exams" onclick="return window.PracticeApp.requireLoginAndNavigate('#mock-exams');">
         <i data-lucide="award"></i>
         <span>Mock</span>
       </a>
@@ -210,7 +210,7 @@
         <i data-lucide="plus"></i>
       </button>
 
-      <a href="#practice" class="bnav-item" data-nav="practice">
+      <a href="#practice" class="bnav-item" data-nav="practice" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice');">
         <i data-lucide="layers"></i>
         <span>Practice</span>
       </a>
@@ -233,13 +233,13 @@
         
         <!-- 2-Column App Launcher Grid -->
         <div class="action-sheet-grid">
-          <a href="#mock-exams" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+          <a href="#mock-exams" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true; return window.PracticeApp.requireLoginAndNavigate('#mock-exams');">
             <div class="action-icon icon-award"><i data-lucide="award"></i></div>
             <div class="action-text-group">
               <span class="action-title">Mock Exam</span>
             </div>
           </a>
-          <a href="#practice" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+          <a href="#practice" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true; return window.PracticeApp.requireLoginAndNavigate('#practice');">
             <div class="action-icon icon-practice"><i data-lucide="layers"></i></div>
             <div class="action-text-group">
               <span class="action-title">Practice</span>
@@ -257,7 +257,7 @@
               <span class="action-title">Resources</span>
             </div>
           </a>
-          <a href="#progress" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
+          <a href="#progress" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true; return window.PracticeApp.requireLoginAndNavigate('#progress');">
             <div class="action-icon icon-chart"><i data-lucide="line-chart"></i></div>
             <div class="action-text-group">
               <span class="action-title">Progress</span>
@@ -283,9 +283,9 @@
         <div class="modal-header">
           <div style="display:flex; align-items:center; gap:8px;">
             <i data-lucide="zap" style="color:var(--gold); fill:var(--gold); width:20px; height:20px;"></i>
-            <h3>Daily Credits Overview</h3>
+            <h3>Learning Credits & Allowance</h3>
           </div>
-          <button class="modal-close-btn" id="credits-modal-close"><i data-lucide="x"></i></button>
+          <button class="modal-close-btn" id="credits-modal-close" aria-label="Close"><i data-lucide="x"></i></button>
         </div>
         
         <div style="text-align:center; padding:16px 0;">
@@ -308,7 +308,7 @@
         </div>
 
         <div style="display:flex; justify-content:center;">
-          <a href="../index.html#/membership" class="btn-primary" style="justify-content:center; width:100%;">
+          <a href="../index.html#/membership" class="btn-primary" id="modal-upgrade-btn" onclick="return window.PracticeApp.handleUpgradePlan(event);" style="justify-content:center; width:100%;">
             <i data-lucide="sparkles"></i> Upgrade Plan
           </a>
         </div>
