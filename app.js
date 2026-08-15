@@ -671,6 +671,7 @@ async function loadExamMaterials() {
         module: item.module,
         materialNumber: item.material_number || item.materialNumber || 1,
         title: item.title,
+        description: item.description || "",
         difficulty: item.difficulty,
         durationMinutes: item.duration_minutes !== undefined && item.duration_minutes !== null ? item.duration_minutes : "",
         estimatedTime: item.duration_minutes ? `${item.duration_minutes} mins` : "--",
@@ -2723,6 +2724,7 @@ async function saveExamMaterial(event) {
     const moduleName = String(formData.get("module") || "Lesen");
     const materialNumber = parseInt(formData.get("materialNumber") || "1", 10);
     const title = String(formData.get("title") || "").trim();
+    const description = String(formData.get("description") || "").trim();
     const difficulty = String(formData.get("difficulty") || "Medium");
     const active = formData.get("active") === "true";
 
@@ -2743,6 +2745,7 @@ async function saveExamMaterial(event) {
     const docData = {
       id,
       title,
+      description: description || null,
       exam,
       level,
       module: moduleName,
@@ -2794,6 +2797,7 @@ function fillExamMaterialForm(id) {
   form.elements.module.value = item.module || "Lesen";
   form.elements.materialNumber.value = item.materialNumber || 1;
   form.elements.title.value = item.title || "";
+  form.elements.description.value = item.description || "";
   form.elements.contentPath.value = item.contentPath || `${item.level}/${item.id}.json`;
   form.elements.durationMinutes.value = item.durationMinutes !== undefined && item.durationMinutes !== null ? item.durationMinutes : "";
   form.elements.difficulty.value = item.difficulty || "Medium";
@@ -2881,6 +2885,11 @@ function renderAdminExamMaterials() {
             <label class="field">
               Title
               <input name="title" placeholder="e.g. Restaurant Advertisement" required />
+            </label>
+
+            <label class="field">
+              Description
+              <textarea name="description" placeholder="Brief summary of this practice material..." rows="2"></textarea>
             </label>
 
             <label class="field">

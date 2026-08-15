@@ -172,10 +172,10 @@ window.PracticeHubComponent = {
     const supabase = await window.SupabaseService.getSupabaseClient();
     if (!supabase) throw new Error("Supabase client unavailable");
 
-    // Scope columns strictly to current materials table schema: id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active
+    // Scope columns strictly to current materials table schema: id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active
     let query = supabase
       .from("materials")
-      .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active", { count: "exact" })
+      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active", { count: "exact" })
       .eq("active", true);
 
     if (this.currentQuery.level) {
@@ -234,14 +234,6 @@ window.PracticeHubComponent = {
 
     const isPaid = this.isPaidMembership(this.currentQuery.membership);
 
-    const defaultDescriptions = {
-      Lesen: "Reading comprehension passage with targeted practice questions.",
-      Hören: "Audio dialogue with listening comprehension questions.",
-      Grammatik: "Interactive grammar structure and vocabulary exercises.",
-      Schreiben: "Guided writing prompt with evaluation criteria.",
-      Sprechen: "Oral speaking drills and conversational prompts."
-    };
-
     container.innerHTML = materials.map((mat) => {
       const isSchreiben = mat.module === "Schreiben";
       const isLocked = isSchreiben && !isPaid;
@@ -250,7 +242,7 @@ window.PracticeHubComponent = {
       const durationNum = mat.duration_minutes !== null && mat.duration_minutes !== undefined ? Number(mat.duration_minutes) : NaN;
       const timeStr = (!isNaN(durationNum) && durationNum > 0) ? `${durationNum} mins` : "--";
       const diffStr = mat.difficulty || "Medium";
-      const descText = mat.description || mat.summary || defaultDescriptions[mat.module] || "Structured skill practice exercise.";
+      const descText = (mat.description && mat.description.trim()) ? mat.description.trim() : "No description available";
 
       const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky"
         : mat.module === "Hören" ? "badge-gold"

@@ -224,6 +224,7 @@ export default {
         const payload = {
           id: String(material.id).trim(),
           title: String(material.title || "").trim(),
+          description: material.description !== undefined && material.description !== null ? String(material.description).trim() : null,
           exam: String(material.exam || "goethe").trim(),
           level: String(material.level || "A1").trim(),
           module: String(material.module || "Lesen").trim(),

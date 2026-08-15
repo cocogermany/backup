@@ -619,15 +619,34 @@
         document.body.appendChild(container);
       }
 
-      const toast = document.createElement("div");
-      toast.className = `app-toast toast-${type}`;
+      // Context-aware attractive icon and badge variant selection
+      let iconName = "sparkles";
+      const msgLower = (message || "").toLowerCase();
+      let badgeType = type;
 
-      const iconName = type === "warning" ? "alert-triangle" : type === "success" ? "check-circle-2" : type === "error" ? "alert-circle" : "log-in";
-      const iconClass = `toast-icon toast-icon-${type}`;
+      if (msgLower.includes("credit") || msgLower.includes("⚡")) {
+        iconName = "zap";
+        badgeType = "warning";
+      } else if (msgLower.includes("pro") || msgLower.includes("writing") || msgLower.includes("schreiben")) {
+        iconName = "crown";
+        badgeType = "pro";
+      } else if (msgLower.includes("log in") || msgLower.includes("login")) {
+        iconName = "sparkles";
+        badgeType = "info";
+      } else if (type === "warning") {
+        iconName = "alert-circle";
+      } else if (type === "success") {
+        iconName = "check";
+      } else if (type === "error") {
+        iconName = "alert-triangle";
+      }
+
+      const toast = document.createElement("div");
+      toast.className = `app-toast toast-${badgeType}`;
 
       toast.innerHTML = `
-        <span class="${iconClass}">
-          <i data-lucide="${iconName}" style="width:16px;height:16px;"></i>
+        <span class="toast-icon toast-icon-${badgeType}">
+          <i data-lucide="${iconName}" style="width:18px;height:18px;"></i>
         </span>
         <span class="toast-message">${message}</span>
       `;

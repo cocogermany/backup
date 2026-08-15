@@ -83,7 +83,7 @@ window.InteractivePlayerComponent = {
         if (supabase) {
           const { data: dbMat } = await supabase
             .from("materials")
-            .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
+            .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
             .eq("id", materialId)
             .maybeSingle();
 
@@ -92,6 +92,7 @@ window.InteractivePlayerComponent = {
             material = {
               id: dbMat.id,
               title: dbMat.title,
+              description: dbMat.description || "",
               exam: dbMat.exam || "goethe",
               level: dbMat.level || level,
               module: dbMat.module || "Lesen",
