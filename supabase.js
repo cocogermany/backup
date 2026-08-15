@@ -303,6 +303,34 @@ async function checkLearningCreditsSupabase(idToken) {
   return resData;
 }
 
+/**
+ * Atomically consume 1 learning credit via Cloudflare Worker
+ */
+async function consumeLearningCreditSupabase(idToken) {
+  const workerBase = getWorkerBaseUrl();
+  const endpoint = `${workerBase}/learning/credits/consume`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok && !resData.error) {
+    throw new Error(`Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
 // ===================================================
 // GLOBAL EXPORT FOR NON-MODULE SCRIPTS
 // ===================================================
@@ -318,6 +346,7 @@ const SupabaseService = {
   getPlanDetails: getPlanDetailsSupabase,
   submitLearningOnboarding: submitLearningOnboardingSupabase,
   checkLearningCredits: checkLearningCreditsSupabase,
+  consumeCreditWorker: consumeLearningCreditSupabase,
   getWorkerBaseUrl,
 };
 

@@ -72,12 +72,24 @@ window.InteractivePlayerComponent = {
     `;
   },
 
+  getPrepSettings: function () {
+    try {
+      const raw = localStorage.getItem("coco_practice_prep_settings");
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {
+      countdown: true,
+      shuffle: false,
+      showExplanations: true
+    };
+  },
+
   initPlayerMaterial: async function (materialId, appState) {
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    let material = null;
+    let material = this.preloadedMaterial && this.preloadedMaterial.id === materialId ? this.preloadedMaterial : null;
 
-    // Fetch single material metadata from Supabase
-    if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
+    // Fetch single material metadata from Supabase only if not already preloaded from Practice Hub
+    if (!material && window.SupabaseService && window.SupabaseService.getSupabaseClient) {
       try {
         const supabase = await window.SupabaseService.getSupabaseClient();
         if (supabase) {
@@ -111,13 +123,22 @@ window.InteractivePlayerComponent = {
     // Fallback/Default structured content if content JSON is missing or offline
     if (!material) {
       material = this.getFallbackMaterialContent(materialId, level);
-    } else {
+    } else if (!material.passage && !material.questions && !material.prompt) {
       const fallback = this.getFallbackMaterialContent(materialId, level);
       material.passage = fallback.passage;
-      material.questions = fallback.questions;
+      material.questions = fallback.questions ? JSON.parse(JSON.stringify(fallback.questions)) : [];
       material.prompt = fallback.prompt;
       material.isWriting = material.module === "Schreiben";
       material.isSpeaking = material.module === "Sprechen";
+    }
+
+    // Load & apply preparation settings
+    const settings = this.currentSettings || this.getPrepSettings();
+    this.currentSettings = settings;
+
+    // Apply Shuffle Questions if enabled
+    if (settings.shuffle && Array.isArray(material.questions) && material.questions.length > 1) {
+      material.questions = [...material.questions].sort(() => Math.random() - 0.5);
     }
 
     this.currentMaterial = material;
@@ -128,8 +149,14 @@ window.InteractivePlayerComponent = {
     if (titleEl) titleEl.textContent = material.title;
     if (badgeEl) badgeEl.textContent = `${material.exam} ${material.level} (${material.module})`;
 
-    // Start countdown timer
-    this.startTimer(material.estimatedSeconds || 600);
+    // Timer Countdown logic: if ON, start countdown; if OFF, show untimed mode
+    const timerDisplay = document.getElementById("player-timer-display");
+    if (settings.countdown !== false) {
+      this.startTimer(material.estimatedSeconds || 600);
+    } else {
+      if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+      if (timerDisplay) timerDisplay.textContent = "Untimed";
+    }
 
     // Render material content
     const contentArea = document.getElementById("player-content-area");
@@ -310,9 +337,12 @@ window.InteractivePlayerComponent = {
     const total = material.questions ? material.questions.length : 1;
 
     if (material.questions) {
+      const showExpl = this.currentSettings ? this.currentSettings.showExplanations !== false : true;
+
       material.questions.forEach(q => {
         const userAns = this.userAnswers[q.id];
         const fb = document.getElementById(`feedback-${q.id}`);
+        const explHtml = (showExpl && q.explanation) ? `<div style="margin-top:4px; font-size:0.82rem; opacity:0.95;">${q.explanation}</div>` : "";
 
         if (userAns === q.correctAnswer) {
           score++;
@@ -320,14 +350,14 @@ window.InteractivePlayerComponent = {
             fb.hidden = false;
             fb.style.background = "var(--emerald-bg)";
             fb.style.color = "#065f46";
-            fb.innerHTML = `<strong>✓ Correct!</strong> ${q.explanation || ""}`;
+            fb.innerHTML = `<strong>✓ Correct!</strong>${explHtml}`;
           }
         } else {
           if (fb) {
             fb.hidden = false;
             fb.style.background = "var(--rose-bg)";
             fb.style.color = "#9f1239";
-            fb.innerHTML = `<strong>✗ Incorrect.</strong> Correct Answer: <strong>${q.correctAnswer}</strong>. ${q.explanation || ""}`;
+            fb.innerHTML = `<strong>✗ Incorrect.</strong> Correct Answer: <strong>${q.correctAnswer}</strong>.${explHtml}`;
           }
         }
       });

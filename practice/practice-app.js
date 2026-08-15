@@ -282,9 +282,10 @@
         });
       }
 
-      // Modals: Quick Actions (+) & Credits Details
+      // Modals: Quick Actions (+), Credits Details, and Practice Prep Modal
       const actionsModal = document.getElementById("quick-actions-modal");
       const creditsModal = document.getElementById("credits-detail-modal");
+      const prepModal = document.getElementById("practice-prep-modal");
 
       const plusBtn = document.getElementById("bnav-plus-btn");
       const topbarCreditsBtn = document.getElementById("topbar-credits-btn");
@@ -292,6 +293,9 @@
 
       const actionsClose = document.getElementById("quick-actions-close");
       const creditsClose = document.getElementById("credits-modal-close");
+      const prepClose = document.getElementById("prep-modal-close");
+      const prepCancel = document.getElementById("prep-modal-cancel");
+      const prepStart = document.getElementById("prep-modal-start");
 
       if (plusBtn && actionsModal) {
         plusBtn.addEventListener("click", () => actionsModal.hidden = false);
@@ -312,6 +316,20 @@
         creditsClose.addEventListener("click", () => creditsModal.hidden = true);
       }
 
+      if (prepClose) prepClose.addEventListener("click", () => this.closePrepModal());
+      if (prepCancel) prepCancel.addEventListener("click", () => this.closePrepModal());
+
+      if (prepStart) {
+        prepStart.addEventListener("click", () => {
+          const cd = document.getElementById("prep-setting-countdown")?.checked ?? true;
+          const sf = document.getElementById("prep-setting-shuffle")?.checked ?? false;
+          const ex = document.getElementById("prep-setting-explanations")?.checked ?? true;
+          const settings = { countdown: cd, shuffle: sf, showExplanations: ex };
+          this.savePrepSettings(settings);
+          this.startPracticeFromPrepModal(this.pendingPrepMaterial, settings);
+        });
+      }
+
       // Close modals on clicking backdrop background
       if (actionsModal) {
         actionsModal.addEventListener("click", (e) => {
@@ -325,6 +343,11 @@
         });
       }
 
+      if (prepModal) {
+        prepModal.addEventListener("click", (e) => {
+          if (e.target === prepModal) this.closePrepModal();
+        });
+      }
     }
 
     async setLevelAndFormat(level, format) {
@@ -731,28 +754,131 @@
       return true;
     }
 
-    async deductCreditAndPersist() {
-      if (AppState.dailyCredits.remaining <= 0) return false;
+    getPrepSettings() {
+      try {
+        const raw = localStorage.getItem("coco_practice_prep_settings");
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return {
+        countdown: true,
+        shuffle: false,
+        showExplanations: true
+      };
+    }
 
-      AppState.dailyCredits.remaining -= 1;
+    savePrepSettings(settings) {
+      try {
+        localStorage.setItem("coco_practice_prep_settings", JSON.stringify(settings));
+      } catch (e) {}
+    }
+
+    openPrepModal(materialId) {
+      if (!this.requireLogin("Please log in to access this feature.", "#practice")) {
+        return;
+      }
+
+      // Retrieve material data already loaded by Practice Hub without fetching DB again
+      let material = null;
+      if (window.PracticeHubComponent && window.PracticeHubComponent.loadedMaterials) {
+        material = window.PracticeHubComponent.loadedMaterials.find(m => m.id === materialId);
+      }
+      if (!material) {
+        material = { id: materialId, title: `Practice Set (${materialId})` };
+      }
+
+      this.pendingPrepMaterial = material;
+
+      const titleEl = document.getElementById("prep-material-title");
+      if (titleEl) titleEl.textContent = material.title || material.id;
+
+      const settings = this.getPrepSettings();
+      const cdInput = document.getElementById("prep-setting-countdown");
+      const sfInput = document.getElementById("prep-setting-shuffle");
+      const exInput = document.getElementById("prep-setting-explanations");
+
+      if (cdInput) cdInput.checked = settings.countdown !== false;
+      if (sfInput) sfInput.checked = Boolean(settings.shuffle);
+      if (exInput) exInput.checked = settings.showExplanations !== false;
+
+      const prepModal = document.getElementById("practice-prep-modal");
+      if (prepModal) {
+        prepModal.hidden = false;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+
+    closePrepModal() {
+      const prepModal = document.getElementById("practice-prep-modal");
+      if (prepModal) prepModal.hidden = true;
+      this.pendingPrepMaterial = null;
+    }
+
+    async startPracticeFromPrepModal(material, settings) {
+      if (!material) return;
+
+      const startBtn = document.getElementById("prep-modal-start");
+      const originalText = startBtn ? startBtn.innerHTML : '<i data-lucide="play"></i> Start Practice';
+      if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.innerHTML = `<span class="btn-spinner"></span> Starting...`;
+      }
+
+      // Call secure Worker endpoint to atomically deduct 1 credit
+      let deductOk = false;
+      let newRemaining = null;
+
+      try {
+        let idToken = "";
+        if (window.firebase && window.firebase.auth) {
+          const user = window.firebase.auth().currentUser;
+          if (user) idToken = await user.getIdToken();
+        }
+
+        if (window.SupabaseService && window.SupabaseService.consumeCreditWorker) {
+          const res = await window.SupabaseService.consumeCreditWorker(idToken);
+          if (res && res.success) {
+            deductOk = true;
+            newRemaining = typeof res.credits_remaining === "number" ? res.credits_remaining : null;
+          }
+        }
+      } catch (err) {
+        console.warn("PracticeApp: Credit consumption error:", err);
+      }
+
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.innerHTML = originalText;
+      }
+
+      if (!deductOk) {
+        // Insufficient credits: do not start practice; open Credits UI
+        this.closePrepModal();
+        this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
+        const creditsModal = document.getElementById("credits-detail-modal");
+        this.updateCreditsModalUI();
+        if (creditsModal) creditsModal.hidden = false;
+        return;
+      }
+
+      // If deduction succeeded, update local state with authoritative server credits
+      if (newRemaining !== null) {
+        AppState.dailyCredits.remaining = newRemaining;
+      } else {
+        AppState.dailyCredits.remaining = Math.max(0, AppState.dailyCredits.remaining - 1);
+      }
       this.saveState();
       this.updateHeaderUI();
 
-      if (window.SupabaseService && window.SupabaseService.getSupabaseClient) {
-        try {
-          const supabase = await window.SupabaseService.getSupabaseClient();
-          const uid = AppState.userProfile.uid;
-          if (supabase && uid && uid !== "local-user") {
-            await supabase.from("learning_users").update({
-              credits_remaining: AppState.dailyCredits.remaining,
-              updated_at: new Date().toISOString()
-            }).eq("uid", uid);
-          }
-        } catch (e) {
-          console.warn("PracticeApp: Supabase credit deduction error:", e);
-        }
+      // Close prep modal and pass preloaded material & preferences into Interactive Player
+      this.closePrepModal();
+
+      if (window.InteractivePlayerComponent) {
+        window.InteractivePlayerComponent.preloadedMaterial = material;
+        window.InteractivePlayerComponent.currentSettings = settings;
       }
-      return true;
+
+      // Immediately open player without another credit check or DB fetch
+      window.location.hash = `#player?id=${material.id}`;
     }
 
     async startMockExam(mockId) {
@@ -760,27 +886,44 @@
         return;
       }
 
-      const ok = await this.deductCreditAndPersist();
-      if (!ok) {
+      let deductOk = false;
+      let newRemaining = null;
+      try {
+        let idToken = "";
+        if (window.firebase && window.firebase.auth) {
+          const user = window.firebase.auth().currentUser;
+          if (user) idToken = await user.getIdToken();
+        }
+        if (window.SupabaseService && window.SupabaseService.consumeCreditWorker) {
+          const res = await window.SupabaseService.consumeCreditWorker(idToken);
+          if (res && res.success) {
+            deductOk = true;
+            newRemaining = typeof res.credits_remaining === "number" ? res.credits_remaining : null;
+          }
+        }
+      } catch (e) {
+        console.warn("PracticeApp: Mock exam credit deduction error:", e);
+      }
+
+      if (!deductOk) {
         this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
+        const creditsModal = document.getElementById("credits-detail-modal");
+        this.updateCreditsModalUI();
+        if (creditsModal) creditsModal.hidden = false;
         return;
+      }
+
+      if (newRemaining !== null) {
+        AppState.dailyCredits.remaining = newRemaining;
+        this.saveState();
+        this.updateHeaderUI();
       }
 
       window.location.hash = `#player?id=${mockId}`;
     }
 
     async openPlayer(materialId) {
-      if (!this.requireLogin("Please log in to access this feature.", `#player?id=${materialId}`)) {
-        return;
-      }
-
-      const ok = await this.deductCreditAndPersist();
-      if (!ok) {
-        this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
-        return;
-      }
-
-      window.location.hash = `#player?id=${materialId}`;
+      this.openPrepModal(materialId);
     }
 
     recordTestCompletion(moduleName, accuracyPct) {

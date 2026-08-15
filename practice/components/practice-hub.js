@@ -125,6 +125,7 @@ window.PracticeHubComponent = {
     const cached = this.getCachedResult(cacheKey);
     let cacheRendered = false;
     if (cached && cached.materials) {
+      this.loadedMaterials = cached.materials;
       this.renderMaterialsGrid(cached.materials, gridContainer);
       this.renderPagination(cached.page, cached.totalPages, cached.totalCount, pagContainer);
       cacheRendered = true;
@@ -132,6 +133,7 @@ window.PracticeHubComponent = {
 
     try {
       const res = await this.querySupabaseMaterials();
+      this.loadedMaterials = res.materials;
       this.currentQuery.totalCount = res.totalCount;
       this.currentQuery.totalPages = res.totalPages;
 
@@ -258,7 +260,7 @@ window.PracticeHubComponent = {
         ? `<button type="button" class="btn-secondary btn-sm mat-action-btn" onclick="window.PracticeHubComponent.showWritingLockedModal()">
              <i data-lucide="lock"></i> Locked (Pro)
            </button>`
-        : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="window.PracticeApp.openPlayer('${mat.id}')">
+        : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="window.PracticeApp.openPrepModal('${mat.id}')">
              <i data-lucide="play"></i> ${isCompleted ? 'Practice Again' : 'Practice'}
            </button>`;
 

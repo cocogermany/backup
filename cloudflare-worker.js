@@ -560,7 +560,160 @@ export default {
         );
       }
 
-      // 3. Upload File (POST /upload)
+      // 5. Atomic Learning Credit Consumption (POST /learning/credits/consume)
+      if (request.method === "POST" && url.pathname === "/learning/credits/consume") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Fetch user row
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+
+        if (!userRow) {
+          return responseJSON({ error: "User record not found." }, 404, request);
+        }
+
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Fetch plan daily credits
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        let dailyPracticeCredits = 10;
+        if (planRes.ok) {
+          const planData = await planRes.json();
+          if (planData && planData[0] && typeof planData[0].daily_practice_credits === "number") {
+            dailyPracticeCredits = planData[0].daily_practice_credits;
+          }
+        }
+
+        // 3. Reset credits if local date changed
+        const userTimezone = userRow.timezone || "UTC";
+        let userLocalToday = "";
+        try {
+          const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: userTimezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+          userLocalToday = formatter.format(new Date());
+        } catch (tzErr) {
+          userLocalToday = new Date().toISOString().split("T")[0];
+        }
+
+        let creditsRemaining = typeof userRow.credits_remaining === "number" ? userRow.credits_remaining : dailyPracticeCredits;
+        let lastReset = userRow.last_reset ? String(userRow.last_reset).split("T")[0] : "";
+
+        if (!lastReset || userLocalToday > lastReset) {
+          creditsRemaining = dailyPracticeCredits;
+          lastReset = userLocalToday;
+        }
+
+        // 4. Verify credits > 0
+        if (creditsRemaining <= 0) {
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              credits_remaining: 0,
+              membership: userRow.membership || "FREE",
+            },
+            200,
+            request
+          );
+        }
+
+        // 5. ATOMIC decrement: PATCH with filter credits_remaining=gt.0
+        const newCredits = creditsRemaining - 1;
+        const deductRes = await fetch(
+          `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&credits_remaining=gt.0`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation",
+            },
+            body: JSON.stringify({
+              credits_remaining: newCredits,
+              last_reset: lastReset,
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+
+        if (!deductRes.ok) {
+          const errText = await deductRes.text();
+          return responseJSON({ error: `Supabase credit update error (${deductRes.status}): ${errText}` }, deductRes.status, request);
+        }
+
+        const deductData = await deductRes.json();
+        if (!deductData || deductData.length === 0) {
+          // Conditional check failed (concurrent tab consumed last credit)
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              credits_remaining: 0,
+              membership: userRow.membership || "FREE",
+            },
+            200,
+            request
+          );
+        }
+
+        const updatedUser = deductData[0];
+        return responseJSON(
+          {
+            success: true,
+            credits_remaining: updatedUser.credits_remaining,
+            membership: updatedUser.membership || userRow.membership || "FREE",
+            uid,
+          },
+          200,
+          request
+        );
+      }
+
+      // 6. Upload File (POST /upload)
       if (request.method === "POST" && (url.pathname === "/upload" || url.pathname === "/")) {
         const contentType = request.headers.get("content-type") || "";
 
