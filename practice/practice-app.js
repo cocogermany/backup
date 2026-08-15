@@ -528,6 +528,13 @@
       const mainPath = hash.split("?")[0];
       const searchParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
 
+      const isExamMode = mainPath === "#player";
+      if (isExamMode) {
+        document.body.classList.add("exam-mode");
+      } else {
+        document.body.classList.remove("exam-mode");
+      }
+
       const viewport = document.getElementById("app-viewport");
       const titleEl = document.getElementById("topbar-title");
 
@@ -536,25 +543,27 @@
 
       if (!viewport) return;
 
-      // Render Skeleton Loader for smooth feedback
-      viewport.innerHTML = `
-        <div class="view-fade-in">
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-text"></div>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
-            <div class="skeleton-card">
-              <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-              <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-              <div class="skeleton" style="height:14px; width:75%;"></div>
-            </div>
-            <div class="skeleton-card">
-              <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-              <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-              <div class="skeleton" style="height:14px; width:75%;"></div>
+      if (!isExamMode) {
+        // Render Skeleton Loader for smooth feedback
+        viewport.innerHTML = `
+          <div class="view-fade-in">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+              <div class="skeleton-card">
+                <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
+                <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:14px; width:75%;"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
+                <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:14px; width:75%;"></div>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+      }
 
       setTimeout(() => {
         switch (mainPath) {
