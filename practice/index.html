@@ -224,33 +224,54 @@
     <div class="modal-backdrop" id="quick-actions-modal" hidden>
       <div class="modal-card action-sheet-card">
         <div class="modal-header">
-          <h3>Quick Features & Navigation</h3>
-          <button class="modal-close-btn" id="quick-actions-close"><i data-lucide="x"></i></button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i data-lucide="layout-grid" style="width:18px; height:18px; color:var(--brown);"></i>
+            <h3>More Features</h3>
+          </div>
+          <button class="modal-close-btn" id="quick-actions-close" aria-label="Close"><i data-lucide="x"></i></button>
         </div>
+        
+        <!-- 2-Column App Launcher Grid -->
         <div class="action-sheet-grid">
           <a href="#mock-exams" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
             <div class="action-icon icon-award"><i data-lucide="award"></i></div>
-            <span>Mock Exam</span>
+            <div class="action-text-group">
+              <span class="action-title">Mock Exam</span>
+            </div>
           </a>
           <a href="#practice" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
             <div class="action-icon icon-practice"><i data-lucide="layers"></i></div>
-            <span>Practice</span>
+            <div class="action-text-group">
+              <span class="action-title">Practice</span>
+            </div>
           </a>
           <a href="../index.html#/videos" class="action-item">
             <div class="action-icon icon-video"><i data-lucide="play-circle"></i></div>
-            <span>Videos</span>
+            <div class="action-text-group">
+              <span class="action-title">Videos</span>
+            </div>
           </a>
           <a href="../index.html#/resources" class="action-item">
             <div class="action-icon icon-book"><i data-lucide="book-open"></i></div>
-            <span>Resources</span>
+            <div class="action-text-group">
+              <span class="action-title">Resources</span>
+            </div>
           </a>
           <a href="#progress" class="action-item" onclick="document.getElementById('quick-actions-modal').hidden=true;">
             <div class="action-icon icon-chart"><i data-lucide="line-chart"></i></div>
-            <span>Progress</span>
+            <div class="action-text-group">
+              <span class="action-title">Progress</span>
+            </div>
           </a>
-          <a href="../index.html" class="action-item text-danger">
+        </div>
+
+        <!-- Visually Separated Exit Section -->
+        <div class="action-sheet-footer">
+          <a href="../index.html" class="action-item action-item-exit text-danger">
             <div class="action-icon icon-exit"><i data-lucide="log-out"></i></div>
-            <span>Exit Hub</span>
+            <div class="action-text-group">
+              <span class="action-title">Exit Hub</span>
+            </div>
           </a>
         </div>
       </div>
