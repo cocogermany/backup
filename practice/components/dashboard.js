@@ -114,7 +114,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-sky" id="cnt-lesen">${cachedStats.counts?.Lesen || 0} Sets</span>
+              <span class="badge-pill badge-sky" id="cnt-lesen">500+ Sets</span>
             </div>
           </div>
 
@@ -129,7 +129,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-gold" id="cnt-hoeren">${cachedStats.counts?.Hören || 0} Audio Sets</span>
+              <span class="badge-pill badge-gold" id="cnt-hoeren">400+ Audio Sets</span>
             </div>
           </div>
 
@@ -144,7 +144,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-emerald" id="cnt-grammatik">${cachedStats.counts?.Grammatik || 0} Drills</span>
+              <span class="badge-pill badge-emerald" id="cnt-grammatik">500+ Drills</span>
             </div>
           </div>
 
@@ -227,10 +227,6 @@ window.DashboardComponent = {
       const cntHoeren = document.getElementById("cnt-hoeren");
       const cntGrammatik = document.getElementById("cnt-grammatik");
       const cntSchreiben = document.getElementById("cnt-schreiben");
-
-      if (cntLesen) cntLesen.textContent = `${counts.Lesen} Sets`;
-      if (cntHoeren) cntHoeren.textContent = `${counts.Hören} Audio Sets`;
-      if (cntGrammatik) cntGrammatik.textContent = `${counts.Grammatik} Drills`;
 
       const isPaid = this.isPaidMembership(appState?.userProfile?.plan);
       if (cntSchreiben) {
