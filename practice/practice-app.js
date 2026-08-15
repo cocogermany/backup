@@ -600,6 +600,17 @@
     }
 
     showToast(message, type = "info", duration = 3200) {
+      let backdrop = document.getElementById("app-toast-backdrop");
+      if (!backdrop) {
+        backdrop = document.createElement("div");
+        backdrop.id = "app-toast-backdrop";
+        backdrop.className = "app-toast-backdrop";
+        document.body.appendChild(backdrop);
+      }
+      requestAnimationFrame(() => {
+        if (backdrop) backdrop.classList.add("backdrop-visible");
+      });
+
       let container = document.getElementById("app-toast-container");
       if (!container) {
         container = document.createElement("div");
@@ -616,7 +627,7 @@
 
       toast.innerHTML = `
         <span class="${iconClass}">
-          <i data-lucide="${iconName}" style="width:14px;height:14px;"></i>
+          <i data-lucide="${iconName}" style="width:16px;height:16px;"></i>
         </span>
         <span class="toast-message">${message}</span>
       `;
@@ -627,11 +638,21 @@
       const removeToast = () => {
         if (!toast.parentNode) return;
         toast.classList.add("toast-hiding");
+
+        const remaining = container.querySelectorAll(".app-toast:not(.toast-hiding)");
+        if (remaining.length === 0 && backdrop) {
+          backdrop.classList.remove("backdrop-visible");
+        }
+
         setTimeout(() => {
           if (toast.parentNode) toast.parentNode.removeChild(toast);
+          if (container.querySelectorAll(".app-toast").length === 0) {
+            if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+          }
         }, 250);
       };
 
+      backdrop.onclick = () => removeToast();
       setTimeout(removeToast, duration);
       return toast;
     }
