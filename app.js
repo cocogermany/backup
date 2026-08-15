@@ -672,7 +672,8 @@ async function loadExamMaterials() {
         materialNumber: item.material_number || item.materialNumber || 1,
         title: item.title,
         difficulty: item.difficulty,
-        estimatedTime: "15 mins",
+        durationMinutes: item.duration_minutes !== undefined && item.duration_minutes !== null ? item.duration_minutes : "",
+        estimatedTime: item.duration_minutes ? `${item.duration_minutes} mins` : "--",
         contentPath: item.content_path || item.contentPath,
         active: Boolean(item.active),
       }));
@@ -2725,6 +2726,15 @@ async function saveExamMaterial(event) {
     const difficulty = String(formData.get("difficulty") || "Medium");
     const active = formData.get("active") === "true";
 
+    const durationVal = formData.get("durationMinutes");
+    let durationMinutes = null;
+    if (durationVal !== null && durationVal !== undefined && String(durationVal).trim() !== "") {
+      durationMinutes = parseInt(String(durationVal).trim(), 10);
+      if (isNaN(durationMinutes) || durationMinutes <= 0) {
+        throw new Error("Duration (minutes) must be a positive number.");
+      }
+    }
+
     const id = generateExamMaterialId(exam, level, moduleName, materialNumber);
     const contentPath = String(formData.get("contentPath") || `${level}/${id}.json`).trim();
 
@@ -2739,6 +2749,7 @@ async function saveExamMaterial(event) {
       material_number: materialNumber,
       content_path: contentPath,
       difficulty,
+      duration_minutes: durationMinutes,
       active,
     };
 
@@ -2784,6 +2795,7 @@ function fillExamMaterialForm(id) {
   form.elements.materialNumber.value = item.materialNumber || 1;
   form.elements.title.value = item.title || "";
   form.elements.contentPath.value = item.contentPath || `${item.level}/${item.id}.json`;
+  form.elements.durationMinutes.value = item.durationMinutes !== undefined && item.durationMinutes !== null ? item.durationMinutes : "";
   form.elements.difficulty.value = item.difficulty || "Medium";
   form.elements.active.value = item.active !== false ? "true" : "false";
 
@@ -2878,6 +2890,11 @@ function renderAdminExamMaterials() {
 
             <div class="exam-material-form-grid">
               <label class="field">
+                Duration (minutes)
+                <input type="number" name="durationMinutes" min="1" max="999" placeholder="e.g. 15" />
+              </label>
+
+              <label class="field">
                 Difficulty
                 <select name="difficulty">
                   <option value="Easy">Easy</option>
@@ -2914,6 +2931,7 @@ function renderAdminExamMaterials() {
                         <th>Title</th>
                         <th>Exam / Level</th>
                         <th>Module</th>
+                        <th>Duration</th>
                         <th>Content Path</th>
                         <th>Active</th>
                         <th>Difficulty</th>
@@ -2929,6 +2947,7 @@ function renderAdminExamMaterials() {
                               <td>${item.title}</td>
                               <td>${item.exam} ${item.level}</td>
                               <td><span class="badge">${item.module}</span></td>
+                              <td>${item.durationMinutes ? `${item.durationMinutes} mins` : "--"}</td>
                               <td><code class="cdn-link">${item.contentPath || `${item.level}/${item.id}.json`}</code></td>
                               <td><span class="badge ${item.active ? "badge-gold" : ""}">${item.active ? "Yes" : "No"}</span></td>
                               <td><span class="muted">${item.difficulty || "Medium"}</span></td>

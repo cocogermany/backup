@@ -172,10 +172,10 @@ window.PracticeHubComponent = {
     const supabase = await window.SupabaseService.getSupabaseClient();
     if (!supabase) throw new Error("Supabase client unavailable");
 
-    // Scope columns strictly to current materials table schema: id, title, exam, level, module, material_number, content_path, difficulty, active
+    // Scope columns strictly to current materials table schema: id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active
     let query = supabase
       .from("materials")
-      .select("id, title, exam, level, module, material_number, content_path, difficulty, active", { count: "exact" })
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active", { count: "exact" })
       .eq("active", true);
 
     if (this.currentQuery.level) {
@@ -247,7 +247,8 @@ window.PracticeHubComponent = {
       const isLocked = isSchreiben && !isPaid;
       const isCompleted = this.completedMaterialIds.has(mat.id);
 
-      const timeStr = mat.module === "Schreiben" ? "20 mins" : mat.module === "Hören" ? "15 mins" : "10 mins";
+      const durationNum = mat.duration_minutes !== null && mat.duration_minutes !== undefined ? Number(mat.duration_minutes) : NaN;
+      const timeStr = (!isNaN(durationNum) && durationNum > 0) ? `${durationNum} mins` : "--";
       const diffStr = mat.difficulty || "Medium";
       const descText = mat.description || mat.summary || defaultDescriptions[mat.module] || "Structured skill practice exercise.";
 

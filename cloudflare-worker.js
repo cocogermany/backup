@@ -217,6 +217,10 @@ export default {
           return responseJSON({ error: "Bad Request: Missing required material fields (id, title)." }, 400, request);
         }
 
+        const durationMin = (material.duration_minutes !== undefined && material.duration_minutes !== null && material.duration_minutes !== "")
+          ? parseInt(material.duration_minutes || material.durationMinutes, 10)
+          : (material.durationMinutes !== undefined && material.durationMinutes !== null && material.durationMinutes !== "" ? parseInt(material.durationMinutes, 10) : null);
+
         const payload = {
           id: String(material.id).trim(),
           title: String(material.title || "").trim(),
@@ -226,6 +230,7 @@ export default {
           material_number: parseInt(material.material_number || material.materialNumber || "1", 10),
           content_path: String(material.content_path || material.contentPath || `${material.level}/${material.id}.json`).trim(),
           difficulty: String(material.difficulty || "Medium").trim(),
+          duration_minutes: durationMin && !isNaN(durationMin) && durationMin > 0 ? durationMin : null,
           active: material.active !== undefined ? Boolean(material.active) : true,
         };
 

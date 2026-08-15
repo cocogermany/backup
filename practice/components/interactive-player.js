@@ -83,11 +83,12 @@ window.InteractivePlayerComponent = {
         if (supabase) {
           const { data: dbMat } = await supabase
             .from("materials")
-            .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+            .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
             .eq("id", materialId)
             .maybeSingle();
 
           if (dbMat) {
+            const durMin = dbMat.duration_minutes !== null && dbMat.duration_minutes !== undefined ? Number(dbMat.duration_minutes) : NaN;
             material = {
               id: dbMat.id,
               title: dbMat.title,
@@ -95,7 +96,8 @@ window.InteractivePlayerComponent = {
               level: dbMat.level || level,
               module: dbMat.module || "Lesen",
               difficulty: dbMat.difficulty || "Medium",
-              estimatedSeconds: dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600,
+              duration_minutes: dbMat.duration_minutes,
+              estimatedSeconds: (!isNaN(durMin) && durMin > 0) ? durMin * 60 : (dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600),
               contentPath: dbMat.content_path
             };
           }

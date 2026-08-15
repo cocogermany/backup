@@ -62,7 +62,7 @@ async function fetchMaterialsSupabase(options = {}) {
   try {
     let query = supabase
       .from("materials")
-      .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
       .order("material_number", { ascending: true });
 
     if (options.activeOnly !== false) {
@@ -91,7 +91,7 @@ async function fetchMaterialByIdSupabase(id) {
   try {
     const { data, error } = await supabase
       .from("materials")
-      .select("id, title, exam, level, module, material_number, content_path, difficulty, active")
+      .select("id, title, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
       .eq("id", id)
       .maybeSingle();
 
@@ -110,6 +110,10 @@ async function saveMaterialMetadataSupabase(material, idToken) {
   const workerBase = getWorkerBaseUrl();
   const endpoint = `${workerBase}/admin/material`;
 
+  const durationMin = material.duration_minutes !== undefined && material.duration_minutes !== null && material.duration_minutes !== ""
+    ? parseInt(material.duration_minutes || material.durationMinutes, 10)
+    : (material.durationMinutes !== undefined && material.durationMinutes !== null && material.durationMinutes !== "" ? parseInt(material.durationMinutes, 10) : null);
+
   const payload = {
     id: String(material.id).trim(),
     title: String(material.title || "").trim(),
@@ -119,6 +123,7 @@ async function saveMaterialMetadataSupabase(material, idToken) {
     material_number: parseInt(material.materialNumber || material.material_number || "1", 10),
     content_path: String(material.contentPath || material.content_path || `${material.level}/${material.id}.json`).trim(),
     difficulty: String(material.difficulty || "Medium").trim(),
+    duration_minutes: durationMin && !isNaN(durationMin) && durationMin > 0 ? durationMin : null,
     active: material.active !== undefined ? Boolean(material.active) : true,
   };
 
