@@ -63,6 +63,14 @@ textarea:focus-visible {
   outline-offset: 4px;
 }
 
+/* The router moves focus to the main landmark after rendering each page so
+   screen-reader users are placed at the new content. `main` is intentionally
+   not a keyboard control, so prevent the browser's default focus ring from
+   appearing as a large box around the entire page. */
+#app:focus {
+  outline: none;
+}
+
 .site-header {
   position: sticky;
   top: 0;
