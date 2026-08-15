@@ -114,7 +114,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-sky" id="cnt-lesen">500+ Sets</span>
+              <span class="badge-pill badge-sky">500+ Sets</span>
             </div>
           </div>
 
@@ -129,7 +129,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-gold" id="cnt-hoeren">400+ Audio Sets</span>
+              <span class="badge-pill badge-gold">400+ Audio Sets</span>
             </div>
           </div>
 
@@ -144,7 +144,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-emerald" id="cnt-grammatik">500+ Drills</span>
+              <span class="badge-pill badge-emerald">500+ Drills</span>
             </div>
           </div>
 
@@ -159,9 +159,22 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-rose" id="cnt-schreiben">
-                ${isPaid ? (cachedStats.counts?.Schreiben || 0) + ' Prompts' : '<i data-lucide="lock" style="width:10px;height:10px;display:inline;"></i> Locked (Pro)'}
-              </span>
+              <span class="badge-pill badge-rose">Available with Pro Plan</span>
+            </div>
+          </div>
+
+          <!-- Sprechen Card -->
+          <div class="module-card" onclick="window.location.hash='#practice?module=Sprechen'">
+            <div class="module-card-icon icon-speaking">
+              <i data-lucide="mic"></i>
+            </div>
+            <div class="module-card-info">
+              <span class="module-card-name">Sprechen (Speaking)</span>
+              <span class="module-card-sub">Oral Drills & Audio Simulation</span>
+            </div>
+            <div class="module-card-footer">
+              <span>${format} ${level}</span>
+              <span class="badge-pill badge-rose">Available with Pro Plan</span>
             </div>
           </div>
         </div>
@@ -196,41 +209,12 @@ window.DashboardComponent = {
       const level = appState?.currentLevel || "A1";
       const format = appState?.currentFormat || "Goethe";
 
-      // 1. Fetch material counts per module efficiently
-      const counts = { Lesen: 0, Hören: 0, Grammatik: 0, Schreiben: 0, Sprechen: 0 };
-      const modules = ["Lesen", "Hören", "Grammatik", "Schreiben", "Sprechen"];
-
-      await Promise.all(modules.map(async (mod) => {
-        const { count, error } = await supabase
-          .from("materials")
-          .select("id", { count: "exact", head: true })
-          .eq("active", true)
-          .eq("level", level)
-          .ilike("exam", format)
-          .eq("module", mod);
-
-        if (!error && count !== null) {
-          counts[mod] = count;
-        }
-      }));
-
       // Update credits text in DOM if appState contains credits
       const dashCreditsStrong = document.getElementById("dash-credits-strong");
       if (dashCreditsStrong && appState && appState.dailyCredits && typeof appState.dailyCredits.remaining === "number") {
         const remaining = appState.dailyCredits.remaining;
         const total = appState.dailyCredits.total || remaining;
         dashCreditsStrong.textContent = `${remaining} / ${total}`;
-      }
-
-      // Update module count pills in DOM
-      const cntLesen = document.getElementById("cnt-lesen");
-      const cntHoeren = document.getElementById("cnt-hoeren");
-      const cntGrammatik = document.getElementById("cnt-grammatik");
-      const cntSchreiben = document.getElementById("cnt-schreiben");
-
-      const isPaid = this.isPaidMembership(appState?.userProfile?.plan);
-      if (cntSchreiben) {
-        cntSchreiben.innerHTML = isPaid ? `${counts.Schreiben} Prompts` : `<i data-lucide="lock" style="width:10px;height:10px;display:inline;"></i> Locked (Pro)`;
       }
 
       // 2. Fetch practice attempts summary & calculate skill accuracy
