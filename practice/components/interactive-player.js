@@ -14,6 +14,8 @@
  */
 
 window.InteractivePlayerComponent = {
+  timerStarted: false,
+  hasTimerStarted: false,
   activeTimerInterval: null,
   secondsRemaining: 0,
   isOvertime: false,
@@ -147,13 +149,22 @@ window.InteractivePlayerComponent = {
   },
 
   stopTimer: function () {
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-    this.activeTimerInterval = null;
+    if (this.activeTimerInterval) {
+      clearInterval(this.activeTimerInterval);
+      this.activeTimerInterval = null;
+    }
+    this.timerStarted = false;
   },
 
   cleanup: function () {
     this.renderRequestId += 1;
     this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
+    this.secondsRemaining = 0;
+    this.timeExpiredModalShown = false;
+    this.isOvertime = false;
+    this.overtimeSeconds = 0;
     if (this._clickHandler) document.removeEventListener("click", this._clickHandler);
     if (this._keyHandler) document.removeEventListener("keydown", this._keyHandler);
     if (this._routeHandler) window.removeEventListener("hashchange", this._routeHandler);
@@ -172,14 +183,17 @@ window.InteractivePlayerComponent = {
     const renderRequestId = ++this.renderRequestId;
 
     this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
+    this.secondsRemaining = 0;
+    this.isOvertime = false;
+    this.overtimeSeconds = 0;
 
     this.userAnswers = {};
     this.isSubmitted = false;
     this.isReviewMode = false;
     this.warningToastShown = false;
     this.timeExpiredModalShown = false;
-    this.isOvertime = false;
-    this.overtimeSeconds = 0;
     this.activeMobileTab = "reading";
     this.styleMode = this.getSavedStyleMode();
     this.layoutMode = window.innerWidth <= 860 ? "v-split" : "h-split";
@@ -542,9 +556,13 @@ window.InteractivePlayerComponent = {
     const timerBox = document.getElementById("exam-timer-box");
     if (settings.countdown !== false) {
       if (timerBox) timerBox.style.display = "inline-flex";
-      this.startTimer(material.estimatedSeconds || 600);
+      const durSec = Number(material.estimatedSeconds);
+      const safeDuration = (!isNaN(durSec) && durSec > 0) ? durSec : 600;
+      this.startTimer(safeDuration);
     } else {
-      if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+      this.stopTimer();
+      this.timerStarted = false;
+      this.hasTimerStarted = false;
       if (timerBox) timerBox.style.display = "none";
     }
 
@@ -871,7 +889,9 @@ window.InteractivePlayerComponent = {
       btnEl.innerHTML = `<span class="btn-spinner"></span> Submitting...`;
     }
 
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
 
     const material = this.currentMaterial || this.getFallbackMaterialContent(materialId);
     const questions = material.questions || [];
@@ -1010,7 +1030,9 @@ window.InteractivePlayerComponent = {
     }
 
     const material = this.currentMaterial || { id: "writing-1", module: "Schreiben", level: "A1", exam: "goethe" };
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
 
     this.lastScore = { score: 9, total: 10, pct: 90 };
     this.isSubmitted = true;
@@ -1025,7 +1047,9 @@ window.InteractivePlayerComponent = {
 
   finishSpeaking: async function () {
     const material = this.currentMaterial || { id: "speaking-1", module: "Sprechen", level: "A1", exam: "goethe" };
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
 
     this.lastScore = { score: 8, total: 10, pct: 80 };
     this.isSubmitted = true;
@@ -1068,6 +1092,9 @@ window.InteractivePlayerComponent = {
   },
 
   retryTest: function () {
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
     this.userAnswers = {};
     this.isSubmitted = false;
     this.isReviewMode = false;
@@ -1091,20 +1118,37 @@ window.InteractivePlayerComponent = {
 
       const settings = this.currentSettings || this.getPrepSettings();
       if (settings.countdown !== false) {
-        this.startTimer(this.currentMaterial.estimatedSeconds || 600);
+        const durSec = Number(this.currentMaterial.estimatedSeconds);
+        const safeDuration = (!isNaN(durSec) && durSec > 0) ? durSec : 600;
+        this.startTimer(safeDuration);
       }
     }
   },
 
   startTimer: function (durationSec) {
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
-    this.secondsRemaining = durationSec;
+    this.stopTimer();
+
+    const initialSeconds = Number(durationSec);
+    if (isNaN(initialSeconds) || initialSeconds <= 0) {
+      this.timerStarted = false;
+      this.hasTimerStarted = false;
+      this.secondsRemaining = 0;
+      return;
+    }
+
+    this.timerStarted = true;
+    this.hasTimerStarted = true;
+    this.secondsRemaining = initialSeconds;
     this.warningToastShown = false;
     this.timeExpiredModalShown = false;
     this.isOvertime = false;
+    this.overtimeSeconds = 0;
 
     const timerDisplay = document.getElementById("player-timer-display");
     const timerBox = document.getElementById("exam-timer-box");
+    if (timerBox) {
+      timerBox.classList.remove("timer-warning", "timer-overtime");
+    }
 
     const renderDigits = (sec) => {
       const m = Math.floor(sec / 60);
@@ -1117,9 +1161,15 @@ window.InteractivePlayerComponent = {
     }
 
     this.activeTimerInterval = setInterval(() => {
+      // Guard: must have genuinely started, be active, and not submitted
+      if (!this.timerStarted || !this.hasTimerStarted || this.isSubmitted) {
+        this.stopTimer();
+        return;
+      }
+
       this.secondsRemaining--;
 
-      // 1-Minute Remaining Warning (at <= 60s)
+      // 1-Minute Remaining Warning (at <= 60s and > 0s)
       if (this.secondsRemaining <= 60 && this.secondsRemaining > 0) {
         if (!this.warningToastShown) {
           this.warningToastShown = true;
@@ -1144,12 +1194,14 @@ window.InteractivePlayerComponent = {
       }
 
       // 00:00 Time Expired -> Open Custom Modal
+      // Only triggers when countdown genuinely reaches 00:00 after running
       if (this.secondsRemaining <= 0) {
-        clearInterval(this.activeTimerInterval);
+        this.stopTimer();
         this.secondsRemaining = 0;
         if (timerDisplay) timerDisplay.textContent = "00:00";
 
-        if (!this.timeExpiredModalShown && !this.isSubmitted) {
+        const currentSettings = this.currentSettings || this.getPrepSettings();
+        if (currentSettings.countdown !== false && this.hasTimerStarted && !this.timeExpiredModalShown && !this.isSubmitted) {
           this.timeExpiredModalShown = true;
           const timeModal = document.getElementById("exam-time-expired-modal");
           if (timeModal) timeModal.hidden = false;
@@ -1164,7 +1216,10 @@ window.InteractivePlayerComponent = {
   },
 
   startOvertimeTimer: function () {
-    if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
+    this.isOvertime = true;
     this.overtimeSeconds = 0;
     const timerDisplay = document.getElementById("player-timer-display");
 
@@ -1177,6 +1232,11 @@ window.InteractivePlayerComponent = {
     if (timerDisplay) timerDisplay.textContent = "-00:00";
 
     this.activeTimerInterval = setInterval(() => {
+      if (!this.isOvertime || this.isSubmitted) {
+        if (this.activeTimerInterval) clearInterval(this.activeTimerInterval);
+        this.activeTimerInterval = null;
+        return;
+      }
       this.overtimeSeconds++;
       if (timerDisplay) {
         timerDisplay.textContent = renderOvertime(this.overtimeSeconds);
