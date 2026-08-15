@@ -35,14 +35,6 @@ window.PracticeHubComponent = {
 
     return `
       <div class="view-fade-in" id="practice-hub-root">
-        <div class="page-header">
-          <div class="page-title-row">
-            <h1 class="page-title" id="practice-hub-title">Practice Hub (${level})</h1>
-            <span class="badge-pill badge-sky" id="practice-hub-level-badge">Level ${level} Collection</span>
-          </div>
-          <p class="page-subtitle">Modular skill drills fetched live from database for daily learning sessions.</p>
-        </div>
-
         <!-- Filter Bar & Search -->
         <div class="filter-bar">
           <div class="filter-tabs" role="tablist" aria-label="Skill filters">
@@ -100,12 +92,6 @@ window.PracticeHubComponent = {
     this.currentQuery.level = level;
     this.currentQuery.format = format;
     this.currentQuery.membership = membership;
-
-    // Update Header title if level changed
-    const titleEl = document.getElementById("practice-hub-title");
-    const badgeEl = document.getElementById("practice-hub-level-badge");
-    if (titleEl) titleEl.textContent = `Practice Hub (${level})`;
-    if (badgeEl) badgeEl.textContent = `${format} ${level} Collection`;
 
     // Fetch completed materials list for status badges
     this.completedMaterialIds = await this.fetchCompletedMaterialIds();
