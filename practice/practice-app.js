@@ -599,6 +599,43 @@
       });
     }
 
+    showToast(message, type = "info", duration = 3200) {
+      let container = document.getElementById("app-toast-container");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "app-toast-container";
+        container.className = "app-toast-container";
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement("div");
+      toast.className = `app-toast toast-${type}`;
+
+      const iconName = type === "warning" ? "alert-triangle" : type === "success" ? "check-circle-2" : type === "error" ? "alert-circle" : "log-in";
+      const iconClass = `toast-icon toast-icon-${type}`;
+
+      toast.innerHTML = `
+        <span class="${iconClass}">
+          <i data-lucide="${iconName}" style="width:14px;height:14px;"></i>
+        </span>
+        <span class="toast-message">${message}</span>
+      `;
+
+      container.appendChild(toast);
+      if (window.lucide) window.lucide.createIcons();
+
+      const removeToast = () => {
+        if (!toast.parentNode) return;
+        toast.classList.add("toast-hiding");
+        setTimeout(() => {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 250);
+      };
+
+      setTimeout(removeToast, duration);
+      return toast;
+    }
+
     isLoggedIn() {
       const uid = AppState.userProfile && AppState.userProfile.uid;
       const cachedUid = localStorage.getItem("coco_user_uid");
@@ -613,8 +650,10 @@
           ? (returnTarget.startsWith("http") ? returnTarget : `${window.location.origin}${window.location.pathname}${returnTarget.startsWith("#") ? returnTarget : "#" + returnTarget}`)
           : window.location.href;
         localStorage.setItem("loginRedirect", returnUrl);
-        alert(featureMessage || "Please log in to access this feature.");
-        window.location.href = "../index.html#/login";
+        this.showToast(featureMessage || "Please log in to access this feature.", "info", 2500);
+        setTimeout(() => {
+          window.location.href = "../index.html#/login";
+        }, 750);
         return false;
       }
       return true;
@@ -626,8 +665,10 @@
           ? `${window.location.origin}${window.location.pathname}${targetHash.startsWith("#") ? targetHash : "#" + targetHash}`
           : window.location.href;
         localStorage.setItem("loginRedirect", returnUrl);
-        alert("Please log in to access this feature.");
-        window.location.href = "../index.html#/login";
+        this.showToast("Please log in to access this feature.", "info", 2500);
+        setTimeout(() => {
+          window.location.href = "../index.html#/login";
+        }, 750);
         return false;
       }
       if (targetHash) {
@@ -640,8 +681,10 @@
       if (event) event.preventDefault();
       if (!this.isLoggedIn()) {
         localStorage.setItem("loginRedirect", window.location.href);
-        alert("Please log in first to upgrade your plan.");
-        window.location.href = "../index.html#/login";
+        this.showToast("Please log in first to upgrade your plan.", "info", 2500);
+        setTimeout(() => {
+          window.location.href = "../index.html#/login";
+        }, 750);
         return false;
       }
       window.location.href = "../index.html#/membership";
@@ -679,7 +722,7 @@
 
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
-        alert("⚡ You're out of daily credits. Upgrade your plan to continue.");
+        this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
         return;
       }
 
@@ -693,7 +736,7 @@
 
       const ok = await this.deductCreditAndPersist();
       if (!ok) {
-        alert("⚡ You're out of daily credits. Upgrade your plan to continue.");
+        this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
         return;
       }
 

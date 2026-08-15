@@ -374,12 +374,12 @@ window.PracticeHubComponent = {
 
   showWritingLockedModal: function () {
     if (window.PracticeApp && !window.PracticeApp.isLoggedIn()) {
-      localStorage.setItem("loginRedirect", window.location.href);
-      alert("Please log in to access this feature.");
-      window.location.href = "../index.html#/login";
+      window.PracticeApp.requireLogin("Please log in to access this feature.", window.location.href);
       return;
     }
-    alert("🔒 Writing (Schreiben) drills require a Pro or Paid membership plan. Upgrade your plan to access full writing prompts!");
+    if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
+      window.PracticeApp.showToast("🔒 Writing (Schreiben) drills require a Pro plan. Upgrade to access full prompts!", "warning", 3500);
+    }
   },
 
   getCachedResult: function (key) {
