@@ -196,7 +196,7 @@ window.InteractivePlayerComponent = {
     this.timeExpiredModalShown = false;
     this.activeMobileTab = "reading";
     this.styleMode = this.getSavedStyleMode();
-    this.layoutMode = window.innerWidth <= 860 ? "v-split" : "h-split";
+    this.layoutMode = "h-split";
 
     const settings = this.currentSettings || this.getPrepSettings();
     this.currentSettings = settings;
@@ -213,7 +213,7 @@ window.InteractivePlayerComponent = {
     const isStyleOn = this.styleMode === "on";
 
     return `
-      <div class="exam-cbt-root ${isStyleOn ? 'style-on' : 'style-off'}" id="player-main-container">
+      <div class="exam-cbt-root ${isStyleOn ? 'style-on' : 'style-off'}" id="player-main-container" data-layout-mode="${this.layoutMode}">
         <!-- FIXED CBT EXAM HEADER (~58px) -->
         <header class="exam-cbt-header" id="exam-cbt-header">
           <div class="exam-cbt-header-left">
@@ -274,7 +274,7 @@ window.InteractivePlayerComponent = {
               <span>Vertical</span>
               <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
             </button>
-            <div style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+            <div class="exam-layout-divider" style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
             <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'reading-full' ? 'active' : ''}" id="opt-layout-reading-full" onclick="window.InteractivePlayerComponent.setLayoutMode('reading-full')">
               <span>Reading</span>
               <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Full Focus</span>
@@ -406,6 +406,10 @@ window.InteractivePlayerComponent = {
 
   setLayoutMode: function (mode) {
     this.layoutMode = mode;
+    const rootContainer = document.getElementById("player-main-container");
+    if (rootContainer) {
+      rootContainer.setAttribute("data-layout-mode", mode);
+    }
     const workspace = document.getElementById("exam-cbt-workspace");
     if (workspace) {
       // Remove previous layout classes
@@ -821,8 +825,8 @@ window.InteractivePlayerComponent = {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    // Switch to questions tab on mobile if currently on reading
-    if (window.innerWidth <= 860 && this.activeMobileTab !== "questions") {
+    // Switch to questions tab on mobile if currently on reading and not in vertical split
+    if (window.innerWidth <= 860 && this.layoutMode !== "v-split" && this.activeMobileTab !== "questions") {
       this.switchMobileTab("questions");
     }
 

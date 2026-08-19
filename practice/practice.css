@@ -2937,6 +2937,15 @@ body.exam-mode .app-viewport {
     padding: 0 12px;
   }
 
+  /* Smartphone Display Layout Options: Show only Horizontal and Vertical 50/50 */
+  #opt-layout-reading-focus,
+  #opt-layout-questions-focus,
+  #opt-layout-reading-full,
+  #opt-layout-questions-full,
+  .exam-layout-divider {
+    display: none !important;
+  }
+
   .exam-mobile-tabs {
     display: flex;
   }
@@ -2957,32 +2966,82 @@ body.exam-mode .app-viewport {
     margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
   }
 
-  .exam-cbt-reading-panel,
-  .exam-cbt-questions-panel {
+  /* Existing Horizontal Style: Single-panel view toggled by mobile tabs */
+  .exam-cbt-workspace:not(.layout-v-split) .exam-cbt-reading-panel,
+  .exam-cbt-workspace:not(.layout-v-split) .exam-cbt-questions-panel {
     width: 100% !important;
     height: 100% !important;
     border-right: none;
     padding: 20px 16px 80px;
   }
 
-  /* Mobile Active Tab Display */
-  .exam-cbt-workspace[data-active-tab="reading"] .exam-cbt-reading-panel {
+  /* Mobile Active Tab Display for Horizontal Layout */
+  .exam-cbt-workspace:not(.layout-v-split)[data-active-tab="reading"] .exam-cbt-reading-panel {
     display: block !important;
   }
-  .exam-cbt-workspace[data-active-tab="reading"] .exam-cbt-questions-panel {
+  .exam-cbt-workspace:not(.layout-v-split)[data-active-tab="reading"] .exam-cbt-questions-panel {
     display: none !important;
   }
 
-  .exam-cbt-workspace[data-active-tab="questions"] .exam-cbt-reading-panel {
+  .exam-cbt-workspace:not(.layout-v-split)[data-active-tab="questions"] .exam-cbt-reading-panel {
     display: none !important;
   }
-  .exam-cbt-workspace[data-active-tab="questions"] .exam-cbt-questions-panel {
+  .exam-cbt-workspace:not(.layout-v-split)[data-active-tab="questions"] .exam-cbt-questions-panel {
     display: block !important;
   }
 
-  .exam-review-top-banner + .exam-cbt-workspace,
+  .exam-review-top-banner + .exam-cbt-workspace:not(.layout-v-split),
   .exam-review-top-banner + .exam-single-panel-workspace {
     height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h) - 37px);
+  }
+
+  /* Vertical 50/50 Layout: Top 50% Lesen, Bottom 50% Fragen, both scroll enabled */
+  .exam-cbt-root[data-layout-mode="v-split"] .exam-mobile-tabs,
+  .exam-cbt-root:has(.layout-v-split) .exam-mobile-tabs {
+    display: none !important;
+  }
+
+  .exam-cbt-workspace.layout-v-split {
+    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h)) !important;
+    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h)) !important;
+    flex-direction: column !important;
+  }
+
+  .exam-cbt-root[data-layout-mode="v-split"] .exam-review-top-banner,
+  .exam-cbt-root:has(.layout-v-split) .exam-review-top-banner {
+    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h)) !important;
+  }
+
+  .exam-review-top-banner + .exam-cbt-workspace.layout-v-split {
+    margin-top: 0 !important;
+    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - 37px) !important;
+  }
+
+  .exam-cbt-workspace.layout-v-split .exam-cbt-reading-panel {
+    display: block !important;
+    width: 100% !important;
+    height: 50% !important;
+    min-height: 0 !important;
+    max-height: 50% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-right: none !important;
+    border-bottom: 1px solid var(--exam-border-color) !important;
+    padding: 16px 14px 20px !important;
+    box-sizing: border-box !important;
+  }
+
+  .exam-cbt-workspace.layout-v-split .exam-cbt-questions-panel {
+    display: block !important;
+    width: 100% !important;
+    height: 50% !important;
+    min-height: 0 !important;
+    max-height: 50% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-top: none !important;
+    padding: 16px 14px 40px !important;
+    box-sizing: border-box !important;
   }
 
   .exam-popover {
