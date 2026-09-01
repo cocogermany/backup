@@ -937,7 +937,7 @@
     }
 
     recordTestCompletion(moduleName, accuracyPct) {
-      const normalizedModule = (moduleName === "Grammar" || moduleName === "Grammatik") ? "Grammatik" : moduleName;
+      const normalizedModule = moduleName === "Grammar" ? "Grammatik" : moduleName;
       if (AppState.stats[normalizedModule] !== undefined) {
         AppState.stats[normalizedModule] = Math.round((AppState.stats[normalizedModule] + accuracyPct) / 2);
       }

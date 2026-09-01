@@ -227,7 +227,7 @@ export default {
           description: material.description !== undefined && material.description !== null ? String(material.description).trim() : null,
           exam: String(material.exam || "goethe").trim(),
           level: String(material.level || "A1").trim(),
-          module: String(material.module || "Lesen").trim(),
+          module: String(material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen")).trim(),
           material_number: parseInt(material.material_number || material.materialNumber || "1", 10),
           content_path: String(material.content_path || material.contentPath || `${material.level}/${material.id}.json`).trim(),
           difficulty: String(material.difficulty || "Medium").trim(),

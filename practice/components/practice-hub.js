@@ -193,7 +193,7 @@ window.PracticeHubComponent = {
     }
 
     if (this.currentQuery.activeModule && this.currentQuery.activeModule !== "All") {
-      const dbModule = this.currentQuery.activeModule === "Grammatik" ? "Grammar" : this.currentQuery.activeModule;
+      const dbModule = this.currentQuery.activeModule === "Grammar" ? "Grammatik" : this.currentQuery.activeModule;
       query = query.eq("module", dbModule);
     }
 
@@ -262,11 +262,11 @@ window.PracticeHubComponent = {
       const diffStr = mat.difficulty || "Medium";
       const descText = (mat.description && mat.description.trim()) ? mat.description.trim() : "No description available";
 
-      const displayModule = (mat.module === "Grammar" || mat.module === "Grammatik") ? "Grammatik" : mat.module;
+      const displayModule = mat.module === "Grammar" ? "Grammatik" : mat.module;
 
       const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky"
         : mat.module === "Hören" ? "badge-gold"
-        : (mat.module === "Grammatik" || mat.module === "Grammar") ? "badge-emerald"
+        : mat.module === "Grammatik" ? "badge-emerald"
         : mat.module === "Sprechen" ? "badge-sky"
         : "badge-rose";
 

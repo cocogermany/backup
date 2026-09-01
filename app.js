@@ -668,7 +668,7 @@ async function loadExamMaterials() {
         id: item.id,
         exam: item.exam,
         level: item.level,
-        module: item.module,
+        module: item.module === "Grammar" ? "Grammatik" : item.module,
         materialNumber: item.material_number || item.materialNumber || 1,
         title: item.title,
         description: item.description || "",
@@ -2647,6 +2647,7 @@ function generateExamMaterialId(exam, level, moduleName, number) {
   const moduleCodes = {
     Lesen: "LM",
     Hören: "HM",
+    Grammatik: "GR",
     Grammar: "GR",
     Schreiben: "WR",
     Sprechen: "SP",
@@ -2663,6 +2664,7 @@ function getNextExamMaterialNumber(exam, level, moduleName) {
   const moduleCodes = {
     Lesen: "LM",
     Hören: "HM",
+    Grammatik: "GR",
     Grammar: "GR",
     Schreiben: "WR",
     Sprechen: "SP",
@@ -2691,7 +2693,8 @@ function updateExamMaterialIdPreview() {
 
   const exam = form.elements.exam.value;
   const level = form.elements.level.value;
-  const moduleName = form.elements.module.value;
+  const rawModule = form.elements.module.value;
+  const moduleName = rawModule === "Grammar" ? "Grammatik" : rawModule;
 
   if (!form.dataset.manualNum) {
     const nextNum = getNextExamMaterialNumber(exam, level, moduleName);
@@ -2721,7 +2724,8 @@ async function saveExamMaterial(event) {
     const formData = new FormData(form);
     const exam = String(formData.get("exam") || "goethe");
     const level = String(formData.get("level") || "A1");
-    const moduleName = String(formData.get("module") || "Lesen");
+    const rawModule = String(formData.get("module") || "Lesen");
+    const moduleName = rawModule === "Grammar" ? "Grammatik" : rawModule;
     const materialNumber = parseInt(formData.get("materialNumber") || "1", 10);
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
@@ -2794,7 +2798,7 @@ function fillExamMaterialForm(id) {
 
   form.elements.exam.value = item.exam || "goethe";
   form.elements.level.value = item.level || "A1";
-  form.elements.module.value = item.module || "Lesen";
+  form.elements.module.value = item.module === "Grammar" ? "Grammatik" : (item.module || "Lesen");
   form.elements.materialNumber.value = item.materialNumber || 1;
   form.elements.title.value = item.title || "";
   form.elements.description.value = item.description || "";
@@ -2864,7 +2868,7 @@ function renderAdminExamMaterials() {
                 <select name="module">
                   <option value="Lesen">Lesen (Reading)</option>
                   <option value="Hören">Hören (Listening)</option>
-                  <option value="Grammar">Grammar</option>
+                  <option value="Grammatik">Grammatik</option>
                   <option value="Schreiben">Schreiben (Writing)</option>
                   <option value="Sprechen">Sprechen (Speaking)</option>
                   <option value="Mock Exam">Mock Exam</option>

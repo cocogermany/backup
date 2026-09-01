@@ -105,7 +105,7 @@ window.ProgressTrackerComponent = {
 
             <div class="skill-bar-item">
               <div class="skill-bar-header">
-                <span>Grammatik (Grammar)</span>
+                <span>Grammatik</span>
                 <span id="txt-acc-grammatik">${stats.Grammatik || 0}%</span>
               </div>
               <div class="skill-bar-track">
@@ -277,7 +277,7 @@ window.ProgressTrackerComponent = {
               : Math.round((correct / total) * 100);
             const status = pct >= 60 ? "Passed" : "Review";
             const badgeClass = pct >= 60 ? "badge-emerald" : "badge-rose";
-            const displayModule = (item.module === "Grammar" || item.module === "Grammatik") ? "Grammatik" : (item.module || "Lesen");
+            const displayModule = item.module === "Grammar" ? "Grammatik" : (item.module || "Lesen");
 
             return `
               <tr style="border-bottom:1px solid var(--line-subtle);">

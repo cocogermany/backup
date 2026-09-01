@@ -139,7 +139,7 @@ window.DashboardComponent = {
               <i data-lucide="file-code-2"></i>
             </div>
             <div class="module-card-info">
-              <span class="module-card-name">Grammatik (Grammar)</span>
+              <span class="module-card-name">Grammatik</span>
               <span class="module-card-sub">Cloze & Sentence Building</span>
             </div>
             <div class="module-card-footer">

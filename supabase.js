@@ -71,8 +71,8 @@ async function fetchMaterialsSupabase(options = {}) {
     if (options.exam) query = query.in("exam", [options.exam.toLowerCase(), "both"]);
     if (options.level) query = query.eq("level", options.level);
     if (options.module) {
-      const dbModule = options.module === "Grammatik" ? "Grammar" : options.module;
-      query = query.eq("module", dbModule);
+      const normalizedModule = options.module === "Grammar" ? "Grammatik" : options.module;
+      query = query.eq("module", normalizedModule);
     }
 
     const { data, error } = await query;
@@ -123,7 +123,7 @@ async function saveMaterialMetadataSupabase(material, idToken) {
     description: material.description !== undefined && material.description !== null ? String(material.description).trim() : null,
     exam: String(material.exam || "goethe").trim(),
     level: String(material.level || "A1").trim(),
-    module: String(material.module || "Lesen").trim(),
+    module: String(material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen")).trim(),
     material_number: parseInt(material.materialNumber || material.material_number || "1", 10),
     content_path: String(material.contentPath || material.content_path || `${material.level}/${material.id}.json`).trim(),
     difficulty: String(material.difficulty || "Medium").trim(),

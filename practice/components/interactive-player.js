@@ -510,7 +510,7 @@ window.InteractivePlayerComponent = {
               description: dbMat.description || "",
               exam: dbMat.exam || "goethe",
               level: dbMat.level || level,
-              module: dbMat.module || "Lesen",
+              module: dbMat.module === "Grammar" ? "Grammatik" : (dbMat.module || "Lesen"),
               difficulty: dbMat.difficulty || "Medium",
               duration_minutes: dbMat.duration_minutes,
               estimatedSeconds: (!isNaN(durMin) && durMin > 0) ? durMin * 60 : (dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600),
@@ -540,6 +540,7 @@ window.InteractivePlayerComponent = {
       material.prompt = fallback.prompt;
     }
 
+    material.module = material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen");
     material.isWriting = material.module === "Schreiben";
     material.isSpeaking = material.module === "Sprechen";
     material.questions = Array.isArray(material.questions) ? material.questions : [];
@@ -578,7 +579,7 @@ window.InteractivePlayerComponent = {
     if (material.isWriting) return this.renderWritingInterface(material);
     if (material.isSpeaking) return this.renderSpeakingInterface(material);
     if (material.module === "Hören") return this.renderListeningInterface(material);
-    if (material.module === "Grammatik" || material.module === "Grammar") return this.renderGrammatikInterface(material);
+    if (material.module === "Grammatik") return this.renderGrammatikInterface(material);
     if (material.passage) return this.renderReadingSplitInterface(material);
     return this.renderQuestionsOnlyInterface(material);
   },
@@ -1009,8 +1010,7 @@ window.InteractivePlayerComponent = {
     this.isSubmitted = true;
 
     if (window.PracticeApp) {
-      const uiModule = (material.module === "Grammar" || material.module === "Grammatik") ? "Grammatik" : (material.module || "Lesen");
-      window.PracticeApp.recordTestCompletion(uiModule, pct);
+      window.PracticeApp.recordTestCompletion(material.module || "Lesen", pct);
     }
 
     // Render Exam Results Screen
@@ -1211,7 +1211,7 @@ window.InteractivePlayerComponent = {
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
       const scorePercent = Math.round((correctCount / totalCount) * 100);
 
-      const dbModule = (material.module === "Grammatik" || material.module === "Grammar") ? "Grammar" : (material.module || "Lesen");
+      const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen");
 
       const attemptPayload = {
         uid: uid,
