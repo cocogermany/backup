@@ -578,6 +578,7 @@ window.InteractivePlayerComponent = {
     if (material.isWriting) return this.renderWritingInterface(material);
     if (material.isSpeaking) return this.renderSpeakingInterface(material);
     if (material.module === "Hören") return this.renderListeningInterface(material);
+    if (material.module === "Grammatik") return this.renderGrammatikInterface(material);
     if (material.passage) return this.renderReadingSplitInterface(material);
     return this.renderQuestionsOnlyInterface(material);
   },
@@ -657,53 +658,46 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-cbt-workspace layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
-        <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Audio Track">
-          <div class="exam-doc-meta">
-            <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
-            <span>·</span>
-            <span>Hören</span>
+      <div class="exam-single-panel-workspace" id="exam-cbt-workspace">
+        <div class="exam-doc-meta">
+          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
+          <span>·</span>
+          <span>Hören</span>
+        </div>
+
+        <h1 class="exam-doc-title" style="margin-bottom:16px;">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
+
+        <!-- Audio Player (top) -->
+        <div class="exam-audio-card" style="margin-bottom:28px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <i data-lucide="volume-2" style="width:18px;height:18px;color:#1e293b;"></i>
+            <span style="font-size:0.85rem; font-weight:700;">Audio Track</span>
           </div>
+          ${material.audioUrl
+            ? `<audio controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
+            : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
+        </div>
 
-          <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
+        <!-- Questions / Answers below audio -->
+        <div class="exam-section-header">
+          <h2 class="exam-section-title">Fragen</h2>
+          <span class="exam-section-count">${totalQuestions} Fragen</span>
+        </div>
 
-          <div class="exam-audio-card">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-              <i data-lucide="volume-2" style="width:18px;height:18px;color:#1e293b;"></i>
-              <span style="font-size:0.85rem; font-weight:700;">Audio Track</span>
-            </div>
-            ${material.audioUrl
-              ? `<audio controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
-              : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
-          </div>
+        <div class="exam-questions-list">
+          ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
+        </div>
 
-          ${material.passage ? `
-            <article class="exam-doc-body">
-              ${this.sanitizeRichText(material.passage)}
-            </article>
-          ` : ""}
-        </section>
-
-        <section class="exam-cbt-questions-panel" id="panel-questions" aria-label="Questions">
-          <div class="exam-section-header">
-            <h2 class="exam-section-title">Fragen</h2>
-            <span class="exam-section-count">${totalQuestions} Fragen</span>
-          </div>
-
-          <div class="exam-questions-list">
-            ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
-          </div>
-
-          <div class="exam-submit-bar">
-            <button type="button" class="exam-primary-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
-              <i data-lucide="check" style="width:16px;height:16px;"></i>
-              <span>Prüfung abgeben (Submit Exam)</span>
-            </button>
-          </div>
-        </section>
+        <div class="exam-submit-bar">
+          <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
+            <i data-lucide="check" style="width:16px;height:16px;"></i>
+            <span>Prüfung abgeben (Submit Exam)</span>
+          </button>
+        </div>
       </div>
     `;
   },
+
 
   renderQuestionsOnlyInterface: function (material) {
     const questions = material.questions || [];
@@ -732,6 +726,73 @@ window.InteractivePlayerComponent = {
       </div>
     `;
   },
+
+  renderGrammatikInterface: function (material) {
+    const questions = material.questions || [];
+    const totalQuestions = questions.length;
+
+    return `
+      <div class="exam-single-panel-workspace" id="exam-cbt-workspace">
+        <div class="exam-doc-meta">
+          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
+          <span>·</span>
+          <span>Grammatik</span>
+        </div>
+
+        <h1 class="exam-doc-title" style="margin-bottom:24px;">${this.escapeHtml(material.contentTitle || material.title || "Grammatik Drill")}</h1>
+
+        <div class="exam-questions-list">
+          ${questions.map((q, idx) => this.renderGrammatikQuestionBlock(q, idx, totalQuestions)).join("")}
+        </div>
+
+        <div class="exam-submit-bar">
+          <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
+            <i data-lucide="check" style="width:16px;height:16px;"></i>
+            <span>Prüfung abgeben (Submit Exam)</span>
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  renderGrammatikQuestionBlock: function (q, idx, total) {
+    const questionId = String(q.id || `q-${idx + 1}`);
+    // Detect whether the question text contains a blank placeholder (_____)
+    const hasBlank = /_{3,}/.test(q.question);
+
+    // Build the sentence display: highlight the blank visually
+    const sentenceHtml = hasBlank
+      ? this.escapeHtml(q.question).replace(/_{3,}/g, '<span class="gram-blank">_____</span>')
+      : `<span class="gram-sentence-label">Ergänzen Sie:</span> ${this.escapeHtml(q.question)}`;
+
+    return `
+      <div class="exam-q-block gram-q-block" id="exam-q-block-${this.escapeHtml(questionId)}">
+        <div class="exam-q-counter">${idx + 1} / ${total}</div>
+
+        <!-- Sentence with blank -->
+        <div class="gram-sentence">${sentenceHtml}</div>
+
+        <!-- Objective answer choice buttons -->
+        <div class="gram-options-row">
+          ${q.options.map((opt) => {
+            const isSelected = this.userAnswers[q.id] === opt;
+            return `
+              <button
+                type="button"
+                class="gram-option-btn ${isSelected ? 'selected' : ''}"
+                data-question-id="${this.escapeHtml(questionId)}"
+                data-option-value="${this.escapeHtml(opt)}"
+                onclick="window.InteractivePlayerComponent.selectGrammatikOption(${this.escapeInlineJavaScript(questionId)}, ${this.escapeInlineJavaScript(opt)}, this)"
+              >${this.escapeHtml(opt)}</button>
+            `;
+          }).join("")}
+        </div>
+
+        <div class="exam-review-feedback" id="feedback-${questionId}" hidden></div>
+      </div>
+    `;
+  },
+
 
   renderQuestionBlock: function (q, idx, total) {
     const isAnswered = Boolean(this.userAnswers[q.id]);
@@ -867,6 +928,25 @@ window.InteractivePlayerComponent = {
     if (pill) {
       pill.classList.add("answered");
     }
+
+    this.updateMobileTabQuestionCount();
+  },
+
+  selectGrammatikOption: function (qId, optionValue, btnEl) {
+    if (this.isSubmitted && this.isReviewMode) return;
+
+    this.userAnswers[qId] = optionValue;
+
+    // Toggle selected class on buttons within the same question block
+    const block = btnEl ? btnEl.closest(".exam-q-block") : null;
+    if (block) {
+      block.querySelectorAll(".gram-option-btn").forEach(btn => btn.classList.remove("selected"));
+      if (btnEl) btnEl.classList.add("selected");
+    }
+
+    // Update fixed progress pill
+    const pill = document.getElementById(`nav-pill-${qId}`);
+    if (pill) pill.classList.add("answered");
 
     this.updateMobileTabQuestionCount();
   },
