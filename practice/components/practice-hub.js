@@ -132,7 +132,6 @@ window.PracticeHubComponent = {
       const supabase = await window.SupabaseService.getSupabaseClient();
       if (!supabase) return new Set();
       const uid = this.getCurrentUserUid(appState);
-      console.log("Practice Hub UID:", uid);
 
       if (uid) {
         const { data, error } = await supabase
@@ -150,14 +149,12 @@ window.PracticeHubComponent = {
             .map(row => String(row?.material_id || "").trim())
             .filter(Boolean)
         );
-        console.log("Completed material IDs:", [...this.completedMaterialIds]);
         return this.completedMaterialIds;
       }
     } catch (e) {
       console.warn("PracticeHub: Completed materials lookup note:", e);
     }
     this.completedMaterialIds = new Set();
-    console.log("Completed material IDs:", [...this.completedMaterialIds]);
     return this.completedMaterialIds;
   },
 
