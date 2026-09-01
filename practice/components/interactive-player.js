@@ -525,8 +525,12 @@ window.InteractivePlayerComponent = {
 
     if (renderRequestId !== this.renderRequestId) return;
 
-    if (material && material.contentPath) {
-      const content = await this.fetchMaterialContent(material.contentPath);
+    // Practice Hub preloads the Supabase column as content_path, while a direct
+    // player lookup maps it to contentPath. Support both paths before falling
+    // back so the uploaded material JSON is always requested.
+    const contentPath = material && (material.contentPath || material.content_path);
+    if (contentPath) {
+      const content = await this.fetchMaterialContent(contentPath);
       if (renderRequestId !== this.renderRequestId) return;
       material = { ...material, ...content };
     }

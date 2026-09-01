@@ -1,0 +1,27 @@
+{
+  "title": "Hören: Nachricht von Lena",
+  "audioUrl": "audio/a1-hoeren-nachricht-lena.mp3",
+  "questions": [
+    {
+      "id": "hoeren-1",
+      "question": "Wann trifft Lena ihren Freund?",
+      "options": ["Am Montag", "Am Dienstag", "Am Mittwoch"],
+      "correctAnswer": "Am Dienstag",
+      "explanation": "Lena sagt, dass sie ihren Freund am Dienstag trifft."
+    },
+    {
+      "id": "hoeren-2",
+      "question": "Wo treffen sie sich?",
+      "options": ["Am Bahnhof", "Im Café", "Im Park"],
+      "correctAnswer": "Im Café",
+      "explanation": "Sie treffen sich im Café."
+    },
+    {
+      "id": "hoeren-3",
+      "question": "Um wie viel Uhr beginnt das Treffen?",
+      "options": ["Um 15:00 Uhr", "Um 16:00 Uhr", "Um 17:00 Uhr"],
+      "correctAnswer": "Um 16:00 Uhr",
+      "explanation": "Das Treffen beginnt um 16:00 Uhr."
+    }
+  ]
+}

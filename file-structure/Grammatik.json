@@ -1,0 +1,26 @@
+{
+  "title": "Grammatik: Präsens",
+  "questions": [
+    {
+      "id": "grammatik-1",
+      "question": "Ich _____ jeden Morgen Kaffee.",
+      "options": ["trinke", "trinkst", "trinkt"],
+      "correctAnswer": "trinke",
+      "explanation": "Bei „ich“ lautet die Verbform „trinke“."
+    },
+    {
+      "id": "grammatik-2",
+      "question": "Maria _____ in Berlin.",
+      "options": ["wohne", "wohnst", "wohnt"],
+      "correctAnswer": "wohnt",
+      "explanation": "Bei „Maria“ lautet die Verbform „wohnt“."
+    },
+    {
+      "id": "grammatik-3",
+      "question": "Wir _____ Deutsch.",
+      "options": ["lernen", "lernt", "lernst"],
+      "correctAnswer": "lernen",
+      "explanation": "Bei „wir“ lautet die Verbform „lernen“."
+    }
+  ]
+}

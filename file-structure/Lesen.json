@@ -1,0 +1,27 @@
+{
+  "title": "Lesen: Café am Marktplatz",
+  "passage": "<p><strong>Café am Marktplatz</strong></p><p>Unser Café ist von Montag bis Samstag geöffnet. Von Montag bis Freitag öffnen wir um 8:00 Uhr. Am Samstag öffnen wir um 9:00 Uhr.</p><p>Frühstück gibt es bis 11:30 Uhr. Sonntags bleibt das Café geschlossen.</p>",
+  "questions": [
+    {
+      "id": "lesen-1",
+      "question": "Wann öffnet das Café am Samstag?",
+      "options": ["Um 8:00 Uhr", "Um 9:00 Uhr", "Um 11:30 Uhr"],
+      "correctAnswer": "Um 9:00 Uhr",
+      "explanation": "Am Samstag öffnet das Café um 9:00 Uhr."
+    },
+    {
+      "id": "lesen-2",
+      "question": "Bis wann gibt es Frühstück?",
+      "options": ["Bis 8:00 Uhr", "Bis 9:00 Uhr", "Bis 11:30 Uhr"],
+      "correctAnswer": "Bis 11:30 Uhr",
+      "explanation": "Im Text steht: Frühstück gibt es bis 11:30 Uhr."
+    },
+    {
+      "id": "lesen-3",
+      "question": "An welchem Tag ist das Café geschlossen?",
+      "options": ["Am Freitag", "Am Samstag", "Am Sonntag"],
+      "correctAnswer": "Am Sonntag",
+      "explanation": "Sonntags bleibt das Café geschlossen."
+    }
+  ]
+}
