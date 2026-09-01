@@ -115,10 +115,7 @@ window.PracticeHubComponent = {
     this.currentQuery.format = format;
     this.currentQuery.membership = membership;
 
-    // Fetch completed materials list for status badges
-    this.completedMaterialIds = await this.fetchCompletedMaterialIds(appState);
-
-    // Execute fetch & render
+    // executeFetchAndRender refreshes completed IDs before querying materials.
     await this.executeFetchAndRender(appState);
   },
 
@@ -166,23 +163,42 @@ window.PracticeHubComponent = {
     const cached = this.getCachedResult(cacheKey);
     let cacheRendered = false;
     if (cached && cached.materials) {
-      const availableCached = (cached.materials || []).filter(
-        mat => mat && mat.id && !this.completedMaterialIds.has(String(mat.id))
+      const cacheContainsCompletedMaterial = (cached.materials || []).some(
+        mat => mat && mat.id && this.completedMaterialIds.has(String(mat.id))
       );
-      this.loadedMaterials = availableCached;
-      this.renderMaterialsGrid(availableCached, gridContainer);
-      this.renderPagination(cached.page, cached.totalPages, cached.totalCount, pagContainer);
-      cacheRendered = true;
+
+      // Do not render a stale cache page after an item on it was completed:
+      // client-side removal would leave a short page even when later items exist.
+      if (!cacheContainsCompletedMaterial) {
+        this.loadedMaterials = cached.materials;
+        this.renderMaterialsGrid(cached.materials, gridContainer);
+        this.renderPagination(cached.page, cached.totalPages, cached.totalCount, pagContainer);
+        cacheRendered = true;
+      }
     }
 
     try {
-      const res = await this.querySupabaseMaterials();
+      let res = await this.querySupabaseMaterials();
+
+      // Completion filtering is part of the database query, before range(), so
+      // each page contains up to ten available materials. A completion can make
+      // a previously valid URL page out of range; clamp and fetch that last page.
+      if (res.page > res.totalPages) {
+        this.currentQuery.page = res.totalPages;
+        const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+        params.set("page", res.totalPages);
+        if (this.currentQuery.activeModule !== "All") params.set("module", this.currentQuery.activeModule);
+        window.history.replaceState(null, "", `#practice?${params.toString()}`);
+        res = await this.querySupabaseMaterials();
+      }
+
       this.loadedMaterials = res.materials;
       this.currentQuery.totalCount = res.totalCount;
       this.currentQuery.totalPages = res.totalPages;
 
       // Update cache
-      this.setCachedResult(cacheKey, res.materials, res.totalCount, res.page, res.totalPages);
+      const resolvedCacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${res.page}_q${this.currentQuery.searchQuery}`;
+      this.setCachedResult(resolvedCacheKey, res.materials, res.totalCount, res.page, res.totalPages);
 
       // Render live fresh data
       this.renderMaterialsGrid(res.materials, gridContainer);
