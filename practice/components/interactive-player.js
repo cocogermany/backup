@@ -1214,11 +1214,17 @@ window.InteractivePlayerComponent = {
 
       const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Grammatik");
 
+      let dbFormat = String(material.exam || material.format || "").toLowerCase().trim();
+      if (dbFormat !== "goethe" && dbFormat !== "telc") {
+        const userFormat = String(window.AppState?.currentFormat || localStorage.getItem("coco_practice_format") || "goethe").toLowerCase().trim();
+        dbFormat = userFormat === "telc" ? "telc" : "goethe";
+      }
+
       const attemptPayload = {
         uid: uid,
         material_id: String(material.id),
         level: material.level || "A1",
-        format: (material.exam || material.format || "goethe").toLowerCase(),
+        format: dbFormat,
         module: dbModule,
         correct_answers: correctCount,
         total_questions: totalCount,
