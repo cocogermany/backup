@@ -138,7 +138,7 @@ window.PracticeHubComponent = {
         }
 
         this.completedMaterialIds = new Set(
-          (data || []).map(row => String(row.material_id))
+          (data || []).map(row => String(row?.material_id || "").trim()).filter(Boolean)
         );
         return this.completedMaterialIds;
       }
