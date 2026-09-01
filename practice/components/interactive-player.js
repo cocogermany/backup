@@ -1244,7 +1244,7 @@ window.InteractivePlayerComponent = {
           try {
             localStorage.removeItem("coco_practice_hub_materials_cache");
             if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
-              window.PracticeHubComponent.completedMaterialIds.add(material.id);
+              window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
             }
           } catch (e) {}
           return { success: true, alreadyCompleted: true };
@@ -1258,7 +1258,7 @@ window.InteractivePlayerComponent = {
       try {
         localStorage.removeItem("coco_practice_hub_materials_cache");
         if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
-          window.PracticeHubComponent.completedMaterialIds.add(material.id);
+          window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
         }
       } catch (e) {}
 

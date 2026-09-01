@@ -19,6 +19,23 @@ window.PracticeHubComponent = {
   searchTimeout: null,
   completedMaterialIds: new Set(),
 
+  getCurrentUserUid: function (appState) {
+    if (appState?.userProfile?.uid && appState.userProfile.uid !== "local-user" && appState.userProfile.uid !== "anonymous") {
+      return appState.userProfile.uid;
+    }
+    if (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous") {
+      return window.AppState.userProfile.uid;
+    }
+    if (window.PracticeApp?.currentFirebaseUser?.uid && window.PracticeApp.currentFirebaseUser.uid !== "local-user" && window.PracticeApp.currentFirebaseUser.uid !== "anonymous") {
+      return window.PracticeApp.currentFirebaseUser.uid;
+    }
+    const stored = localStorage.getItem("coco_user_uid");
+    if (stored && stored !== "local-user" && stored !== "anonymous") {
+      return stored;
+    }
+    return null;
+  },
+
   render: function (appState, queryParams) {
     const activeModule = queryParams ? (queryParams.get("module") || "All") : "All";
     const pageParam = queryParams ? parseInt(queryParams.get("page") || "1", 10) : 1;
@@ -94,47 +111,61 @@ window.PracticeHubComponent = {
     this.currentQuery.membership = membership;
 
     // Fetch completed materials list for status badges
-    this.completedMaterialIds = await this.fetchCompletedMaterialIds();
+    this.completedMaterialIds = await this.fetchCompletedMaterialIds(appState);
 
     // Execute fetch & render
-    await this.executeFetchAndRender();
+    await this.executeFetchAndRender(appState);
   },
 
-  fetchCompletedMaterialIds: async function () {
+  fetchCompletedMaterialIds: async function (appState) {
     if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return new Set();
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
       if (!supabase) return new Set();
-      const uid = (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous")
-        ? window.AppState.userProfile.uid
-        : (window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid"));
+      const uid = this.getCurrentUserUid(appState);
 
-      if (uid && uid !== "local-user" && uid !== "anonymous") {
-        const { data } = await supabase.from("practice_attempts").select("material_id").eq("uid", uid);
-        if (data) return new Set(data.map(d => d.material_id));
+      if (uid) {
+        const { data, error } = await supabase
+          .from("practice_attempts")
+          .select("material_id")
+          .eq("uid", uid);
+
+        if (error) {
+          console.warn("PracticeHub: Error fetching completed attempts:", error);
+          return new Set();
+        }
+
+        this.completedMaterialIds = new Set(
+          (data || []).map(row => String(row.material_id))
+        );
+        return this.completedMaterialIds;
       }
     } catch (e) {
       console.warn("PracticeHub: Completed materials lookup note:", e);
     }
-    return new Set();
+    this.completedMaterialIds = new Set();
+    return this.completedMaterialIds;
   },
 
-  executeFetchAndRender: async function () {
+  executeFetchAndRender: async function (appState) {
     const gridContainer = document.getElementById("materials-grid-container");
     const pagContainer = document.getElementById("practice-pagination-container");
 
-    const uid = localStorage.getItem("coco_user_uid") || "local-user";
+    const uid = this.getCurrentUserUid(appState) || "local-user";
     const cacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${this.currentQuery.page}_q${this.currentQuery.searchQuery}`;
 
     // Always ensure fresh completed materials list is loaded
-    this.completedMaterialIds = await this.fetchCompletedMaterialIds();
+    this.completedMaterialIds = await this.fetchCompletedMaterialIds(appState);
 
     // Render cached materials immediately if valid (SWR Pattern)
     const cached = this.getCachedResult(cacheKey);
     let cacheRendered = false;
     if (cached && cached.materials) {
-      this.loadedMaterials = cached.materials;
-      this.renderMaterialsGrid(cached.materials, gridContainer);
+      const availableCached = (cached.materials || []).filter(
+        mat => mat && mat.id && !this.completedMaterialIds.has(String(mat.id))
+      );
+      this.loadedMaterials = availableCached;
+      this.renderMaterialsGrid(availableCached, gridContainer);
       this.renderPagination(cached.page, cached.totalPages, cached.totalCount, pagContainer);
       cacheRendered = true;
     }
@@ -207,9 +238,11 @@ window.PracticeHubComponent = {
 
     // Exclude already completed materials
     if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
-      const completedList = Array.from(this.completedMaterialIds).filter(Boolean);
+      const completedList = Array.from(this.completedMaterialIds)
+        .map(id => String(id).trim())
+        .filter(Boolean);
       if (completedList.length > 0) {
-        query = query.not("id", "in", `(${completedList.join(",")})`);
+        query = query.not("id", "in", `(${completedList.map(id => `"${id.replace(/"/g, '""')}"`).join(",")})`);
       }
     }
 
@@ -240,7 +273,9 @@ window.PracticeHubComponent = {
     if (!container) return;
 
     // Filter out completed materials as safeguard
-    const availableMaterials = (materials || []).filter(mat => !this.completedMaterialIds.has(mat.id));
+    const availableMaterials = (materials || []).filter(
+      mat => mat && mat.id && !this.completedMaterialIds.has(String(mat.id))
+    );
 
     if (!availableMaterials || availableMaterials.length === 0) {
       const isCompletedEmpty = this.completedMaterialIds && this.completedMaterialIds.size > 0;
