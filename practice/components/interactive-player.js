@@ -1198,20 +1198,21 @@ window.InteractivePlayerComponent = {
         return { success: false, error: err };
       }
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const uid = (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous")
+        ? window.AppState.userProfile.uid
+        : (window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid"));
 
-      if (authError || !user) {
-        console.error("No authenticated Supabase user:", authError);
-        return { success: false, error: authError || new Error("No authenticated Supabase user session found.") };
+      if (!uid || uid === "local-user" || uid === "anonymous") {
+        const err = new Error("You must be logged in to record your practice attempt.");
+        console.error("Player: No logged-in user UID found:", err);
+        return { success: false, error: err };
       }
-
-      const uid = user.id;
 
       const correctCount = parseInt(correctAnswers || 0, 10);
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
       const scorePercent = Math.round((correctCount / totalCount) * 100);
 
-      const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen");
+      const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Grammatik");
 
       const attemptPayload = {
         uid: uid,

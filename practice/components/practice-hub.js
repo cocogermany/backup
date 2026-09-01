@@ -104,14 +104,12 @@ window.PracticeHubComponent = {
     if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return new Set();
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
-      let uid = window.AppState?.userProfile?.uid || localStorage.getItem("coco_user_uid");
-      if (!uid || uid === "local-user" || uid === "anonymous") {
-        try {
-          const { data: authData } = await supabase.auth.getUser();
-          if (authData?.user?.id) uid = authData.user.id;
-        } catch (e) {}
-      }
-      if (supabase && uid && uid !== "local-user" && uid !== "anonymous") {
+      if (!supabase) return new Set();
+      const uid = (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous")
+        ? window.AppState.userProfile.uid
+        : (window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid"));
+
+      if (uid && uid !== "local-user" && uid !== "anonymous") {
         const { data } = await supabase.from("practice_attempts").select("material_id").eq("uid", uid);
         if (data) return new Set(data.map(d => d.material_id));
       }
