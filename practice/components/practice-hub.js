@@ -40,8 +40,12 @@ window.PracticeHubComponent = {
     const activeModule = queryParams ? (queryParams.get("module") || "All") : "All";
     const pageParam = queryParams ? parseInt(queryParams.get("page") || "1", 10) : 1;
     const level = appState ? (appState.currentLevel || "A1") : "A1";
+    const format = appState ? (appState.currentFormat || "goethe") : "goethe";
+    const membership = appState ? (appState.userProfile?.plan || "FREE") : "FREE";
 
     this.currentQuery.level = level;
+    this.currentQuery.format = format;
+    this.currentQuery.membership = membership;
     this.currentQuery.activeModule = activeModule;
     this.currentQuery.page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
@@ -224,7 +228,11 @@ window.PracticeHubComponent = {
     }
 
     if (this.currentQuery.format) {
-      query = query.in("exam", [this.currentQuery.format.toLowerCase(), "both"]);
+      const fmtLower = this.currentQuery.format.toLowerCase().trim();
+      const fmtUpper = fmtLower.toUpperCase();
+      const fmtCap = fmtLower.charAt(0).toUpperCase() + fmtLower.slice(1);
+      const formatList = Array.from(new Set([fmtLower, fmtUpper, fmtCap, "both", "Both", "BOTH"]));
+      query = query.in("exam", formatList);
     }
 
     if (this.currentQuery.activeModule && this.currentQuery.activeModule !== "All") {
@@ -290,12 +298,7 @@ window.PracticeHubComponent = {
       return;
     }
 
-    const isPaid = this.isPaidMembership(this.currentQuery.membership);
-
     container.innerHTML = availableMaterials.map((mat) => {
-      const isSchreiben = mat.module === "Schreiben";
-      const isLocked = isSchreiben && !isPaid;
-
       const durationNum = mat.duration_minutes !== null && mat.duration_minutes !== undefined ? Number(mat.duration_minutes) : NaN;
       const timeStr = (!isNaN(durationNum) && durationNum > 0) ? `${durationNum} mins` : "--";
       const diffStr = mat.difficulty || "Medium";
@@ -313,16 +316,14 @@ window.PracticeHubComponent = {
         : diffStr.toLowerCase() === "hard" ? "diff-hard"
         : "diff-medium";
 
-      const actionBtnHtml = isLocked
-        ? `<button type="button" class="btn-secondary btn-sm mat-action-btn" onclick="window.PracticeHubComponent.showWritingLockedModal()">
-             <i data-lucide="lock"></i> Locked (Pro)
-           </button>`
-        : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="window.PracticeApp.openPrepModal('${mat.id}')">
+      const safeId = String(mat.id).replace(/'/g, "\\'");
+
+      const actionBtnHtml = `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="event.stopPropagation(); window.PracticeApp.openPrepModal('${safeId}')">
              <i data-lucide="play"></i> Practice
            </button>`;
 
       return `
-        <div class="card material-card mat-item-card" data-title="${(mat.title || '').toLowerCase()}">
+        <div class="card material-card mat-item-card" style="cursor:pointer;" onclick="window.PracticeApp.openPrepModal('${safeId}')" data-title="${(mat.title || '').toLowerCase()}">
           <div class="mat-card-header">
             <div style="display:flex; gap:6px; align-items:center;">
               <span class="badge-pill ${moduleBadgeClass}">
@@ -391,9 +392,23 @@ window.PracticeHubComponent = {
     this.currentQuery.activeModule = moduleName;
     this.currentQuery.page = 1;
 
+    // Update tab styles in DOM immediately
+    document.querySelectorAll(".filter-tabs .filter-tab-btn").forEach(btn => {
+      const text = btn.textContent.trim();
+      if (text === moduleName) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+
     const params = new URLSearchParams();
     if (moduleName !== "All") params.set("module", moduleName);
-    window.location.hash = `#practice${params.toString() ? "?" + params.toString() : ""}`;
+    const newHash = `#practice${params.toString() ? "?" + params.toString() : ""}`;
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, "", newHash);
+    }
+    this.executeFetchAndRender();
   },
 
   handleSearchInput: function (value) {

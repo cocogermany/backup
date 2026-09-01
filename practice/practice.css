@@ -3935,12 +3935,13 @@ textarea:focus-visible,
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   opacity: 0;
-  pointer-events: auto;
+  pointer-events: none;
   transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-toast-backdrop.backdrop-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .app-toast-container {

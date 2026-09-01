@@ -1055,6 +1055,9 @@ function renderHome() {
         <div class="home-block-header">
           <div class="home-block-icon">${icon("award")}</div>
           <div>
+        <div class="home-block-header">
+          <div class="home-block-icon">${icon("award")}</div>
+          <div>
             <h2>Mock Exams</h2>
             <p class="home-block-subtitle">Goethe & telc practice exams with timed modules and scoring feedback.</p>
           </div>
@@ -1067,7 +1070,7 @@ function renderHome() {
               <h3>Goethe Zertifikat</h3>
             </div>
             <p>Complete A1–B2 practice tests with exam rhythm guidance.</p>
-            <a class="home-subcard-btn" href="#/practice">${icon("arrow-right")} Start Goethe Exam</a>
+            <a class="home-subcard-btn" href="practice/index.html#mock-exams">${icon("arrow-right")} Start Goethe Exam</a>
           </div>
 
           <div class="home-feature-subcard">
@@ -1076,7 +1079,7 @@ function renderHome() {
               <h3>telc Deutsch</h3>
             </div>
             <p>Standardized test modules for reading, listening, and writing.</p>
-            <a class="home-subcard-btn" href="#/practice">${icon("arrow-right")} Start telc Exam</a>
+            <a class="home-subcard-btn" href="practice/index.html#mock-exams">${icon("arrow-right")} Start telc Exam</a>
           </div>
         </div>
       </div>
@@ -3145,10 +3148,29 @@ function attachHomeScrollNavigation() {
   document.querySelectorAll("#practice .home-feature-subcard").forEach((card) => {
     card.setAttribute("role", "link");
     card.setAttribute("tabindex", "0");
-    const openPractice = () => { window.location.href = "practice/index.html"; };
+    const title = card.querySelector("h3")?.textContent?.trim() || "";
+    let mod = "";
+    if (title === "Reading") mod = "?module=Lesen";
+    else if (title === "Listening") mod = "?module=Hören";
+    else if (title === "Grammar") mod = "?module=Grammatik";
+    else if (title === "Writing") mod = "?module=Schreiben";
+    else if (title === "Speaking") mod = "?module=Sprechen";
+    else if (title === "Vocabulary") mod = "?module=Grammatik";
+
+    const openPractice = () => { window.location.href = `practice/index.html#practice${mod}`; };
     card.addEventListener("click", openPractice);
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openPractice(); }
+    });
+  });
+
+  document.querySelectorAll("#mock-exams .home-feature-subcard").forEach((card) => {
+    card.setAttribute("role", "link");
+    card.setAttribute("tabindex", "0");
+    const openMock = () => { window.location.href = "practice/index.html#mock-exams"; };
+    card.addEventListener("click", openMock);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openMock(); }
     });
   });
 

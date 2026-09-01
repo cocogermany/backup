@@ -99,12 +99,12 @@ window.DashboardComponent = {
         <!-- Practice Modules Grid -->
         <h2 class="dashboard-section-title">
           <span>PRACTICE MODULES (${format} ${level})</span>
-          <a href="#practice" onclick="return window.PracticeApp.requireLoginAndNavigate('#practice', 'Practice Hub');" style="font-size:0.85rem; font-weight:500; color:var(--brown);">Explore All &rarr;</a>
+          <a href="#practice" style="font-size:0.85rem; font-weight:500; color:var(--brown);">Explore All &rarr;</a>
         </h2>
 
         <div class="modules-grid" id="dash-modules-grid">
           <!-- Lesen Card -->
-          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Lesen', 'Lesen')">
+          <div class="module-card" style="cursor:pointer;" onclick="window.location.hash = '#practice?module=Lesen'">
             <div class="module-card-icon icon-reading">
               <i data-lucide="book-open"></i>
             </div>
@@ -114,12 +114,12 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-sky">500+ Sets</span>
+              <span class="badge-pill badge-sky">Practice Drills</span>
             </div>
           </div>
 
           <!-- Hören Card -->
-          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Hören', 'Hören')">
+          <div class="module-card" style="cursor:pointer;" onclick="window.location.hash = '#practice?module=Hören'">
             <div class="module-card-icon icon-listening">
               <i data-lucide="headphones"></i>
             </div>
@@ -129,12 +129,12 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-gold">400+ Audio Sets</span>
+              <span class="badge-pill badge-gold">Audio Drills</span>
             </div>
           </div>
 
           <!-- Grammatik Card -->
-          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Grammatik', 'Grammatik')">
+          <div class="module-card" style="cursor:pointer;" onclick="window.location.hash = '#practice?module=Grammatik'">
             <div class="module-card-icon icon-grammar">
               <i data-lucide="file-code-2"></i>
             </div>
@@ -144,12 +144,12 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-emerald">500+ Drills</span>
+              <span class="badge-pill badge-emerald">Grammar Drills</span>
             </div>
           </div>
 
           <!-- Schreiben Card -->
-          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Schreiben', 'Schreiben')">
+          <div class="module-card" style="cursor:pointer;" onclick="window.location.hash = '#practice?module=Schreiben'">
             <div class="module-card-icon icon-writing">
               <i data-lucide="pen-tool"></i>
             </div>
@@ -159,12 +159,12 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-rose">Available with Pro Plan</span>
+              <span class="badge-pill badge-rose">Writing Drills</span>
             </div>
           </div>
 
           <!-- Sprechen Card -->
-          <div class="module-card" onclick="window.PracticeApp.requireLoginAndNavigate('#practice?module=Sprechen', 'Sprechen')">
+          <div class="module-card" style="cursor:pointer;" onclick="window.location.hash = '#practice?module=Sprechen'">
             <div class="module-card-icon icon-speaking">
               <i data-lucide="mic"></i>
             </div>
@@ -174,7 +174,7 @@ window.DashboardComponent = {
             </div>
             <div class="module-card-footer">
               <span>${format} ${level}</span>
-              <span class="badge-pill badge-rose">Available with Pro Plan</span>
+              <span class="badge-pill badge-sky">Speaking Drills</span>
             </div>
           </div>
         </div>

@@ -798,7 +798,7 @@
       // Retrieve material data already loaded by Practice Hub without fetching DB again
       let material = null;
       if (window.PracticeHubComponent && window.PracticeHubComponent.loadedMaterials) {
-        material = window.PracticeHubComponent.loadedMaterials.find(m => m.id === materialId);
+        material = window.PracticeHubComponent.loadedMaterials.find(m => m && String(m.id) === String(materialId));
       }
       if (!material) {
         material = { id: materialId, title: `Practice Set (${materialId})` };
