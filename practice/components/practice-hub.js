@@ -20,14 +20,15 @@ window.PracticeHubComponent = {
   completedMaterialIds: new Set(),
 
   getCurrentUserUid: function (appState) {
-    if (appState?.userProfile?.uid && appState.userProfile.uid !== "local-user" && appState.userProfile.uid !== "anonymous") {
-      return appState.userProfile.uid;
-    }
+    // Match the UID source used when practice_attempts are recorded.
     if (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous") {
       return window.AppState.userProfile.uid;
     }
     if (window.PracticeApp?.currentFirebaseUser?.uid && window.PracticeApp.currentFirebaseUser.uid !== "local-user" && window.PracticeApp.currentFirebaseUser.uid !== "anonymous") {
       return window.PracticeApp.currentFirebaseUser.uid;
+    }
+    if (appState?.userProfile?.uid && appState.userProfile.uid !== "local-user" && appState.userProfile.uid !== "anonymous") {
+      return appState.userProfile.uid;
     }
     const stored = localStorage.getItem("coco_user_uid");
     if (stored && stored !== "local-user" && stored !== "anonymous") {
@@ -250,7 +251,10 @@ window.PracticeHubComponent = {
         .map(id => String(id).trim())
         .filter(Boolean);
       if (completedList.length > 0) {
-        query = query.not("id", "in", `(${completedList.map(id => `"${id.replace(/"/g, '""')}"`).join(",")})`);
+        const supabaseInValues = completedList
+          .map(id => `"${id.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`)
+          .join(",");
+        query = query.not("id", "in", `(${supabaseInValues})`);
       }
     }
 
