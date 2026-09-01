@@ -990,10 +990,23 @@ window.InteractivePlayerComponent = {
 
     const pct = Math.round((score / total) * 100);
     this.lastScore = { score, total, pct };
-    this.isSubmitted = true;
 
-    // Save practice attempt to Supabase
-    await this.savePracticeAttemptToSupabase(material, score, total);
+    // Save practice attempt directly to Supabase
+    const saveResult = await this.savePracticeAttemptToSupabase(material, score, total);
+    if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = `<i data-lucide="check" style="width:16px;height:16px;"></i><span>Prüfung abgeben (Submit Exam)</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+      if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
+        const errorMsg = saveResult?.error?.message || "Failed to save practice attempt. Please check your connection.";
+        window.PracticeApp.showToast(errorMsg, "error", 4000);
+      }
+      return;
+    }
+
+    this.isSubmitted = true;
 
     if (window.PracticeApp) {
       const uiModule = (material.module === "Grammar" || material.module === "Grammatik") ? "Grammatik" : (material.module || "Lesen");
@@ -1120,9 +1133,23 @@ window.InteractivePlayerComponent = {
     this.hasTimerStarted = false;
 
     this.lastScore = { score: 9, total: 10, pct: 90 };
+
+    const saveResult = await this.savePracticeAttemptToSupabase(material, 9, 10);
+    if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = `<i data-lucide="send" style="width:16px;height:16px;"></i><span>Aufgabe abgeben (Submit Writing)</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+      if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
+        const errorMsg = saveResult?.error?.message || "Failed to save writing attempt. Please check your connection.";
+        window.PracticeApp.showToast(errorMsg, "error", 4000);
+      }
+      return;
+    }
+
     this.isSubmitted = true;
 
-    await this.savePracticeAttemptToSupabase(material, 9, 10);
     if (window.PracticeApp) {
       window.PracticeApp.recordTestCompletion("Schreiben", 90);
     }
@@ -1137,9 +1164,18 @@ window.InteractivePlayerComponent = {
     this.hasTimerStarted = false;
 
     this.lastScore = { score: 8, total: 10, pct: 80 };
+
+    const saveResult = await this.savePracticeAttemptToSupabase(material, 8, 10);
+    if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
+      if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
+        const errorMsg = saveResult?.error?.message || "Failed to save speaking attempt. Please check your connection.";
+        window.PracticeApp.showToast(errorMsg, "error", 4000);
+      }
+      return;
+    }
+
     this.isSubmitted = true;
 
-    await this.savePracticeAttemptToSupabase(material, 8, 10);
     if (window.PracticeApp) {
       window.PracticeApp.recordTestCompletion("Sprechen", 80);
     }
@@ -1148,14 +1184,28 @@ window.InteractivePlayerComponent = {
   },
 
   savePracticeAttemptToSupabase: async function (material, correctAnswers, totalQuestions) {
-    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return;
+    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) {
+      const err = new Error("Supabase service unavailable");
+      console.error("Player: Supabase attempt save error:", err);
+      return { success: false, error: err };
+    }
 
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
-      if (!supabase) return;
+      if (!supabase) {
+        const err = new Error("Supabase client not initialized");
+        console.error("Player: Supabase attempt save error:", err);
+        return { success: false, error: err };
+      }
 
-      const uid = localStorage.getItem("coco_user_uid") || "local-user";
-      if (!uid || uid === "local-user" || uid === "anonymous") return;
+      const { data: { user } = {} } = await supabase.auth.getUser();
+      const uid = user?.id || (localStorage.getItem("coco_user_uid") && localStorage.getItem("coco_user_uid") !== "local-user" && localStorage.getItem("coco_user_uid") !== "anonymous" ? localStorage.getItem("coco_user_uid") : null);
+
+      if (!uid) {
+        const err = new Error("You must be logged in to record your practice attempt.");
+        console.error("Player: Supabase attempt save error:", err);
+        return { success: false, error: err };
+      }
 
       const correctCount = parseInt(correctAnswers || 0, 10);
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
@@ -1165,9 +1215,9 @@ window.InteractivePlayerComponent = {
 
       const attemptPayload = {
         uid: uid,
-        material_id: material.id,
+        material_id: String(material.id),
         level: material.level || "A1",
-        format: (material.exam || "goethe").toLowerCase(),
+        format: (material.exam || material.format || "goethe").toLowerCase(),
         module: dbModule,
         correct_answers: correctCount,
         total_questions: totalCount,
@@ -1175,17 +1225,26 @@ window.InteractivePlayerComponent = {
         completed_at: new Date().toISOString()
       };
 
-      // Direct Supabase upsert to handle unique (uid, material_id) constraint gracefully without duplicate error
+      // Direct Supabase INSERT from frontend (no Cloudflare, no client-provided ID)
       const { error } = await supabase
         .from("practice_attempts")
-        .upsert([attemptPayload], { onConflict: "uid,material_id" });
+        .insert([attemptPayload]);
 
       if (error) {
-        if (error.code === "23505" || String(error.message || "").toLowerCase().includes("unique") || String(error.message || "").toLowerCase().includes("duplicate")) {
-          console.log("Player: practice_attempt already recorded for (uid, material_id), duplicate handled gracefully.");
-        } else {
-          console.warn("Player: practice_attempts upsert notice:", error);
+        if (error.code === "23505") {
+          console.info("Player: Practice attempt already completed for (uid, material_id).", error.message);
+          // Treat as "Already completed" - not a failure
+          try {
+            localStorage.removeItem("coco_practice_hub_materials_cache");
+            if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
+              window.PracticeHubComponent.completedMaterialIds.add(material.id);
+            }
+          } catch (e) {}
+          return { success: true, alreadyCompleted: true };
         }
+
+        console.error("Player: Supabase attempt save error:", error);
+        return { success: false, error };
       }
 
       // Invalidate Practice Hub cache and update completed set in memory
@@ -1195,8 +1254,11 @@ window.InteractivePlayerComponent = {
           window.PracticeHubComponent.completedMaterialIds.add(material.id);
         }
       } catch (e) {}
+
+      return { success: true, alreadyCompleted: false };
     } catch (err) {
-      console.warn("Player: Supabase attempt save error:", err);
+      console.error("Player: Supabase attempt save error:", err);
+      return { success: false, error: err };
     }
   },
 
