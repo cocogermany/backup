@@ -868,7 +868,15 @@ export default {
         const headers = new Headers(getCORSHeaders(request));
         object.writeHttpMetadata(headers);
         headers.set("etag", object.httpEtag);
-        headers.set("cache-control", "public, max-age=31536000, immutable");
+
+        const isJson = key.toLowerCase().endsWith(".json") || (headers.get("content-type") || "").includes("application/json");
+        if (isJson) {
+          // JSON material files are dynamic/editable: prevent stale caching across Worker, CDN, and browser
+          headers.set("cache-control", "no-cache, no-store, must-revalidate");
+        } else {
+          // Static binary media assets (audio, images) can retain long-term immutable caching
+          headers.set("cache-control", "public, max-age=31536000, immutable");
+        }
 
         return new Response(object.body, { headers });
       }

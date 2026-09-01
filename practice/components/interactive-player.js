@@ -139,7 +139,14 @@ window.InteractivePlayerComponent = {
     if (!contentUrl) return {};
 
     try {
-      const response = await fetch(contentUrl, { headers: { Accept: "application/json" } });
+      // Prevent stale browser/CDN caching: append cache-busting query param and set cache: "no-store"
+      const urlObj = new URL(contentUrl);
+      urlObj.searchParams.set("v", Date.now().toString());
+
+      const response = await fetch(urlObj.href, {
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return this.normalizeMaterialContent(await response.json());
     } catch (error) {
