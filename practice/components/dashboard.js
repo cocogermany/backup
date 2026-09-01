@@ -224,7 +224,7 @@ window.DashboardComponent = {
       if (uid && uid !== "local-user") {
         const { data: attempts } = await supabase
           .from("practice_attempts")
-          .select("module, correct_answers, total_questions")
+          .select("module, correct_answers, total_questions, score_percent")
           .eq("uid", uid);
 
         if (attempts && attempts.length > 0) {

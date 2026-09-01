@@ -119,7 +119,11 @@ window.PracticeHubComponent = {
     const gridContainer = document.getElementById("materials-grid-container");
     const pagContainer = document.getElementById("practice-pagination-container");
 
-    const cacheKey = `hub_cache_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${this.currentQuery.page}_q${this.currentQuery.searchQuery}`;
+    const uid = localStorage.getItem("coco_user_uid") || "local-user";
+    const cacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${this.currentQuery.page}_q${this.currentQuery.searchQuery}`;
+
+    // Always ensure fresh completed materials list is loaded
+    this.completedMaterialIds = await this.fetchCompletedMaterialIds();
 
     // Render cached materials immediately if valid (SWR Pattern)
     const cached = this.getCachedResult(cacheKey);
@@ -197,6 +201,14 @@ window.PracticeHubComponent = {
       query = query.ilike("title", `%${this.currentQuery.searchQuery.trim()}%`);
     }
 
+    // Exclude already completed materials
+    if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
+      const completedList = Array.from(this.completedMaterialIds).filter(Boolean);
+      if (completedList.length > 0) {
+        query = query.not("id", "in", `(${completedList.join(",")})`);
+      }
+    }
+
     // Pagination: max 10 per page
     const page = this.currentQuery.page;
     const from = (page - 1) * 10;
@@ -223,12 +235,16 @@ window.PracticeHubComponent = {
   renderMaterialsGrid: function (materials, container) {
     if (!container) return;
 
-    if (!materials || materials.length === 0) {
+    // Filter out completed materials as safeguard
+    const availableMaterials = (materials || []).filter(mat => !this.completedMaterialIds.has(mat.id));
+
+    if (!availableMaterials || availableMaterials.length === 0) {
+      const isCompletedEmpty = this.completedMaterialIds && this.completedMaterialIds.size > 0;
       container.innerHTML = `
         <div class="card" style="grid-column: 1 / -1; text-align:center; padding:40px;">
-          <i data-lucide="folder-open" style="width:32px;height:32px;color:var(--muted);margin-bottom:12px;"></i>
-          <p style="font-weight:600; color:var(--ink);">No practice materials found for module: ${this.currentQuery.activeModule}</p>
-          <p style="font-size:0.8rem; color:var(--muted); margin-top:4px;">Target Level: ${this.currentQuery.level} (${this.currentQuery.format})</p>
+          <i data-lucide="${isCompletedEmpty ? 'check-circle-2' : 'folder-open'}" style="width:32px;height:32px;color:${isCompletedEmpty ? 'var(--emerald)' : 'var(--muted)'};margin-bottom:12px;"></i>
+          <p style="font-weight:600; color:var(--ink);">${isCompletedEmpty ? `All practice materials completed for module: ${this.currentQuery.activeModule}` : `No practice materials found for module: ${this.currentQuery.activeModule}`}</p>
+          <p style="font-size:0.8rem; color:var(--muted); margin-top:4px;">${isCompletedEmpty ? 'Check your scores and history in Learning Progress.' : `Target Level: ${this.currentQuery.level} (${this.currentQuery.format})`}</p>
         </div>
       `;
       if (window.lucide) window.lucide.createIcons();
@@ -237,10 +253,9 @@ window.PracticeHubComponent = {
 
     const isPaid = this.isPaidMembership(this.currentQuery.membership);
 
-    container.innerHTML = materials.map((mat) => {
+    container.innerHTML = availableMaterials.map((mat) => {
       const isSchreiben = mat.module === "Schreiben";
       const isLocked = isSchreiben && !isPaid;
-      const isCompleted = this.completedMaterialIds.has(mat.id);
 
       const durationNum = mat.duration_minutes !== null && mat.duration_minutes !== undefined ? Number(mat.duration_minutes) : NaN;
       const timeStr = (!isNaN(durationNum) && durationNum > 0) ? `${durationNum} mins` : "--";
@@ -264,7 +279,7 @@ window.PracticeHubComponent = {
              <i data-lucide="lock"></i> Locked (Pro)
            </button>`
         : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="window.PracticeApp.openPrepModal('${mat.id}')">
-             <i data-lucide="play"></i> ${isCompleted ? 'Practice Again' : 'Practice'}
+             <i data-lucide="play"></i> Practice
            </button>`;
 
       return `
@@ -274,7 +289,6 @@ window.PracticeHubComponent = {
               <span class="badge-pill ${moduleBadgeClass}">
                 ${displayModule}
               </span>
-              ${isCompleted ? `<span class="badge-pill badge-emerald"><i data-lucide="check" style="width:10px;height:10px;display:inline;"></i> Completed</span>` : ''}
             </div>
             <span class="mat-duration">
               <i data-lucide="clock"></i>

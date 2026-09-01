@@ -201,20 +201,19 @@ window.ProgressTrackerComponent = {
       const uid = appState?.userProfile?.uid || "local-user";
       const level = appState?.currentLevel || "A1";
 
-      // 1. Fetch recent practice attempts (limit 20)
+      // 1. Fetch practice attempts from Supabase
       let attempts = [];
       if (uid && uid !== "local-user") {
         const { data } = await supabase
           .from("practice_attempts")
-          .select("id, material_id, level, format, module, correct_answers, total_questions, completed_at")
+          .select("id, material_id, level, format, module, correct_answers, total_questions, score_percent, completed_at")
           .eq("uid", uid)
-          .order("completed_at", { ascending: false })
-          .limit(20);
+          .order("completed_at", { ascending: false });
 
         if (data) attempts = data;
       }
 
-      // Calculate totals & per-module accuracy
+      // Calculate totals & per-module accuracy strictly from practice_attempts
       let totalCompleted = attempts.length;
       const totals = {};
       attempts.forEach(a => {
@@ -257,7 +256,7 @@ window.ProgressTrackerComponent = {
         if (barEl) barEl.style.width = `${stats[mod] || 0}%`;
       });
 
-      // Update Recent History Table
+      // Update Recent History Table (up to 20 recent attempts)
       const tbody = document.getElementById("prog-history-tbody");
       if (tbody) {
         if (attempts.length === 0) {
@@ -269,11 +268,13 @@ window.ProgressTrackerComponent = {
             </tr>
           `;
         } else {
-          tbody.innerHTML = attempts.map(item => {
+          tbody.innerHTML = attempts.slice(0, 20).map(item => {
             const dateStr = item.completed_at ? new Date(item.completed_at).toLocaleDateString() : "Recent";
             const correct = parseInt(item.correct_answers || 0, 10);
             const total = parseInt(item.total_questions || 1, 10);
-            const pct = Math.round((correct / total) * 100);
+            const pct = (item.score_percent !== undefined && item.score_percent !== null && !isNaN(Number(item.score_percent)))
+              ? Number(item.score_percent)
+              : Math.round((correct / total) * 100);
             const status = pct >= 60 ? "Passed" : "Review";
             const badgeClass = pct >= 60 ? "badge-emerald" : "badge-rose";
             const displayModule = (item.module === "Grammar" || item.module === "Grammatik") ? "Grammatik" : (item.module || "Lesen");

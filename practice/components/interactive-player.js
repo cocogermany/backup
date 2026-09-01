@@ -1155,23 +1155,46 @@ window.InteractivePlayerComponent = {
       if (!supabase) return;
 
       const uid = localStorage.getItem("coco_user_uid") || "local-user";
+      if (!uid || uid === "local-user" || uid === "anonymous") return;
+
+      const correctCount = parseInt(correctAnswers || 0, 10);
+      const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
+      const scorePercent = Math.round((correctCount / totalCount) * 100);
+
       const dbModule = (material.module === "Grammatik" || material.module === "Grammar") ? "Grammar" : (material.module || "Lesen");
 
       const attemptPayload = {
         uid: uid,
         material_id: material.id,
         level: material.level || "A1",
-        format: material.exam || "goethe",
+        format: (material.exam || "goethe").toLowerCase(),
         module: dbModule,
-        correct_answers: parseInt(correctAnswers || 0, 10),
-        total_questions: parseInt(totalQuestions || 1, 10),
+        correct_answers: correctCount,
+        total_questions: totalCount,
+        score_percent: scorePercent,
         completed_at: new Date().toISOString()
       };
 
-      const { error } = await supabase.from("practice_attempts").insert([attemptPayload]);
+      // Direct Supabase upsert to handle unique (uid, material_id) constraint gracefully without duplicate error
+      const { error } = await supabase
+        .from("practice_attempts")
+        .upsert([attemptPayload], { onConflict: "uid,material_id" });
+
       if (error) {
-        console.warn("Player: practice_attempts insert warning:", error);
+        if (error.code === "23505" || String(error.message || "").toLowerCase().includes("unique") || String(error.message || "").toLowerCase().includes("duplicate")) {
+          console.log("Player: practice_attempt already recorded for (uid, material_id), duplicate handled gracefully.");
+        } else {
+          console.warn("Player: practice_attempts upsert notice:", error);
+        }
       }
+
+      // Invalidate Practice Hub cache and update completed set in memory
+      try {
+        localStorage.removeItem("coco_practice_hub_materials_cache");
+        if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
+          window.PracticeHubComponent.completedMaterialIds.add(material.id);
+        }
+      } catch (e) {}
     } catch (err) {
       console.warn("Player: Supabase attempt save error:", err);
     }
