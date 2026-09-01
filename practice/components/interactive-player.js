@@ -1198,14 +1198,14 @@ window.InteractivePlayerComponent = {
         return { success: false, error: err };
       }
 
-      const { data: { user } = {} } = await supabase.auth.getUser();
-      const uid = user?.id || (localStorage.getItem("coco_user_uid") && localStorage.getItem("coco_user_uid") !== "local-user" && localStorage.getItem("coco_user_uid") !== "anonymous" ? localStorage.getItem("coco_user_uid") : null);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (!uid) {
-        const err = new Error("You must be logged in to record your practice attempt.");
-        console.error("Player: Supabase attempt save error:", err);
-        return { success: false, error: err };
+      if (authError || !user) {
+        console.error("No authenticated Supabase user:", authError);
+        return { success: false, error: authError || new Error("No authenticated Supabase user session found.") };
       }
+
+      const uid = user.id;
 
       const correctCount = parseInt(correctAnswers || 0, 10);
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
@@ -1226,13 +1226,13 @@ window.InteractivePlayerComponent = {
       };
 
       // Direct Supabase INSERT from frontend (no Cloudflare, no client-provided ID)
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from("practice_attempts")
         .insert([attemptPayload]);
 
-      if (error) {
-        if (error.code === "23505") {
-          console.info("Player: Practice attempt already completed for (uid, material_id).", error.message);
+      if (insertError) {
+        if (insertError.code === "23505") {
+          console.info("Player: Practice attempt already completed for (uid, material_id).", insertError.message);
           // Treat as "Already completed" - not a failure
           try {
             localStorage.removeItem("coco_practice_hub_materials_cache");
@@ -1243,8 +1243,8 @@ window.InteractivePlayerComponent = {
           return { success: true, alreadyCompleted: true };
         }
 
-        console.error("Player: Supabase attempt save error:", error);
-        return { success: false, error };
+        console.error("Player: Supabase attempt save error:", insertError);
+        return { success: false, error: insertError };
       }
 
       // Invalidate Practice Hub cache and update completed set in memory

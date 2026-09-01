@@ -40,7 +40,13 @@ async function getSupabaseClient() {
 
   try {
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
-    supabaseClient = createClient(url, anonKey);
+    supabaseClient = createClient(url, anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
     return supabaseClient;
   } catch (error) {
     console.error("Failed to load Supabase SDK from CDN:", error);
