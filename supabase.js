@@ -70,7 +70,10 @@ async function fetchMaterialsSupabase(options = {}) {
     }
     if (options.exam) query = query.in("exam", [options.exam.toLowerCase(), "both"]);
     if (options.level) query = query.eq("level", options.level);
-    if (options.module) query = query.eq("module", options.module);
+    if (options.module) {
+      const dbModule = options.module === "Grammatik" ? "Grammar" : options.module;
+      query = query.eq("module", dbModule);
+    }
 
     const { data, error } = await query;
     if (error) throw error;

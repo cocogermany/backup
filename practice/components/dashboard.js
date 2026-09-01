@@ -231,7 +231,8 @@ window.DashboardComponent = {
           totalCompleted = attempts.length;
           const totals = {};
           attempts.forEach(a => {
-            const m = a.module || "Lesen";
+            let m = a.module || "Lesen";
+            if (m === "Grammar") m = "Grammatik";
             if (!totals[m]) totals[m] = { correct: 0, total: 0 };
             totals[m].correct += parseInt(a.correct_answers || 0, 10);
             totals[m].total += parseInt(a.total_questions || 0, 10);
@@ -247,9 +248,9 @@ window.DashboardComponent = {
 
       // Save to AppState & Cache
       if (appState) {
-        appState.stats = { ...stats, totalCompleted, counts };
+        appState.stats = { ...stats, totalCompleted };
       }
-      this.setCachedStats(level, format, { ...stats, totalCompleted, counts });
+      this.setCachedStats(level, format, { ...stats, totalCompleted });
 
       // Update Rings UI
       const ringsContainer = document.getElementById("dash-rings-container");

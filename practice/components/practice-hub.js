@@ -189,7 +189,8 @@ window.PracticeHubComponent = {
     }
 
     if (this.currentQuery.activeModule && this.currentQuery.activeModule !== "All") {
-      query = query.eq("module", this.currentQuery.activeModule);
+      const dbModule = this.currentQuery.activeModule === "Grammatik" ? "Grammar" : this.currentQuery.activeModule;
+      query = query.eq("module", dbModule);
     }
 
     if (this.currentQuery.searchQuery && this.currentQuery.searchQuery.trim() !== "") {
@@ -246,9 +247,11 @@ window.PracticeHubComponent = {
       const diffStr = mat.difficulty || "Medium";
       const descText = (mat.description && mat.description.trim()) ? mat.description.trim() : "No description available";
 
+      const displayModule = (mat.module === "Grammar" || mat.module === "Grammatik") ? "Grammatik" : mat.module;
+
       const moduleBadgeClass = mat.module === "Lesen" ? "badge-sky"
         : mat.module === "Hören" ? "badge-gold"
-        : mat.module === "Grammatik" ? "badge-emerald"
+        : (mat.module === "Grammatik" || mat.module === "Grammar") ? "badge-emerald"
         : mat.module === "Sprechen" ? "badge-sky"
         : "badge-rose";
 
@@ -269,7 +272,7 @@ window.PracticeHubComponent = {
           <div class="mat-card-header">
             <div style="display:flex; gap:6px; align-items:center;">
               <span class="badge-pill ${moduleBadgeClass}">
-                ${mat.module}
+                ${displayModule}
               </span>
               ${isCompleted ? `<span class="badge-pill badge-emerald"><i data-lucide="check" style="width:10px;height:10px;display:inline;"></i> Completed</span>` : ''}
             </div>

@@ -578,7 +578,7 @@ window.InteractivePlayerComponent = {
     if (material.isWriting) return this.renderWritingInterface(material);
     if (material.isSpeaking) return this.renderSpeakingInterface(material);
     if (material.module === "Hören") return this.renderListeningInterface(material);
-    if (material.module === "Grammatik") return this.renderGrammatikInterface(material);
+    if (material.module === "Grammatik" || material.module === "Grammar") return this.renderGrammatikInterface(material);
     if (material.passage) return this.renderReadingSplitInterface(material);
     return this.renderQuestionsOnlyInterface(material);
   },
@@ -996,7 +996,8 @@ window.InteractivePlayerComponent = {
     await this.savePracticeAttemptToSupabase(material, score, total);
 
     if (window.PracticeApp) {
-      window.PracticeApp.recordTestCompletion(material.module || "Lesen", pct);
+      const uiModule = (material.module === "Grammar" || material.module === "Grammatik") ? "Grammatik" : (material.module || "Lesen");
+      window.PracticeApp.recordTestCompletion(uiModule, pct);
     }
 
     // Render Exam Results Screen
@@ -1154,13 +1155,14 @@ window.InteractivePlayerComponent = {
       if (!supabase) return;
 
       const uid = localStorage.getItem("coco_user_uid") || "local-user";
+      const dbModule = (material.module === "Grammatik" || material.module === "Grammar") ? "Grammar" : (material.module || "Lesen");
 
       const attemptPayload = {
         uid: uid,
         material_id: material.id,
         level: material.level || "A1",
         format: material.exam || "goethe",
-        module: material.module || "Lesen",
+        module: dbModule,
         correct_answers: parseInt(correctAnswers || 0, 10),
         total_questions: parseInt(totalQuestions || 1, 10),
         completed_at: new Date().toISOString()

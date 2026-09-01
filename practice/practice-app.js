@@ -937,14 +937,15 @@
     }
 
     recordTestCompletion(moduleName, accuracyPct) {
-      if (AppState.stats[moduleName] !== undefined) {
-        AppState.stats[moduleName] = Math.round((AppState.stats[moduleName] + accuracyPct) / 2);
+      const normalizedModule = (moduleName === "Grammar" || moduleName === "Grammatik") ? "Grammatik" : moduleName;
+      if (AppState.stats[normalizedModule] !== undefined) {
+        AppState.stats[normalizedModule] = Math.round((AppState.stats[normalizedModule] + accuracyPct) / 2);
       }
       AppState.stats.totalCompleted += 1;
 
       AppState.testHistory.unshift({
         date: "Just now",
-        test: `${moduleName} Drill (${AppState.currentLevel})`,
+        test: `${normalizedModule} Drill (${AppState.currentLevel})`,
         score: `${accuracyPct}%`,
         pct: accuracyPct,
         status: accuracyPct >= 60 ? "Passed" : "Review"

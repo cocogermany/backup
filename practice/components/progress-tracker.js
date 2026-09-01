@@ -218,7 +218,8 @@ window.ProgressTrackerComponent = {
       let totalCompleted = attempts.length;
       const totals = {};
       attempts.forEach(a => {
-        const m = a.module || "Lesen";
+        let m = a.module || "Lesen";
+        if (m === "Grammar") m = "Grammatik";
         if (!totals[m]) totals[m] = { correct: 0, total: 0 };
         totals[m].correct += parseInt(a.correct_answers || 0, 10);
         totals[m].total += parseInt(a.total_questions || 0, 10);
@@ -275,11 +276,12 @@ window.ProgressTrackerComponent = {
             const pct = Math.round((correct / total) * 100);
             const status = pct >= 60 ? "Passed" : "Review";
             const badgeClass = pct >= 60 ? "badge-emerald" : "badge-rose";
+            const displayModule = (item.module === "Grammar" || item.module === "Grammatik") ? "Grammatik" : (item.module || "Lesen");
 
             return `
               <tr style="border-bottom:1px solid var(--line-subtle);">
                 <td style="padding:10px; color:var(--muted);">${dateStr}</td>
-                <td style="padding:10px; font-weight:600; color:var(--ink);">${item.module} Drill (${item.level || level})</td>
+                <td style="padding:10px; font-weight:600; color:var(--ink);">${displayModule} Drill (${item.level || level})</td>
                 <td style="padding:10px;">${correct} / ${total}</td>
                 <td style="padding:10px; font-weight:700; color:var(--brown);">${pct}%</td>
                 <td style="padding:10px;"><span class="badge-pill ${badgeClass}">${status}</span></td>
