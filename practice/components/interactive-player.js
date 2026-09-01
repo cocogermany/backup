@@ -1432,44 +1432,11 @@ window.InteractivePlayerComponent = {
       module: normalizedId.includes("hoeren") ? "Hören" : normalizedId.includes("schreiben") ? "Schreiben" : normalizedId.includes("sprechen") ? "Sprechen" : "Lesen",
       estimatedSeconds: 600,
       passage: `
-        <p><strong>Von:</strong> Anna Berger &lt;anna.b@gmx.de&gt;<br>
-        <strong>An:</strong> Markus Schmidt &lt;markus.s@web.de&gt;<br>
-        <strong>Betreff:</strong> Treffen am Samstagabend</p>
-        <br>
-        <p>Lieber Markus,</p>
-        <p>wie geht es dir? Ich hoffe, du hattest eine gute Woche. Am Samstagabend feiere ich meinen Geburtstag im Restaurant <em>"Zum goldenen Hirsch"</em> in der Hauptstraße. Die Feier beginnt um 19:00 Uhr.</p>
-        <p>Kannst du bitte einen Salat oder einen Kuchen mitbringen? Meine Schwester bringt schon Getränke mit.</p>
-        <p>Sag mir bitte bis Donnerstag Bescheid, ob du kommen kannst.</p>
-        <p>Herzliche Grüße,<br>Anna</p>
+        <p>Dieses Übungsmaterial konnte nicht geladen werden.</p>
+        <p>Bitte kehre zur Übersicht zurück und versuche es erneut.</p>
       `,
-      questions: [
-        {
-          id: "q1",
-          question: "Warum schreibt Anna an Markus?",
-          options: [
-            "Sie möchte ihn zu ihrem Geburtstag einladen.",
-            "Sie sucht eine neue Wohnung in der Hauptstraße.",
-            "Sie möchte am Samstag ins Kino gehen."
-          ],
-          correctAnswer: "Sie möchte ihn zu ihrem Geburtstag einladen.",
-          explanation: "Anna schreibt: 'Am Samstagabend feiere ich meinen Geburtstag...'"
-        },
-        {
-          id: "q2",
-          question: "Wann beginnt die Feier?",
-          options: ["Um 18:00 Uhr", "Um 19:00 Uhr", "Um 20:00 Uhr"],
-          correctAnswer: "Um 19:00 Uhr",
-          explanation: "Im Text steht: 'Die Feier beginnt um 19:00 Uhr.'"
-        },
-        {
-          id: "q3",
-          question: "Was soll Markus mitbringen?",
-          options: ["Getränke", "Einen Salat oder Kuchen", "Nichts"],
-          correctAnswer: "Einen Salat oder Kuchen",
-          explanation: "Anna bittet: 'Kannst du bitte einen Salat oder einen Kuchen mitbringen?'"
-        }
-      ],
-      prompt: normalizedId.includes("schreiben") ? "Ihr Freund Thomas hat Sie zu seiner Hochzeit am Samstag eingeladen. Schreiben Sie eine kurze E-Mail: Bestätigen Sie Ihr Kommen und fragen Sie nach der Uhrzeit." : "Stellen Sie sich vor: Name, Alter, Land, Wohnort, Sprachen, Beruf.",
+      questions: [],
+      prompt: "",
       isWriting: normalizedId.includes("schreiben"),
       isSpeaking: normalizedId.includes("sprechen")
     };
