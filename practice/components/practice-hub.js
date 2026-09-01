@@ -18,17 +18,21 @@ window.PracticeHubComponent = {
   },
   searchTimeout: null,
   completedMaterialIds: new Set(),
+  _lastAppState: null,
 
   getCurrentUserUid: function (appState) {
     // Match the UID source used when practice_attempts are recorded.
+    if (appState?.userProfile?.uid && appState.userProfile.uid !== "local-user" && appState.userProfile.uid !== "anonymous") {
+      return appState.userProfile.uid;
+    }
+    if (this._lastAppState?.userProfile?.uid && this._lastAppState.userProfile.uid !== "local-user" && this._lastAppState.userProfile.uid !== "anonymous") {
+      return this._lastAppState.userProfile.uid;
+    }
     if (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous") {
       return window.AppState.userProfile.uid;
     }
     if (window.PracticeApp?.currentFirebaseUser?.uid && window.PracticeApp.currentFirebaseUser.uid !== "local-user" && window.PracticeApp.currentFirebaseUser.uid !== "anonymous") {
       return window.PracticeApp.currentFirebaseUser.uid;
-    }
-    if (appState?.userProfile?.uid && appState.userProfile.uid !== "local-user" && appState.userProfile.uid !== "anonymous") {
-      return appState.userProfile.uid;
     }
     const stored = localStorage.getItem("coco_user_uid");
     if (stored && stored !== "local-user" && stored !== "anonymous") {
@@ -38,6 +42,7 @@ window.PracticeHubComponent = {
   },
 
   render: function (appState, queryParams) {
+    this._lastAppState = appState || this._lastAppState;
     const activeModule = queryParams ? (queryParams.get("module") || "All") : "All";
     const pageParam = queryParams ? parseInt(queryParams.get("page") || "1", 10) : 1;
     const level = appState ? (appState.currentLevel || "A1") : "A1";
@@ -107,6 +112,7 @@ window.PracticeHubComponent = {
   },
 
   initHubData: async function (appState) {
+    this._lastAppState = appState || this._lastAppState;
     const level = appState ? (appState.currentLevel || "A1") : "A1";
     const format = appState ? (appState.currentFormat || "goethe") : "goethe";
     const membership = appState ? (appState.userProfile?.plan || "FREE") : "FREE";
@@ -120,11 +126,13 @@ window.PracticeHubComponent = {
   },
 
   fetchCompletedMaterialIds: async function (appState) {
+    if (appState) this._lastAppState = appState;
     if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return new Set();
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
       if (!supabase) return new Set();
       const uid = this.getCurrentUserUid(appState);
+      console.log("Practice Hub UID:", uid);
 
       if (uid) {
         const { data, error } = await supabase
@@ -138,18 +146,23 @@ window.PracticeHubComponent = {
         }
 
         this.completedMaterialIds = new Set(
-          (data || []).map(row => String(row?.material_id || "").trim()).filter(Boolean)
+          (data || [])
+            .map(row => String(row?.material_id || "").trim())
+            .filter(Boolean)
         );
+        console.log("Completed material IDs:", [...this.completedMaterialIds]);
         return this.completedMaterialIds;
       }
     } catch (e) {
       console.warn("PracticeHub: Completed materials lookup note:", e);
     }
     this.completedMaterialIds = new Set();
+    console.log("Completed material IDs:", [...this.completedMaterialIds]);
     return this.completedMaterialIds;
   },
 
   executeFetchAndRender: async function (appState) {
+    if (appState) this._lastAppState = appState;
     const gridContainer = document.getElementById("materials-grid-container");
     const pagContainer = document.getElementById("practice-pagination-container");
 
@@ -162,16 +175,15 @@ window.PracticeHubComponent = {
     // Render cached materials immediately if valid (SWR Pattern)
     const cached = this.getCachedResult(cacheKey);
     let cacheRendered = false;
-    if (cached && cached.materials) {
-      const cacheContainsCompletedMaterial = (cached.materials || []).some(
-        mat => mat && mat.id && this.completedMaterialIds.has(String(mat.id))
+    if (cached && Array.isArray(cached.materials)) {
+      const filteredCached = cached.materials.filter(
+        mat => mat && !this.completedMaterialIds.has(String(mat.id || "").trim())
       );
 
-      // Do not render a stale cache page after an item on it was completed:
-      // client-side removal would leave a short page even when later items exist.
-      if (!cacheContainsCompletedMaterial) {
-        this.loadedMaterials = cached.materials;
-        this.renderMaterialsGrid(cached.materials, gridContainer);
+      // Do not render stale cache if it contained completed materials
+      if (filteredCached.length === cached.materials.length) {
+        this.loadedMaterials = filteredCached;
+        this.renderMaterialsGrid(filteredCached, gridContainer);
         this.renderPagination(cached.page, cached.totalPages, cached.totalCount, pagContainer);
         cacheRendered = true;
       }
@@ -180,10 +192,7 @@ window.PracticeHubComponent = {
     try {
       let res = await this.querySupabaseMaterials();
 
-      // Completion filtering is part of the database query, before range(), so
-      // each page contains up to ten available materials. A completion can make
-      // a previously valid URL page out of range; clamp and fetch that last page.
-      if (res.page > res.totalPages) {
+      if (res.page > res.totalPages && res.totalPages >= 1) {
         this.currentQuery.page = res.totalPages;
         const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
         params.set("page", res.totalPages);
@@ -237,7 +246,7 @@ window.PracticeHubComponent = {
     // Scope columns strictly to current materials table schema: id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active
     let query = supabase
       .from("materials")
-      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active", { count: "exact" })
+      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
       .eq("active", true);
 
     if (this.currentQuery.level) {
@@ -261,36 +270,30 @@ window.PracticeHubComponent = {
       query = query.ilike("title", `%${this.currentQuery.searchQuery.trim()}%`);
     }
 
-    // Exclude already completed materials
-    if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
-      const completedList = Array.from(this.completedMaterialIds)
-        .map(id => String(id).trim())
-        .filter(Boolean);
-      if (completedList.length > 0) {
-        const supabaseInValues = completedList
-          .map(id => `"${id.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`)
-          .join(",");
-        query = query.not("id", "in", `(${supabaseInValues})`);
-      }
-    }
+    query = query.order("material_number", { ascending: true });
 
-    // Pagination: max 10 per page
-    const page = this.currentQuery.page;
-    const from = (page - 1) * 10;
-    const to = from + 9;
-
-    query = query
-      .order("material_number", { ascending: true })
-      .range(from, to);
-
-    const { data, count, error } = await query;
+    const { data, error } = await query;
     if (error) throw error;
 
-    const totalCount = count !== null && count !== undefined ? count : (data ? data.length : 0);
+    let allMaterials = data || [];
+
+    // Authoritative client-side filtering by completedMaterialIds
+    if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
+      allMaterials = allMaterials.filter(
+        mat => mat && !this.completedMaterialIds.has(String(mat.id || "").trim())
+      );
+    }
+
+    const totalCount = allMaterials.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / 10));
+    const page = Math.min(Math.max(1, this.currentQuery.page), totalPages);
+
+    const from = (page - 1) * 10;
+    const to = from + 10;
+    const paginatedMaterials = allMaterials.slice(from, to);
 
     return {
-      materials: data || [],
+      materials: paginatedMaterials,
       totalCount,
       page,
       totalPages,
@@ -300,9 +303,9 @@ window.PracticeHubComponent = {
   renderMaterialsGrid: function (materials, container) {
     if (!container) return;
 
-    // Filter out completed materials as safeguard
+    // Filter out completed materials as authoritative safeguard immediately before rendering
     const availableMaterials = (materials || []).filter(
-      mat => mat && mat.id && !this.completedMaterialIds.has(String(mat.id))
+      mat => mat && !this.completedMaterialIds.has(String(mat.id || "").trim())
     );
 
     if (!availableMaterials || availableMaterials.length === 0) {
