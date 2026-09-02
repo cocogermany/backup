@@ -597,6 +597,23 @@ window.InteractivePlayerComponent = {
 
   mountMaterialWorkspace: function (contentArea, material) {
     if (!contentArea) return;
+
+    const isGrammatik = Boolean(material && material.module === "Grammatik");
+    const mainContainer = document.getElementById("player-main-container");
+    if (mainContainer) {
+      mainContainer.classList.toggle("is-grammatik", isGrammatik);
+      mainContainer.setAttribute("data-module", material?.module || "");
+    }
+
+    const layoutBtn = document.getElementById("exam-layout-btn");
+    if (layoutBtn) {
+      layoutBtn.style.display = isGrammatik ? "none" : "";
+    }
+    const layoutPopover = document.getElementById("exam-layout-popover");
+    if (layoutPopover && isGrammatik) {
+      layoutPopover.hidden = true;
+    }
+
     contentArea.innerHTML = this.renderMaterialWorkspace(material);
     this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
@@ -774,17 +791,18 @@ window.InteractivePlayerComponent = {
 
   renderGrammatikQuestionBlock: function (q, idx, total) {
     const questionId = String(q.id || `q-${idx + 1}`);
-    // Detect whether the question text contains a blank placeholder (_____)
-    const hasBlank = /_{3,}/.test(q.question);
+    const hasBlank = /_{2,}/.test(q.question);
 
-    // Build the sentence display: highlight the blank visually
+    // Build the sentence display with a clean simple blank: "Ich _____ jeden Morgen Kaffee."
     const sentenceHtml = hasBlank
-      ? this.escapeHtml(q.question).replace(/_{3,}/g, '<span class="gram-blank">_____</span>')
-      : `<span class="gram-sentence-label">Ergänzen Sie:</span> ${this.escapeHtml(q.question)}`;
+      ? this.escapeHtml(q.question).replace(/_{2,}/g, '<span class="gram-blank">_____</span>')
+      : this.escapeHtml(q.question);
 
     return `
-      <div class="exam-q-block gram-q-block" id="exam-q-block-${this.escapeHtml(questionId)}">
-        <div class="exam-q-counter">${idx + 1} / ${total}</div>
+      <div class="exam-q-block gram-q-card gram-q-block" id="exam-q-block-${this.escapeHtml(questionId)}">
+        <div class="gram-q-header">
+          <span class="gram-q-num">Frage ${idx + 1} / ${total}</span>
+        </div>
 
         <!-- Sentence with blank -->
         <div class="gram-sentence">${sentenceHtml}</div>
@@ -1083,6 +1101,21 @@ window.InteractivePlayerComponent = {
 
     const contentArea = document.getElementById("player-content-area");
     if (!contentArea) return;
+
+    const isGrammatik = Boolean(material && material.module === "Grammatik");
+    const mainContainer = document.getElementById("player-main-container");
+    if (mainContainer) {
+      mainContainer.classList.toggle("is-grammatik", isGrammatik);
+      mainContainer.setAttribute("data-module", material?.module || "");
+    }
+    const layoutBtn = document.getElementById("exam-layout-btn");
+    if (layoutBtn) {
+      layoutBtn.style.display = isGrammatik ? "none" : "";
+    }
+    const layoutPopover = document.getElementById("exam-layout-popover");
+    if (layoutPopover && isGrammatik) {
+      layoutPopover.hidden = true;
+    }
 
     // Render split/single interface
     contentArea.innerHTML = `
