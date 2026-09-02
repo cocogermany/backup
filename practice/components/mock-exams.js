@@ -7,54 +7,18 @@
 
 window.MockExamsComponent = {
   render: function (appState) {
-    const level = appState ? appState.currentLevel || "A1" : "A1";
-    const format = appState ? appState.currentFormat || "goethe" : "goethe";
+    const level = appState ? (appState.currentLevel || "A1") : "A1";
+    const rawFormat = appState ? (appState.currentFormat || "goethe") : "goethe";
+    const formatName = rawFormat.toLowerCase() === "telc" ? "TELC" : "Goethe";
+    const mockExamId = `mock-${level.toLowerCase()}-full-1`;
 
-    const mockExamData = [
-      {
-        id: `mock-${level.toLowerCase()}-full-1`,
-        title: `${format}-Zertifikat ${level} - Full Official Practice Test 1`,
-        exam: format,
-        level: level,
-        duration: level === "A1" ? "60 mins" : level === "A2" ? "75 mins" : "90 mins",
-        parts: [
-          { name: "Lesen (Reading)", time: "20 mins", questions: 15 },
-          { name: "Hören (Listening)", time: "20 mins", questions: 15 },
-          { name: "Schreiben (Writing)", time: "15 mins", questions: 2 },
-          { name: "Sprechen (Speaking)", time: "15 mins", tasks: 3 }
-        ],
-        badge: "Official Format",
-        attempts: 1240
-      },
-      {
-        id: `mock-${level.toLowerCase()}-full-2`,
-        title: `${format}-Zertifikat ${level} - Full Official Practice Test 2`,
-        exam: format,
-        level: level,
-        duration: level === "A1" ? "60 mins" : level === "A2" ? "75 mins" : "90 mins",
-        parts: [
-          { name: "Lesen (Reading)", time: "20 mins", questions: 15 },
-          { name: "Hören (Listening)", time: "20 mins", questions: 15 },
-          { name: "Schreiben (Writing)", time: "15 mins", questions: 2 },
-          { name: "Sprechen (Speaking)", time: "15 mins", tasks: 3 }
-        ],
-        badge: "Popular",
-        attempts: 890
-      },
-      {
-        id: `mock-${level.toLowerCase()}-telc-1`,
-        title: `TELC ${level} - General Exam Simulator`,
-        exam: "TELC",
-        level: level,
-        duration: "70 mins",
-        parts: [
-          { name: "Sprachbausteine & Lesen", time: "30 mins", questions: 20 },
-          { name: "Hören (Listening)", time: "20 mins", questions: 15 },
-          { name: "Schreiben (Writing)", time: "20 mins", questions: 1 }
-        ],
-        badge: "TELC Pattern",
-        attempts: 540
-      }
+    const duration = level === "A1" ? "60 mins" : level === "A2" ? "75 mins" : level === "B1" ? "90 mins" : "120 mins";
+
+    const sections = [
+      { name: "Lesen (Reading)", time: level === "A1" ? "20 mins" : "25 mins", questions: "15 Questions" },
+      { name: "Hören (Listening)", time: level === "A1" ? "20 mins" : "20 mins", questions: "15 Questions" },
+      { name: "Schreiben (Writing)", time: level === "A1" ? "15 mins" : "20 mins", questions: "1-2 Tasks" },
+      { name: "Sprechen (Speaking)", time: level === "A1" ? "15 mins" : "15 mins", questions: "3 Tasks" }
     ];
 
     // Schedule async fetch of completed mock attempts from Supabase
@@ -63,99 +27,139 @@ window.MockExamsComponent = {
     }, 0);
 
     return `
-      <div class="view-fade-in" id="mock-exams-root">
-        <div class="page-header">
-          <div class="page-title-row">
-            <h1 class="page-title">Mock Exam Simulator</h1>
-            <span class="badge-pill badge-gold" style="font-size:0.85rem; padding:6px 12px;">
-              <i data-lucide="shield-check" style="width:16px;height:16px;"></i> ${format} / TELC Standards
+      <div class="view-fade-in mock-exam-page" id="mock-exams-root">
+        <!-- Page Header -->
+        <div class="mock-page-header">
+          <div class="mock-page-header-text">
+            <h1 class="mock-page-title">Mock Exam Simulator</h1>
+            <p class="mock-page-subtitle">Full timed examination simulation under official test conditions.</p>
+          </div>
+          <div class="mock-header-badge">
+            <span class="badge-pill badge-gold">
+              <i data-lucide="shield-check" style="width:14px;height:14px;"></i> ${formatName} / TELC Standard
             </span>
           </div>
-          <p class="page-subtitle">Full timed examination suites under real test condition rules.</p>
         </div>
 
-        <!-- Suite Header Card -->
-        <div class="mock-suite-header">
-          <div class="mock-suite-title-box">
-            <div class="mock-suite-badge">${level}</div>
-            <div class="mock-suite-info">
-              <h2>${format}-Zertifikat ${level} Exam Collection</h2>
-              <p>Simulates exact time limits, passage structures, audio pauses, and scoring thresholds.</p>
+        <!-- MAIN MOCK EXAM START SECTION (HERO CARD) -->
+        <div class="card mock-hero-card">
+          <div class="mock-hero-top">
+            <div class="mock-hero-badge-row">
+              <span class="mock-badge-level">${formatName} · ${level}</span>
+              <span class="mock-badge-simulation"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> Full Mock Exam Simulation</span>
             </div>
+            <h2 class="mock-hero-title">${formatName}-Zertifikat ${level} Examination</h2>
+            <p class="mock-hero-desc">Experience the complete examination suite with authentic timing, audio playback controls, writing evaluations, and automated score certification.</p>
           </div>
-          <div style="text-align:right;">
-            <span style="font-size:0.8rem; color:var(--muted); display:block; margin-bottom:4px;">Passing Criteria</span>
-            <span class="badge-pill badge-emerald" style="font-size:0.85rem;">60% (60/100 points)</span>
-          </div>
-        </div>
 
-        <!-- User Completed Mock Summary Banner -->
-        <div style="background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md); padding:12px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.85rem; color:var(--muted);" id="mock-user-summary">
-            Completed Mock Exams: <strong style="color:var(--ink);" id="mock-user-count">0</strong> exams
-          </span>
-          <span class="badge-pill badge-sky" id="mock-plan-limit">Weekly Limit: Plan Based</span>
-        </div>
-
-        <!-- Exam Cards Grid -->
-        <div class="mock-cards-grid">
-          ${mockExamData.map(exam => `
-            <div class="card mock-exam-card">
-              <div>
-                <div class="mock-exam-meta" style="margin-bottom:8px;">
-                  <span class="badge-pill badge-gold">${exam.badge}</span>
-                  <span style="font-size:0.75rem; color:var(--muted);"><i data-lucide="clock" style="width:12px;height:12px;display:inline;"></i> ${exam.duration}</span>
-                </div>
-                <h3 class="mock-exam-title" style="margin-bottom:12px;">${exam.title}</h3>
-
-                <!-- Sections list -->
-                <div class="mock-sections-list">
-                  ${exam.parts.map(p => `
-                    <div class="mock-sec-row">
-                      <span><i data-lucide="check-circle-2"></i> ${p.name}</span>
-                      <span style="color:var(--muted); font-size:0.75rem;">${p.time}</span>
-                    </div>
-                  `).join("")}
-                </div>
+          <!-- Key Information Metrics Grid -->
+          <div class="mock-metrics-grid">
+            <div class="mock-metric-card">
+              <div class="mock-metric-icon">
+                <i data-lucide="layers"></i>
               </div>
-
-              <div class="mock-card-footer">
-                <span style="font-size:0.75rem; color:var(--muted);">${exam.attempts} attempts taken</span>
-                <button class="btn-primary btn-sm" onclick="window.PracticeApp.startMockExam('${exam.id}')">
-                  <i data-lucide="play-circle"></i> Begin Simulation
-                </button>
+              <div class="mock-metric-content">
+                <span class="mock-metric-label">Sections</span>
+                <span class="mock-metric-value">4 Modules</span>
               </div>
             </div>
-          `).join("")}
+
+            <div class="mock-metric-card">
+              <div class="mock-metric-icon">
+                <i data-lucide="clock"></i>
+              </div>
+              <div class="mock-metric-content">
+                <span class="mock-metric-label">Duration</span>
+                <span class="mock-metric-value">${duration}</span>
+              </div>
+            </div>
+
+            <div class="mock-metric-card">
+              <div class="mock-metric-icon">
+                <i data-lucide="target"></i>
+              </div>
+              <div class="mock-metric-content">
+                <span class="mock-metric-label">Passing Score</span>
+                <span class="mock-metric-value">60% (60/100 pts)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compact Sections Breakdown -->
+          <div class="mock-sections-overview">
+            <div class="mock-overview-header">
+              <span>Included Exam Modules</span>
+            </div>
+            <div class="mock-sections-chips">
+              ${sections.map(s => `
+                <div class="mock-section-chip">
+                  <div class="mock-chip-dot"></div>
+                  <div class="mock-chip-info">
+                    <span class="mock-chip-name">${s.name}</span>
+                    <span class="mock-chip-time">${s.time} · ${s.questions}</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Start Action Bar -->
+          <div class="mock-hero-action-bar">
+            <button type="button" class="btn-primary mock-start-btn" onclick="window.PracticeApp.startMockExam('${mockExamId}')">
+              <i data-lucide="play-circle" style="width:18px;height:18px;"></i>
+              <span>Start Mock Exam</span>
+            </button>
+            <div class="mock-action-note">
+              <span id="mock-plan-limit">Weekly Limit: Plan Based</span>
+              <span style="opacity:0.4;">·</span>
+              <span>1 Credit per simulation</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAST EXAM REPORTS SECTION -->
+        <div class="mock-reports-section">
+          <div class="mock-reports-header">
+            <div>
+              <h2 class="mock-reports-title">Past Exam Reports</h2>
+              <p class="mock-reports-subtitle">Your previous mock exam scores and historical performance.</p>
+            </div>
+            <div class="mock-reports-count-pill" id="mock-reports-count-badge">
+              <span id="mock-user-count">0</span> Completed
+            </div>
+          </div>
+
+          <!-- Reports Container (Dynamically Populated) -->
+          <div id="mock-reports-container">
+            <div class="mock-reports-skeleton">
+              <div class="skeleton" style="height:60px; border-radius:10px; margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:60px; border-radius:10px;"></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
   },
 
   initMockData: async function (appState) {
-    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return;
+    const container = document.getElementById("mock-reports-container");
+    const countEl = document.getElementById("mock-user-count");
+
+    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) {
+      this.renderReportsEmpty(container);
+      return;
+    }
 
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
-      if (!supabase) return;
+      if (!supabase) {
+        this.renderReportsEmpty(container);
+        return;
+      }
 
       const uid = appState?.userProfile?.uid || "local-user";
 
-      // 1. Fetch user completed mock attempts count
-      let mockCount = 0;
-      if (uid && uid !== "local-user") {
-        const { count } = await supabase
-          .from("mock_attempts")
-          .select("id", { count: "exact", head: true })
-          .eq("uid", uid);
-
-        if (count !== null) mockCount = count;
-      }
-
-      const countEl = document.getElementById("mock-user-count");
-      if (countEl) countEl.textContent = mockCount.toString();
-
-      // 2. Fetch plan limits for mock exams
+      // 1. Fetch Plan limits
       const planCode = (appState?.userProfile?.plan || "free").toLowerCase();
       const { data: planData } = await supabase.from("plans").select("weekly_mock_exams").eq("code", planCode).maybeSingle();
 
@@ -164,9 +168,101 @@ window.MockExamsComponent = {
         const limit = planData?.weekly_mock_exams !== undefined ? planData.weekly_mock_exams : 1;
         limitEl.textContent = `Weekly Limit: ${limit} Mock Exams`;
       }
+
+      // 2. Fetch past attempts from mock_attempts table
+      if (!uid || uid === "local-user") {
+        if (countEl) countEl.textContent = "0";
+        this.renderReportsEmpty(container);
+        return;
+      }
+
+      const { data: attempts, error } = await supabase
+        .from("mock_attempts")
+        .select("id, uid, level, format, score_percent, completed_at")
+        .eq("uid", uid)
+        .order("completed_at", { ascending: false })
+        .limit(30);
+
+      if (error || !attempts || attempts.length === 0) {
+        if (countEl) countEl.textContent = "0";
+        this.renderReportsEmpty(container);
+        return;
+      }
+
+      if (countEl) countEl.textContent = attempts.length.toString();
+      this.renderReportsList(container, attempts);
+
     } catch (e) {
-      console.warn("MockExams: Supabase data sync note:", e);
+      console.warn("MockExams: Supabase sync error:", e);
+      this.renderReportsEmpty(container);
     }
+  },
+
+  renderReportsList: function (container, attempts) {
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="mock-reports-table-wrap">
+        <table class="mock-reports-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Format & Level</th>
+              <th>Score</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${attempts.map(att => {
+              const score = typeof att.score_percent === "number" ? att.score_percent : parseInt(att.score_percent || 0, 10);
+              const isPass = score >= 60;
+              const dateStr = att.completed_at
+                ? new Date(att.completed_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : "Recent";
+              const formatStr = (att.format || "Goethe").toUpperCase();
+              const levelStr = (att.level || "A1").toUpperCase();
+
+              return `
+                <tr class="mock-report-row">
+                  <td class="mock-report-date">
+                    <i data-lucide="calendar" style="width:14px;height:14px;color:var(--muted);display:inline;margin-right:6px;"></i>
+                    ${dateStr}
+                  </td>
+                  <td class="mock-report-exam">
+                    <strong>${formatStr}</strong> · ${levelStr}
+                  </td>
+                  <td class="mock-report-score">
+                    <span class="mock-score-val ${isPass ? 'is-pass' : 'is-fail'}">${score}%</span>
+                  </td>
+                  <td class="mock-report-status">
+                    <span class="badge-pill ${isPass ? 'badge-emerald' : 'badge-rose'}">
+                      <i data-lucide="${isPass ? 'check' : 'x'}" style="width:12px;height:12px;"></i>
+                      ${isPass ? 'Passed' : 'Needs Review'}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+  },
+
+  renderReportsEmpty: function (container) {
+    if (!container) return;
+    container.innerHTML = `
+      <div class="card mock-reports-empty">
+        <div class="mock-empty-icon">
+          <i data-lucide="clipboard-list"></i>
+        </div>
+        <h3 class="mock-empty-title">No Previous Mock Exam Reports</h3>
+        <p class="mock-empty-desc">You haven't completed any full mock exams yet. Start your first simulated exam above to test your skills and view detailed scoring reports here.</p>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
   },
 
   recordMockAttemptCompletion: async function (appState, scorePercent) {

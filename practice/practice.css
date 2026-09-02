@@ -1805,52 +1805,7 @@ a {
   box-shadow: 0 4px 10px rgba(111, 78, 55, 0.22);
 }
 
-/* Mock Exam Grid */
-.mock-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.mock-exam-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.mock-exam-title {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.mock-sections-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--paper);
-  padding: 10px;
-  border-radius: var(--radius-md);
-}
-
-.mock-sec-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: var(--ink);
-}
-
-.mock-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
+/* Mock Exam Simulator styles moved to mock-exams.css */
 /* Interactive Player styles moved to interactive-player.css */
 
 /* Progress Tracker */
@@ -2455,30 +2410,7 @@ textarea:focus-visible,
   box-shadow: 0 0 0 4px rgba(99, 89, 220, 0.10);
 }
 
-.mock-exam-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.mock-exam-card::before {
-  position: absolute;
-  top: 0;
-  right: 20px;
-  left: 20px;
-  height: 3px;
-  border-radius: 0 0 999px 999px;
-  background: linear-gradient(90deg, #6e64e9, #4bc4bb);
-  content: "";
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.mock-exam-card:hover::before {
-  opacity: 1;
-}
-
 .mat-card-footer,
-.mock-card-footer,
 .module-card-footer {
   border-top-color: rgba(72, 70, 143, 0.08);
 }
