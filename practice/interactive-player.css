@@ -996,26 +996,13 @@ body.exam-mode .app-viewport {
   color: var(--exam-ink-muted);
 }
 
-/* Grammatik Sentence with Simple Blank */
+/* Grammatik Sentence */
 .gram-sentence {
   font-size: 1.08rem;
   font-weight: 600;
   color: var(--exam-ink-color);
   line-height: 1.65;
   margin: 6px 0 18px;
-}
-
-/* Simple Blank Underline */
-.gram-blank {
-  display: inline-block;
-  min-width: 64px;
-  border-bottom: 2.5px solid currentColor;
-  padding: 0 4px;
-  margin: 0 4px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  vertical-align: baseline;
-  text-align: center;
 }
 
 /* Row of Clickable Option Buttons */
@@ -1079,11 +1066,6 @@ body.exam-mode .app-viewport {
   box-shadow: 0 2px 6px rgba(111, 78, 55, 0.04);
 }
 
-.style-on .gram-blank {
-  border-bottom-color: #6f4e37;
-  color: #6f4e37;
-}
-
 .style-on .gram-option-btn {
   border-color: #dbd3cc;
   border-radius: 8px;
@@ -1111,11 +1093,6 @@ body.exam-mode .app-viewport {
   border-color: #cccccc;
   border-radius: 2px;
   box-shadow: none;
-}
-
-.style-off .gram-blank {
-  border-bottom-color: #000000;
-  color: #000000;
 }
 
 .style-off .gram-option-btn {

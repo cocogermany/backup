@@ -791,12 +791,8 @@ window.InteractivePlayerComponent = {
 
   renderGrammatikQuestionBlock: function (q, idx, total) {
     const questionId = String(q.id || `q-${idx + 1}`);
-    const hasBlank = /_{2,}/.test(q.question);
-
-    // Build the sentence display with a clean simple blank: "Ich _____ jeden Morgen Kaffee."
-    const sentenceHtml = hasBlank
-      ? this.escapeHtml(q.question).replace(/_{2,}/g, '<span class="gram-blank">_____</span>')
-      : this.escapeHtml(q.question);
+    // Display exactly one _____ in the question text without adding extra underline/border-bottom elements
+    const sentenceHtml = this.escapeHtml(q.question || "").replace(/_{2,}/g, "_____");
 
     return `
       <div class="exam-q-block gram-q-card gram-q-block" id="exam-q-block-${this.escapeHtml(questionId)}">
