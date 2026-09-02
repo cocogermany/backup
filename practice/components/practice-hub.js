@@ -322,6 +322,8 @@ window.PracticeHubComponent = {
       const durationNum = mat.duration_minutes !== null && mat.duration_minutes !== undefined ? Number(mat.duration_minutes) : NaN;
       const timeStr = (!isNaN(durationNum) && durationNum > 0) ? `${durationNum} mins` : "--";
       const diffStr = mat.difficulty || "Medium";
+      const lvlStr = (mat.level || this.currentQuery.level || "A1").toUpperCase();
+      const diffText = `${lvlStr} - ${diffStr}`;
       const descText = (mat.description && mat.description.trim()) ? mat.description.trim() : "No description available";
 
       const displayModule = mat.module === "Grammar" ? "Grammatik" : mat.module;
@@ -346,7 +348,7 @@ window.PracticeHubComponent = {
         <div class="card material-card mat-item-card" style="cursor:pointer;" onclick="window.PracticeApp.openPrepModal('${safeId}')" data-title="${(mat.title || '').toLowerCase()}">
           <div class="mat-card-header">
             <div style="display:flex; gap:6px; align-items:center;">
-              <span class="badge-pill ${moduleBadgeClass}">
+              <span class="badge-pill mat-module-badge ${moduleBadgeClass}">
                 ${displayModule}
               </span>
             </div>
@@ -363,7 +365,7 @@ window.PracticeHubComponent = {
 
           <div class="mat-card-footer">
             <span class="badge-pill diff-badge ${diffBadgeClass}">
-              ${diffStr}
+              ${diffText}
             </span>
             ${actionBtnHtml}
           </div>
