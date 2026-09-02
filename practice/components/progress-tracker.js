@@ -12,9 +12,6 @@ window.ProgressTrackerComponent = {
     const streak = appState ? appState.streakDays || 0 : 0;
     const stats = appState ? appState.stats || { Lesen: 0, Hören: 0, Grammatik: 0, Schreiben: 0, Sprechen: 0, totalCompleted: 0 } : { Lesen: 0, Hören: 0, Grammatik: 0, Schreiben: 0, Sprechen: 0, totalCompleted: 0 };
 
-    // Live async data fetch tied to real loader
-    this._initPromise = this.initProgressData(appState);
-
     return `
       <div class="view-fade-in" id="progress-root">
         <div class="page-header">

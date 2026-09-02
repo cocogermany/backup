@@ -29,9 +29,6 @@ window.DashboardComponent = {
 
     const isPaid = this.isPaidMembership(userProfile.plan);
 
-    // Live async Supabase sync tied to real loader
-    this._initPromise = this.initDashboardData(appState);
-
     return `
       <div class="view-fade-in" id="dashboard-root">
         <!-- Hero Banner Grid -->

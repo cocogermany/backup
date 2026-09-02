@@ -730,37 +730,40 @@
         case "#dashboard":
           if (titleEl) titleEl.textContent = "Dashboard";
           viewport.innerHTML = window.DashboardComponent.render(AppState);
-          initPromise = window.DashboardComponent._initPromise || (window.DashboardComponent.initDashboardData ? window.DashboardComponent.initDashboardData(AppState) : null);
+          initPromise = window.DashboardComponent._initPromise = window.DashboardComponent.initDashboardData(AppState);
           break;
 
         case "#mock-exams":
           if (titleEl) titleEl.textContent = "Mock Exams";
           viewport.innerHTML = window.MockExamsComponent.render(AppState);
-          initPromise = window.MockExamsComponent._initPromise || (window.MockExamsComponent.initMockData ? window.MockExamsComponent.initMockData(AppState) : null);
+          initPromise = window.MockExamsComponent._initPromise = window.MockExamsComponent.initMockData(AppState);
           break;
 
         case "#practice":
           if (titleEl) titleEl.textContent = "Practice";
           viewport.innerHTML = window.PracticeHubComponent.render(AppState, searchParams);
-          initPromise = window.PracticeHubComponent._initPromise || (window.PracticeHubComponent.initHubData ? window.PracticeHubComponent.initHubData(AppState) : null);
+          initPromise = window.PracticeHubComponent._initPromise = window.PracticeHubComponent.initHubData(AppState);
           break;
 
         case "#player":
           if (titleEl) titleEl.textContent = "Interactive Player";
           viewport.innerHTML = window.InteractivePlayerComponent.render(AppState, searchParams);
-          initPromise = window.InteractivePlayerComponent._initPromise;
+          initPromise = window.InteractivePlayerComponent._initPromise = window.InteractivePlayerComponent.initPlayerMaterial(
+            searchParams ? searchParams.get("id") : null,
+            AppState
+          );
           break;
 
         case "#progress":
           if (titleEl) titleEl.textContent = "Learning Progress";
           viewport.innerHTML = window.ProgressTrackerComponent.render(AppState);
-          initPromise = window.ProgressTrackerComponent._initPromise || (window.ProgressTrackerComponent.initProgressData ? window.ProgressTrackerComponent.initProgressData(AppState) : null);
+          initPromise = window.ProgressTrackerComponent._initPromise = window.ProgressTrackerComponent.initProgressData(AppState);
           break;
 
         default:
           if (titleEl) titleEl.textContent = "Dashboard";
           viewport.innerHTML = window.DashboardComponent.render(AppState);
-          initPromise = window.DashboardComponent._initPromise || (window.DashboardComponent.initDashboardData ? window.DashboardComponent.initDashboardData(AppState) : null);
+          initPromise = window.DashboardComponent._initPromise = window.DashboardComponent.initDashboardData(AppState);
           break;
       }
 

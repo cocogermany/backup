@@ -59,9 +59,6 @@ window.PracticeHubComponent = {
     this.currentQuery.activeTeil = activeTeil;
     this.currentQuery.page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
-    // Live async initialization tied to real loader
-    this._initPromise = this.initHubData(appState);
-
     return `
       <div class="view-fade-in" id="practice-hub-root">
         <!-- Filter Bar & Search -->

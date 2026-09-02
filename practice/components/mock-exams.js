@@ -196,9 +196,6 @@ window.MockExamsComponent = {
     const proModulesCount = examInfo.modules.filter(m => m.status === "pro").length;
     const modulesSummaryText = `${availableModulesCount} Available · ${proModulesCount} PRO`;
 
-    // Live async fetch of completed mock attempts tied to real loader
-    this._initPromise = this.initMockData(appState);
-
     return `
       <div class="view-fade-in mock-exam-page" id="mock-exams-root">
         <!-- Page Header -->

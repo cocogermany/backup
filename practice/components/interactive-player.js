@@ -212,9 +212,6 @@ window.InteractivePlayerComponent = {
     // Attach global click-outside and keydown handlers
     this.setupGlobalListeners();
 
-    // Live async material fetch tied to real loader
-    this._initPromise = this.initPlayerMaterial(materialId, appState, renderRequestId);
-
     const isTimerHidden = settings.countdown === false;
     const isStyleOn = this.styleMode === "on";
 
