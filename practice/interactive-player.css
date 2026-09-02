@@ -486,69 +486,116 @@ body.exam-mode .app-viewport {
 
 /* --- STYLE ON: Coco Germany Warm Premium Experience --- */
 .style-on {
-  --exam-paper-bg: #faf7f4;
-  --exam-ink-color: #1a1614;
+  --exam-paper-bg: #faf7f2;
+  --exam-ink-color: #1c1917;
+  --exam-ink-muted: #78716c;
+  --exam-border-color: #e7e2d9;
   --exam-accent-color: #6f4e37;
+  --exam-accent-dark: #4f3425;
+  --exam-accent-light: #faf4ef;
 }
 
 .style-on .exam-cbt-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border-bottom-color: rgba(111, 78, 55, 0.15);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(111, 78, 55, 0.12);
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.03);
+}
+
+.style-on .exam-fixed-progress-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--exam-border-color);
 }
 
 .style-on .exam-style-toggle-btn {
-  background: #fdf5ee;
-  border-color: #d97706;
+  background: linear-gradient(135deg, #fdf5ee 0%, #fae8d7 100%);
+  border: 1px solid #e7dbcf;
   color: #92400e;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.12);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.style-on .exam-style-toggle-btn:hover {
+  background: linear-gradient(135deg, #fae8d7 0%, #f6d8be 100%);
+  border-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(217, 119, 6, 0.18);
 }
 
 .style-on .exam-cbt-timer {
   background: #faf4ef;
   border: 1px solid #e7dbcf;
   border-radius: 20px;
-  color: #4a3324;
+  color: #4f3425;
+  box-shadow: 0 1px 3px rgba(111, 78, 55, 0.04);
 }
 
 .style-on .exam-cbt-btn {
   border-radius: 8px;
   border-color: rgba(111, 78, 55, 0.2);
+  color: #574d46;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .style-on .exam-cbt-btn:hover {
-  background: #faf5f0;
+  background: #faf4ef;
   border-color: var(--exam-accent-color);
+  color: var(--exam-ink-color);
+  transform: translateY(-1px);
 }
 
 .style-on .exam-progress-pill {
-  border-radius: 6px;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+  border: 1.5px solid #e7e2d9;
+  background: #ffffff;
+  color: #78716c;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.style-on .exam-progress-pill:hover {
+  border-color: #6f4e37;
+  color: #6f4e37;
+  background: #faf4ef;
+  transform: translateY(-1px);
 }
 
 .style-on .exam-progress-pill.answered {
   background: #6f4e37;
   border-color: #6f4e37;
   color: #ffffff;
+  box-shadow: 0 2px 6px rgba(111, 78, 55, 0.25);
+}
+
+.style-on .exam-progress-pill.active {
+  outline: 2px solid #6f4e37;
+  outline-offset: 2px;
 }
 
 .style-on .exam-radio-item {
-  border-radius: 8px;
-  border-color: #e2dcd5;
+  border-radius: 10px;
+  border: 1.5px solid #e7e2d9;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.03);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .style-on .exam-radio-item:hover {
-  background: #fdfbf9;
+  background: #fdfbf8;
   border-color: #bfaea2;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(111, 78, 55, 0.07);
 }
 
 .style-on .exam-radio-item.selected {
   border-color: #6f4e37;
   background: #faf4ef;
-  box-shadow: 0 1px 3px rgba(111, 78, 55, 0.08);
+  box-shadow: 0 0 0 1px #6f4e37, 0 3px 10px rgba(111, 78, 55, 0.1);
 }
 
 .style-on .exam-radio-item.selected .exam-radio-circle {
   border-color: #6f4e37;
+  background: #ffffff;
 }
 
 .style-on .exam-radio-item.selected .exam-radio-circle::after {
@@ -560,16 +607,26 @@ body.exam-mode .app-viewport {
 }
 
 .style-on .exam-radio-item.selected .exam-radio-label {
-  color: #4a3324;
+  color: #1c1917;
+  font-weight: 600;
 }
 
 .style-on .exam-primary-submit-btn {
-  background: #6f4e37;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #6f4e37 0%, #593e2b 100%);
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(111, 78, 55, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .style-on .exam-primary-submit-btn:hover {
-  background: #593e2b;
+  background: linear-gradient(135deg, #593e2b 0%, #463020 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(111, 78, 55, 0.32);
+}
+
+.style-on .exam-primary-submit-btn:active {
+  transform: translateY(0);
 }
 
 /* --- STYLE OFF: Utilitarian Exam UI --- */

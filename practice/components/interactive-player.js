@@ -385,6 +385,70 @@ window.InteractivePlayerComponent = {
     window.addEventListener("hashchange", this._routeHandler);
   },
 
+  playClickSound: function (type = "select") {
+    if (this.styleMode !== "on") return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!this._audioCtx) {
+        this._audioCtx = new AudioCtx();
+      }
+      if (this._audioCtx.state === "suspended") {
+        this._audioCtx.resume();
+      }
+
+      const ctx = this._audioCtx;
+      const now = ctx.currentTime;
+
+      if (type === "submit") {
+        // Soft affirmative confirmation chime for submit
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = "sine";
+        osc2.type = "sine";
+        osc1.frequency.setValueAtTime(523.25, now);
+        osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.08);
+        osc2.frequency.setValueAtTime(783.99, now);
+        osc2.frequency.exponentialRampToValueAtTime(1046.5, now + 0.12);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.12, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.18);
+        osc2.stop(now + 0.18);
+      } else {
+        // Small crisp tactile click for option selection
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.035);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.14, now + 0.006);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.035);
+      }
+    } catch (e) {
+      // Ignore audio synthesis errors gracefully
+    }
+  },
+
   toggleStyleMode: function () {
     this.styleMode = this.styleMode === "on" ? "off" : "on";
     try {
@@ -401,6 +465,10 @@ window.InteractivePlayerComponent = {
 
     if (toggleBtn) {
       toggleBtn.innerHTML = `<span>${this.styleMode === "on" ? '✨ Style ON' : 'Style OFF'}</span>`;
+    }
+
+    if (this.styleMode === "on") {
+      this.playClickSound("select");
     }
   },
 
@@ -1024,6 +1092,7 @@ window.InteractivePlayerComponent = {
     if (this.isSubmitted && this.isReviewMode) return;
 
     this.userAnswers[qId] = optionValue;
+    this.playClickSound("select");
 
     const optionItem = element.closest(".exam-radio-item");
     const block = optionItem?.closest(".exam-q-block");
@@ -1045,6 +1114,7 @@ window.InteractivePlayerComponent = {
     if (this.isSubmitted && this.isReviewMode) return;
 
     this.userAnswers[qId] = optionValue;
+    this.playClickSound("select");
 
     // Toggle selected class on buttons within the same question block
     const block = btnEl ? btnEl.closest(".exam-q-block") : null;
@@ -1077,6 +1147,7 @@ window.InteractivePlayerComponent = {
   },
 
   submitAnswers: async function (materialId, btnEl) {
+    this.playClickSound("submit");
     if (btnEl) {
       btnEl.disabled = true;
       btnEl.innerHTML = `<span class="btn-spinner"></span> Submitting...`;
@@ -1252,6 +1323,7 @@ window.InteractivePlayerComponent = {
   },
 
   submitWriting: async function (btnEl) {
+    this.playClickSound("submit");
     if (btnEl) {
       btnEl.disabled = true;
       btnEl.innerHTML = `<span class="btn-spinner"></span> Evaluating...`;
@@ -1288,6 +1360,7 @@ window.InteractivePlayerComponent = {
   },
 
   finishSpeaking: async function () {
+    this.playClickSound("submit");
     const material = this.currentMaterial || { id: "speaking-1", module: "Sprechen", level: "A1", exam: "goethe" };
     this.stopTimer();
     this.timerStarted = false;
