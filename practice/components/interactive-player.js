@@ -642,7 +642,7 @@ window.InteractivePlayerComponent = {
         if (supabase) {
           const { data: dbMat } = await supabase
             .from("materials")
-            .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
+            .select("id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active")
             .eq("id", materialId)
             .eq("active", true)
             .maybeSingle();

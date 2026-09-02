@@ -240,10 +240,10 @@ window.PracticeHubComponent = {
     const supabase = await window.SupabaseService.getSupabaseClient();
     if (!supabase) throw new Error("Supabase client unavailable");
 
-    // Scope columns strictly to current materials table schema: id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active
+    // Scope columns strictly to current materials table schema: id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active
     let query = supabase
       .from("materials")
-      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
+      .select("id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active")
       .eq("active", true);
 
     if (this.currentQuery.level) {

@@ -68,7 +68,7 @@ async function fetchMaterialsSupabase(options = {}) {
   try {
     let query = supabase
       .from("materials")
-      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
+      .select("id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active")
       .order("material_number", { ascending: true });
 
     if (options.activeOnly !== false) {
@@ -100,7 +100,7 @@ async function fetchMaterialByIdSupabase(id) {
   try {
     const { data, error } = await supabase
       .from("materials")
-      .select("id, title, description, exam, level, module, material_number, content_path, difficulty, duration_minutes, active")
+      .select("id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active")
       .eq("id", id)
       .maybeSingle();
 
@@ -130,6 +130,7 @@ async function saveMaterialMetadataSupabase(material, idToken) {
     exam: String(material.exam || "goethe").trim(),
     level: String(material.level || "A1").trim(),
     module: String(material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen")).trim(),
+    teil: material.teil !== undefined && material.teil !== null && String(material.teil).trim() !== "" ? String(material.teil).trim() : null,
     material_number: parseInt(material.materialNumber || material.material_number || "1", 10),
     content_path: String(material.contentPath || material.content_path || `${material.level}/${material.id}.json`).trim(),
     difficulty: String(material.difficulty || "Medium").trim(),

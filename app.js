@@ -669,6 +669,7 @@ async function loadExamMaterials() {
         exam: item.exam,
         level: item.level,
         module: item.module === "Grammar" ? "Grammatik" : item.module,
+        teil: item.teil || "",
         materialNumber: item.material_number || item.materialNumber || 1,
         title: item.title,
         description: item.description || "",
@@ -2729,6 +2730,7 @@ async function saveExamMaterial(event) {
     const level = String(formData.get("level") || "A1");
     const rawModule = String(formData.get("module") || "Lesen");
     const moduleName = rawModule === "Grammar" ? "Grammatik" : rawModule;
+    const teil = String(formData.get("teil") || "").trim();
     const materialNumber = parseInt(formData.get("materialNumber") || "1", 10);
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
@@ -2756,6 +2758,7 @@ async function saveExamMaterial(event) {
       exam,
       level,
       module: moduleName,
+      teil: teil || null,
       material_number: materialNumber,
       content_path: contentPath,
       difficulty,
@@ -2802,6 +2805,9 @@ function fillExamMaterialForm(id) {
   form.elements.exam.value = item.exam || "goethe";
   form.elements.level.value = item.level || "A1";
   form.elements.module.value = item.module === "Grammar" ? "Grammatik" : (item.module || "Lesen");
+  if (form.elements.teil) {
+    form.elements.teil.value = item.teil || "";
+  }
   form.elements.materialNumber.value = item.materialNumber || 1;
   form.elements.title.value = item.title || "";
   form.elements.description.value = item.description || "";
@@ -2879,6 +2885,18 @@ function renderAdminExamMaterials() {
               </label>
 
               <label class="field">
+                Teil (Optional)
+                <select name="teil">
+                  <option value="">None / General</option>
+                  <option value="Teil 1">Teil 1</option>
+                  <option value="Teil 2">Teil 2</option>
+                  <option value="Teil 3">Teil 3</option>
+                  <option value="Teil 4">Teil 4</option>
+                  <option value="Teil 5">Teil 5</option>
+                </select>
+              </label>
+
+              <label class="field">
                 Material Number
                 <input type="number" name="materialNumber" min="1" max="999" value="1" required />
               </label>
@@ -2947,6 +2965,7 @@ function renderAdminExamMaterials() {
                         <th>Title</th>
                         <th>Exam / Level</th>
                         <th>Module</th>
+                        <th>Teil</th>
                         <th>Duration</th>
                         <th>Content Path</th>
                         <th>Active</th>
@@ -2963,6 +2982,7 @@ function renderAdminExamMaterials() {
                               <td>${item.title}</td>
                               <td>${item.exam} ${item.level}</td>
                               <td><span class="badge">${item.module}</span></td>
+                              <td><span class="muted">${item.teil || "--"}</span></td>
                               <td>${item.durationMinutes ? `${item.durationMinutes} mins` : "--"}</td>
                               <td><code class="cdn-link">${item.contentPath || `${item.level}/${item.id}.json`}</code></td>
                               <td><span class="badge ${item.active ? "badge-gold" : ""}">${item.active ? "Yes" : "No"}</span></td>
