@@ -907,6 +907,14 @@ body.exam-mode .app-viewport {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Hide Lesen / Fragen Mobile Sub-header Bar for Hören */
+.is-hoeren .exam-mobile-tabs,
+#player-main-container[data-module="Hören"] .exam-mobile-tabs,
+#player-main-container:has(.player-view-hoeren) .exam-mobile-tabs,
+#player-main-container:has(.exam-hoeren-workspace) .exam-mobile-tabs {
+  display: none !important;
+}
+
 /* Dedicated Listening Audio Card */
 .hoeren-audio-card,
 .exam-audio-card {
@@ -1641,6 +1649,13 @@ body.exam-mode .app-viewport {
     display: flex;
   }
 
+  .is-hoeren .exam-mobile-tabs,
+  #player-main-container[data-module="Hören"] .exam-mobile-tabs,
+  .is-grammatik .exam-mobile-tabs,
+  #player-main-container[data-module="Grammatik"] .exam-mobile-tabs {
+    display: none !important;
+  }
+
   .exam-cbt-workspace,
   .player-view-lesen {
     margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
@@ -1650,17 +1665,34 @@ body.exam-mode .app-viewport {
 
   .exam-single-panel-workspace,
   .exam-hoeren-workspace,
+  .player-view-hoeren,
   .exam-grammatik-workspace,
+  .player-view-grammatik,
   .exam-writing-workspace,
   .exam-speaking-workspace,
   .exam-results-screen {
-    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
-    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h));
+    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h));
+    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h));
     padding: 20px 16px 80px;
   }
 
   .exam-review-top-banner {
+    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h));
+  }
+
+  .exam-review-top-banner + .exam-cbt-workspace,
+  .exam-review-top-banner + .player-view-lesen {
     margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
+    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h) - 37px);
+  }
+
+  .exam-review-top-banner + .exam-single-panel-workspace,
+  .exam-review-top-banner + .exam-hoeren-workspace,
+  .exam-review-top-banner + .player-view-hoeren,
+  .exam-review-top-banner + .exam-grammatik-workspace,
+  .exam-review-top-banner + .player-view-grammatik {
+    margin-top: 0;
+    height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - 37px);
   }
 
   /* Single-panel view toggled by mobile tabs for Lesen */

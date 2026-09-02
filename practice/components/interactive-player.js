@@ -754,6 +754,11 @@ window.InteractivePlayerComponent = {
       layoutPopover.hidden = true;
     }
 
+    const mobileTabs = document.getElementById("exam-mobile-tabs");
+    if (mobileTabs) {
+      mobileTabs.style.display = (isHoeren || isGrammatik) ? "none" : "";
+    }
+
     contentArea.innerHTML = this.renderMaterialWorkspace(material);
     this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
@@ -1262,6 +1267,11 @@ window.InteractivePlayerComponent = {
     const layoutPopover = document.getElementById("exam-layout-popover");
     if (layoutPopover && isGrammatik) {
       layoutPopover.hidden = true;
+    }
+
+    const mobileTabs = document.getElementById("exam-mobile-tabs");
+    if (mobileTabs) {
+      mobileTabs.style.display = (isHoeren || isGrammatik) ? "none" : "";
     }
 
     // Render split/single interface
