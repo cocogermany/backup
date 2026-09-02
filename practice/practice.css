@@ -1695,13 +1695,14 @@ a {
   flex-shrink: 0;
 }
 
-.teil-selector-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238c827a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+.teil-selector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--soft);
   border: 1px solid rgba(28, 25, 23, 0.08);
   border-radius: 9999px;
-  padding: 5px 26px 5px 12px;
+  padding: 5px 12px;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--muted);
@@ -1713,17 +1714,115 @@ a {
   transition: all var(--transition-fast);
 }
 
-.teil-selector-select:hover {
+.teil-selector-btn:hover {
   background-color: #ede8e1;
   border-color: rgba(28, 25, 23, 0.16);
   color: var(--ink);
 }
 
-.teil-selector-select:focus {
+.teil-selector-btn.active,
+.teil-selector-btn:focus-visible {
   background-color: var(--white);
   border-color: var(--brown);
   color: var(--ink);
   box-shadow: 0 0 0 2px rgba(111, 78, 55, 0.14);
+}
+
+.teil-btn-chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+  transition: transform var(--transition-fast);
+}
+
+.teil-selector-btn.active .teil-btn-chevron {
+  transform: rotate(180deg);
+  color: var(--ink);
+}
+
+.teil-selector-select-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+/* Floating Card / Popover for Teil selector */
+.teil-popover-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 14px 32px rgba(37, 42, 106, 0.12), 0 4px 12px rgba(28, 25, 23, 0.05);
+  padding: 12px 8px;
+  z-index: 120;
+  animation: topbarPopoverFadeIn 180ms ease-out;
+}
+
+.teil-popover-card[hidden] {
+  display: none !important;
+}
+
+.teil-popover-header {
+  padding: 0 8px 8px 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.teil-popover-subtitle {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+  display: block;
+}
+
+.teil-popover-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teil-opt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.teil-opt-item:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.teil-opt-item.active {
+  background: linear-gradient(90deg, rgba(99, 89, 220, 0.09), rgba(67, 57, 155, 0.04));
+  color: var(--brown-dark, #543f32);
+  font-weight: 600;
+}
+
+.teil-opt-check {
+  width: 14px;
+  height: 14px;
+  color: var(--brown-dark, #543f32);
+  stroke-width: 2.5;
+  flex-shrink: 0;
 }
 
 .mat-teil-badge {

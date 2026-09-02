@@ -46,6 +46,7 @@ window.PracticeHubComponent = {
     this._lastAppState = appState || this._lastAppState;
     const activeModule = queryParams ? (queryParams.get("module") || "All") : "All";
     const activeTeil = queryParams ? (queryParams.get("teil") || "All") : (this.currentQuery.activeTeil || "All");
+    const displayTeilLabel = (!activeTeil || activeTeil === "All" || activeTeil === "Default") ? "Teil - All" : activeTeil;
     const pageParam = queryParams ? parseInt(queryParams.get("page") || "1", 10) : 1;
     const level = appState ? (appState.currentLevel || "A1") : "A1";
     const format = appState ? (appState.currentFormat || "goethe") : "goethe";
@@ -93,14 +94,40 @@ window.PracticeHubComponent = {
               <i data-lucide="search"></i>
               <input type="text" id="practice-search-input" placeholder="Search topic or keyword..." value="${this.currentQuery.searchQuery}" oninput="window.PracticeHubComponent.handleSearchInput(this.value)">
             </div>
-            <div class="teil-selector-wrap">
-              <select id="practice-teil-select" class="teil-selector-select" onchange="window.PracticeHubComponent.setTeilFilter(this.value)" aria-label="Filter by Teil">
+            <div class="teil-selector-wrap" id="practice-teil-wrap">
+              <button type="button" class="teil-selector-btn" id="practice-teil-btn" onclick="window.PracticeHubComponent.toggleTeilPopover(event)" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by Teil">
+                <span class="teil-btn-label">${displayTeilLabel}</span>
+                <i data-lucide="chevron-down" class="teil-btn-chevron"></i>
+              </button>
+              <select id="practice-teil-select" class="teil-selector-select-hidden" onchange="window.PracticeHubComponent.setTeilFilter(this.value)" aria-hidden="true" tabindex="-1">
                 <option value="All" ${activeTeil === "All" || activeTeil === "Default" ? "selected" : ""}>Teil - All</option>
                 <option value="Teil 1" ${activeTeil === "Teil 1" ? "selected" : ""}>Teil 1</option>
                 <option value="Teil 2" ${activeTeil === "Teil 2" ? "selected" : ""}>Teil 2</option>
                 <option value="Teil 3" ${activeTeil === "Teil 3" ? "selected" : ""}>Teil 3</option>
                 <option value="Teil 4" ${activeTeil === "Teil 4" ? "selected" : ""}>Teil 4</option>
               </select>
+              <div class="teil-popover-card" id="practice-teil-popover" hidden>
+                <div class="teil-popover-header">
+                  <span class="teil-popover-subtitle">EXAM SECTION / TEIL</span>
+                </div>
+                <div class="teil-popover-options" role="listbox">
+                  ${[
+                    { val: "All", label: "Teil - All" },
+                    { val: "Teil 1", label: "Teil 1" },
+                    { val: "Teil 2", label: "Teil 2" },
+                    { val: "Teil 3", label: "Teil 3" },
+                    { val: "Teil 4", label: "Teil 4" },
+                  ].map(opt => {
+                    const isSelected = (activeTeil === opt.val) || (opt.val === "All" && (activeTeil === "All" || activeTeil === "Default"));
+                    return `
+                      <button type="button" class="teil-opt-item ${isSelected ? 'active' : ''}" data-teil-val="${opt.val}" role="option" aria-selected="${isSelected}" onclick="window.PracticeHubComponent.selectTeilOption('${opt.val}', event)">
+                        <span class="teil-opt-label">${opt.label}</span>
+                        ${isSelected ? '<i data-lucide="check" class="teil-opt-check"></i>' : ''}
+                      </button>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -484,12 +511,93 @@ window.PracticeHubComponent = {
     this.executeFetchAndRender();
   },
 
+  toggleTeilPopover: function (event) {
+    if (event) event.stopPropagation();
+    const popover = document.getElementById("practice-teil-popover");
+    const btn = document.getElementById("practice-teil-btn");
+    if (!popover) return;
+    const isHidden = popover.hasAttribute("hidden");
+    if (isHidden) {
+      popover.removeAttribute("hidden");
+      btn?.classList.add("active");
+      btn?.setAttribute("aria-expanded", "true");
+      if (window.lucide) window.lucide.createIcons();
+      this.bindTeilOutsideClick();
+    } else {
+      this.closeTeilPopover();
+    }
+  },
+
+  closeTeilPopover: function () {
+    const popover = document.getElementById("practice-teil-popover");
+    const btn = document.getElementById("practice-teil-btn");
+    if (popover && !popover.hasAttribute("hidden")) {
+      popover.setAttribute("hidden", "");
+      btn?.classList.remove("active");
+      btn?.setAttribute("aria-expanded", "false");
+    }
+    this.unbindTeilOutsideClick();
+  },
+
+  bindTeilOutsideClick: function () {
+    if (this._onTeilOutsideClick) return;
+    this._onTeilOutsideClick = (e) => {
+      const wrap = document.getElementById("practice-teil-wrap");
+      if (wrap && !wrap.contains(e.target)) {
+        this.closeTeilPopover();
+      }
+    };
+    document.addEventListener("click", this._onTeilOutsideClick);
+  },
+
+  unbindTeilOutsideClick: function () {
+    if (this._onTeilOutsideClick) {
+      document.removeEventListener("click", this._onTeilOutsideClick);
+      this._onTeilOutsideClick = null;
+    }
+  },
+
+  selectTeilOption: function (val, event) {
+    if (event) event.stopPropagation();
+    this.closeTeilPopover();
+    this.setTeilFilter(val);
+  },
+
   setTeilFilter: function (teilValue) {
     this.currentQuery.activeTeil = teilValue || "All";
     this.currentQuery.page = 1;
 
+    // Update button text and hidden select
+    const btnLabel = document.querySelector("#practice-teil-btn .teil-btn-label");
+    const displayLabel = (!this.currentQuery.activeTeil || this.currentQuery.activeTeil === "All" || this.currentQuery.activeTeil === "Default")
+      ? "Teil - All"
+      : this.currentQuery.activeTeil;
+    if (btnLabel) btnLabel.textContent = displayLabel;
+
     const selectEl = document.getElementById("practice-teil-select");
     if (selectEl) selectEl.value = this.currentQuery.activeTeil;
+
+    // Update active class in popover items
+    const popover = document.getElementById("practice-teil-popover");
+    if (popover) {
+      popover.querySelectorAll(".teil-opt-item").forEach(item => {
+        const itemVal = item.getAttribute("data-teil-val");
+        const isMatch = (itemVal === this.currentQuery.activeTeil) || (itemVal === "All" && (this.currentQuery.activeTeil === "All" || this.currentQuery.activeTeil === "Default"));
+        if (isMatch) {
+          item.classList.add("active");
+          item.setAttribute("aria-selected", "true");
+          if (!item.querySelector(".teil-opt-check")) {
+            item.insertAdjacentHTML("beforeend", '<i data-lucide="check" class="teil-opt-check"></i>');
+          }
+        } else {
+          item.classList.remove("active");
+          item.setAttribute("aria-selected", "false");
+          const check = item.querySelector(".teil-opt-check");
+          if (check) check.remove();
+        }
+      });
+      if (window.lucide) window.lucide.createIcons();
+    }
 
     const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
     if (this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
