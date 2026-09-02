@@ -59,10 +59,8 @@ window.PracticeHubComponent = {
     this.currentQuery.activeTeil = activeTeil;
     this.currentQuery.page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
-    // Schedule async initialization after shell renders
-    setTimeout(() => {
-      this.initHubData(appState);
-    }, 0);
+    // Live async initialization tied to real loader
+    this._initPromise = this.initHubData(appState);
 
     return `
       <div class="view-fade-in" id="practice-hub-root">
@@ -163,7 +161,7 @@ window.PracticeHubComponent = {
     this.currentQuery.membership = membership;
 
     // executeFetchAndRender refreshes completed IDs before querying materials.
-    await this.executeFetchAndRender(appState);
+    return await this.executeFetchAndRender(appState);
   },
 
   fetchCompletedMaterialIds: async function (appState) {

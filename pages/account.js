@@ -129,6 +129,14 @@ async function saveProfilePreferences(event) {
       }
     }
 
+    if (window.CocoStateSync && typeof window.CocoStateSync.notifyTargetChanged === "function") {
+      window.CocoStateSync.notifyTargetChanged(level, format);
+    } else {
+      localStorage.setItem("coco_practice_level", level);
+      localStorage.setItem("coco_practice_format", format.toLowerCase());
+      localStorage.setItem("coco_last_target_update", Date.now().toString());
+    }
+
     message.className = "success";
     message.textContent = "Preferences saved.";
     if (form.id === "profile-setup-form") {

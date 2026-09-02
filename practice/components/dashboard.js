@@ -29,10 +29,8 @@ window.DashboardComponent = {
 
     const isPaid = this.isPaidMembership(userProfile.plan);
 
-    // Schedule live Supabase sync after shell renders
-    setTimeout(() => {
-      this.initDashboardData(appState);
-    }, 0);
+    // Live async Supabase sync tied to real loader
+    this._initPromise = this.initDashboardData(appState);
 
     return `
       <div class="view-fade-in" id="dashboard-root">

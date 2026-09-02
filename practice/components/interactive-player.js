@@ -212,10 +212,8 @@ window.InteractivePlayerComponent = {
     // Attach global click-outside and keydown handlers
     this.setupGlobalListeners();
 
-    // Schedule async material fetch from Supabase (or reuse preloaded material)
-    setTimeout(() => {
-      this.initPlayerMaterial(materialId, appState, renderRequestId);
-    }, 0);
+    // Live async material fetch tied to real loader
+    this._initPromise = this.initPlayerMaterial(materialId, appState, renderRequestId);
 
     const isTimerHidden = settings.countdown === false;
     const isStyleOn = this.styleMode === "on";
@@ -1460,6 +1458,9 @@ window.InteractivePlayerComponent = {
               window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
             }
           } catch (e) {}
+          if (window.CocoStateSync) {
+            window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: dbModule, scorePercent });
+          }
           return { success: true, alreadyCompleted: true };
         }
 
@@ -1474,6 +1475,10 @@ window.InteractivePlayerComponent = {
           window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
         }
       } catch (e) {}
+
+      if (window.CocoStateSync) {
+        window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: dbModule, scorePercent });
+      }
 
       return { success: true, alreadyCompleted: false };
     } catch (err) {

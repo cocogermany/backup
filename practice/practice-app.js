@@ -9,6 +9,137 @@
 (function () {
   "use strict";
 
+  // Shared Real AppLoader tied to actual async operations
+  window.AppLoader = window.AppLoader || {
+    activeCount: 0,
+    _timer: null,
+
+    getBar: function () {
+      return document.getElementById("top-progress-bar");
+    },
+
+    start: function () {
+      this.activeCount++;
+      const bar = this.getBar();
+      if (!bar) return;
+
+      if (this.activeCount === 1) {
+        if (this._timer) clearInterval(this._timer);
+        bar.style.transition = "width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease";
+        bar.style.opacity = "1";
+        bar.style.width = "30%";
+
+        let current = 30;
+        this._timer = setInterval(() => {
+          if (current < 85) {
+            current += (85 - current) * 0.18;
+            if (bar) bar.style.width = `${Math.min(85, Math.round(current))}%`;
+          }
+        }, 120);
+      }
+    },
+
+    finish: function () {
+      this.activeCount = Math.max(0, this.activeCount - 1);
+      if (this.activeCount === 0) {
+        if (this._timer) {
+          clearInterval(this._timer);
+          this._timer = null;
+        }
+        const bar = this.getBar();
+        if (bar) {
+          bar.style.transition = "width 0.15s ease-out, opacity 0.25s ease";
+          bar.style.width = "100%";
+          setTimeout(() => {
+            if (this.activeCount === 0) {
+              bar.style.opacity = "0";
+              setTimeout(() => {
+                if (this.activeCount === 0) {
+                  bar.style.width = "0%";
+                }
+              }, 250);
+            }
+          }, 120);
+        }
+      }
+    },
+
+    track: async function (promiseOrFn) {
+      this.start();
+      try {
+        const promise = typeof promiseOrFn === "function" ? promiseOrFn() : promiseOrFn;
+        return await promise;
+      } finally {
+        this.finish();
+      }
+    }
+  };
+
+  // Shared Cross-Page State & Auto-Refresh Sync
+  window.CocoStateSync = window.CocoStateSync || {
+    getTarget: function () {
+      return {
+        level: localStorage.getItem("coco_practice_level") || "A1",
+        format: (localStorage.getItem("coco_practice_format") || "goethe").toLowerCase(),
+        lastUpdate: localStorage.getItem("coco_last_target_update") || "0",
+      };
+    },
+
+    notifyTargetChanged: function (level, format) {
+      const ts = Date.now().toString();
+      const lvl = (level || "A1").toUpperCase().trim();
+      const fmt = (format || "goethe").toLowerCase().trim();
+
+      localStorage.setItem("coco_last_target_update", ts);
+      localStorage.setItem("coco_practice_level", lvl);
+      localStorage.setItem("coco_practice_format", fmt);
+
+      try {
+        localStorage.removeItem("coco_practice_hub_materials_cache");
+        localStorage.removeItem("coco_dashboard_stats_cache");
+        localStorage.removeItem("coco_mock_attempts_cache");
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent("coco:target-changed", {
+        detail: { level: lvl, format: fmt, timestamp: ts }
+      }));
+    },
+
+    notifyAttemptCompleted: function (details = {}) {
+      const ts = Date.now().toString();
+      localStorage.setItem("coco_last_attempt_update", ts);
+
+      try {
+        localStorage.removeItem("coco_practice_hub_materials_cache");
+        localStorage.removeItem("coco_dashboard_stats_cache");
+        localStorage.removeItem("coco_mock_attempts_cache");
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent("coco:attempt-completed", {
+        detail: { ...details, timestamp: ts }
+      }));
+    },
+
+    notifyCreditsUpdated: function (credits) {
+      const ts = Date.now().toString();
+      localStorage.setItem("coco_last_credits_update", ts);
+      window.dispatchEvent(new CustomEvent("coco:credits-updated", {
+        detail: { credits, timestamp: ts }
+      }));
+    },
+
+    notifyMaterialsChanged: function () {
+      const ts = Date.now().toString();
+      localStorage.setItem("coco_last_materials_update", ts);
+      try {
+        localStorage.removeItem("coco_practice_hub_materials_cache");
+      } catch (e) {}
+      window.dispatchEvent(new CustomEvent("coco:materials-changed", {
+        detail: { timestamp: ts }
+      }));
+    }
+  };
+
   // Application Global State
   const AppState = {
     currentLevel: localStorage.getItem("coco_practice_level") || "",
@@ -49,10 +180,67 @@
 
     async init() {
       this.bindUIEvents();
+      this.bindStateSyncEvents();
       this.updateHeaderUI();
       await this.loadUserProfile();
 
       window.addEventListener("hashchange", () => this.handleRoute());
+    }
+
+    bindStateSyncEvents() {
+      window.addEventListener("coco:target-changed", (e) => {
+        const { level, format } = e.detail || {};
+        let changed = false;
+        if (level && AppState.currentLevel !== level) {
+          AppState.currentLevel = level;
+          changed = true;
+        }
+        if (format && AppState.currentFormat !== format) {
+          AppState.currentFormat = format;
+          changed = true;
+        }
+        if (changed) {
+          this.updateHeaderUI();
+          this.refreshActiveView();
+        }
+      });
+
+      window.addEventListener("coco:attempt-completed", () => {
+        this.refreshActiveView();
+      });
+
+      window.addEventListener("coco:materials-changed", () => {
+        this.refreshActiveView();
+      });
+
+      window.addEventListener("coco:credits-updated", (e) => {
+        if (e.detail?.credits) {
+          AppState.dailyCredits = e.detail.credits;
+          this.updateHeaderUI();
+        }
+      });
+
+      window.addEventListener("storage", (e) => {
+        if (e.key === "coco_last_target_update" || e.key === "coco_practice_level" || e.key === "coco_practice_format") {
+          const target = window.CocoStateSync.getTarget();
+          if (target.level !== AppState.currentLevel || target.format !== AppState.currentFormat) {
+            AppState.currentLevel = target.level;
+            AppState.currentFormat = target.format;
+            this.updateHeaderUI();
+            this.refreshActiveView();
+          }
+        } else if (e.key === "coco_last_attempt_update" || e.key === "coco_last_materials_update") {
+          this.refreshActiveView();
+        }
+      });
+    }
+
+    refreshActiveView(options = {}) {
+      const hash = window.location.hash || "#dashboard";
+      const mainPath = hash.split("?")[0];
+      if (mainPath === "#player") return; // Keep ongoing drills uninterrupted
+
+      this.handleRoute({ isAutoRefresh: true, ...options });
     }
 
     hidePageLoader() {
@@ -365,6 +553,9 @@
 
       this.saveState();
       this.updateHeaderUI();
+      if (window.CocoStateSync) {
+        window.CocoStateSync.notifyTargetChanged(AppState.currentLevel, AppState.currentFormat);
+      }
       this.handleRoute();
 
       // Async sync to Supabase learning_users table
@@ -504,26 +695,13 @@
     }
 
     triggerTopProgressBar() {
-      const bar = document.getElementById("top-progress-bar");
-      if (!bar) return;
-
-      bar.style.opacity = "1";
-      bar.style.width = "35%";
-
-      setTimeout(() => {
-        bar.style.width = "75%";
-      }, 80);
-
-      setTimeout(() => {
-        bar.style.width = "100%";
-        setTimeout(() => {
-          bar.style.opacity = "0";
-          setTimeout(() => { bar.style.width = "0%"; }, 200);
-        }, 150);
-      }, 220);
+      if (window.AppLoader) {
+        window.AppLoader.start();
+        setTimeout(() => window.AppLoader.finish(), 250);
+      }
     }
 
-    handleRoute() {
+    handleRoute(options = {}) {
       const hash = window.location.hash || "#dashboard";
       const mainPath = hash.split("?")[0];
       const searchParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
@@ -539,71 +717,68 @@
       const titleEl = document.getElementById("topbar-title");
 
       this.updateNavLinks(mainPath, searchParams);
-      this.triggerTopProgressBar();
 
       if (!viewport) return;
 
-      if (!isExamMode) {
-        // Render Skeleton Loader for smooth feedback
-        viewport.innerHTML = `
-          <div class="view-fade-in">
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
-              <div class="skeleton-card">
-                <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-                <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-                <div class="skeleton" style="height:14px; width:75%;"></div>
-              </div>
-              <div class="skeleton-card">
-                <div class="skeleton" style="height:20px; width:60%; margin-bottom:12px;"></div>
-                <div class="skeleton" style="height:14px; width:90%; margin-bottom:8px;"></div>
-                <div class="skeleton" style="height:14px; width:75%;"></div>
-              </div>
-            </div>
-          </div>
-        `;
+      if (window.AppLoader) {
+        window.AppLoader.start();
       }
 
-      setTimeout(() => {
-        switch (mainPath) {
-          case "#dashboard":
-            if (titleEl) titleEl.textContent = "Dashboard";
-            viewport.innerHTML = window.DashboardComponent.render(AppState);
-            break;
+      let initPromise = null;
 
-          case "#mock-exams":
-            if (titleEl) titleEl.textContent = "Mock Exams";
-            viewport.innerHTML = window.MockExamsComponent.render(AppState);
-            break;
+      switch (mainPath) {
+        case "#dashboard":
+          if (titleEl) titleEl.textContent = "Dashboard";
+          viewport.innerHTML = window.DashboardComponent.render(AppState);
+          initPromise = window.DashboardComponent._initPromise || (window.DashboardComponent.initDashboardData ? window.DashboardComponent.initDashboardData(AppState) : null);
+          break;
 
-          case "#practice":
-            if (titleEl) titleEl.textContent = "Practice";
-            viewport.innerHTML = window.PracticeHubComponent.render(AppState, searchParams);
-            break;
+        case "#mock-exams":
+          if (titleEl) titleEl.textContent = "Mock Exams";
+          viewport.innerHTML = window.MockExamsComponent.render(AppState);
+          initPromise = window.MockExamsComponent._initPromise || (window.MockExamsComponent.initMockData ? window.MockExamsComponent.initMockData(AppState) : null);
+          break;
 
-          case "#player":
-            if (titleEl) titleEl.textContent = "Interactive Player";
-            viewport.innerHTML = window.InteractivePlayerComponent.render(AppState, searchParams);
-            break;
+        case "#practice":
+          if (titleEl) titleEl.textContent = "Practice";
+          viewport.innerHTML = window.PracticeHubComponent.render(AppState, searchParams);
+          initPromise = window.PracticeHubComponent._initPromise || (window.PracticeHubComponent.initHubData ? window.PracticeHubComponent.initHubData(AppState) : null);
+          break;
 
-          case "#progress":
-            if (titleEl) titleEl.textContent = "Learning Progress";
-            viewport.innerHTML = window.ProgressTrackerComponent.render(AppState);
-            break;
+        case "#player":
+          if (titleEl) titleEl.textContent = "Interactive Player";
+          viewport.innerHTML = window.InteractivePlayerComponent.render(AppState, searchParams);
+          initPromise = window.InteractivePlayerComponent._initPromise;
+          break;
 
-          default:
-            if (titleEl) titleEl.textContent = "Dashboard";
-            viewport.innerHTML = window.DashboardComponent.render(AppState);
-            break;
-        }
+        case "#progress":
+          if (titleEl) titleEl.textContent = "Learning Progress";
+          viewport.innerHTML = window.ProgressTrackerComponent.render(AppState);
+          initPromise = window.ProgressTrackerComponent._initPromise || (window.ProgressTrackerComponent.initProgressData ? window.ProgressTrackerComponent.initProgressData(AppState) : null);
+          break;
 
-        if (window.lucide) {
-          window.lucide.createIcons();
-        }
+        default:
+          if (titleEl) titleEl.textContent = "Dashboard";
+          viewport.innerHTML = window.DashboardComponent.render(AppState);
+          initPromise = window.DashboardComponent._initPromise || (window.DashboardComponent.initDashboardData ? window.DashboardComponent.initDashboardData(AppState) : null);
+          break;
+      }
 
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+
+      if (!options.isAutoRefresh) {
         window.scrollTo(0, 0);
-      }, 100);
+      }
+
+      if (initPromise && typeof initPromise.then === "function") {
+        initPromise.finally(() => {
+          if (window.AppLoader) window.AppLoader.finish();
+        });
+      } else {
+        if (window.AppLoader) window.AppLoader.finish();
+      }
     }
 
     updateNavLinks(mainPath, searchParams) {

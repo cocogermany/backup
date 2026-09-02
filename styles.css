@@ -80,6 +80,17 @@ textarea:focus-visible {
   backdrop-filter: blur(8px);
 }
 
+.top-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brown) 0%, var(--gold) 50%, var(--emerald) 100%);
+  z-index: 1000;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  pointer-events: none;
+}
+
 .nav,
 .footer,
 .section {

@@ -22,6 +22,137 @@ let homeSectionObserver = null;
 let pendingHomeSection = "";
 let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
+// Shared Real AppLoader tied to actual async operations
+window.AppLoader = window.AppLoader || {
+  activeCount: 0,
+  _timer: null,
+
+  getBar: function () {
+    return document.getElementById("top-progress-bar");
+  },
+
+  start: function () {
+    this.activeCount++;
+    const bar = this.getBar();
+    if (!bar) return;
+
+    if (this.activeCount === 1) {
+      if (this._timer) clearInterval(this._timer);
+      bar.style.transition = "width 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease";
+      bar.style.opacity = "1";
+      bar.style.width = "30%";
+
+      let current = 30;
+      this._timer = setInterval(() => {
+        if (current < 85) {
+          current += (85 - current) * 0.18;
+          if (bar) bar.style.width = `${Math.min(85, Math.round(current))}%`;
+        }
+      }, 120);
+    }
+  },
+
+  finish: function () {
+    this.activeCount = Math.max(0, this.activeCount - 1);
+    if (this.activeCount === 0) {
+      if (this._timer) {
+        clearInterval(this._timer);
+        this._timer = null;
+      }
+      const bar = this.getBar();
+      if (bar) {
+        bar.style.transition = "width 0.15s ease-out, opacity 0.25s ease";
+        bar.style.width = "100%";
+        setTimeout(() => {
+          if (this.activeCount === 0) {
+            bar.style.opacity = "0";
+            setTimeout(() => {
+              if (this.activeCount === 0) {
+                bar.style.width = "0%";
+              }
+            }, 250);
+          }
+        }, 120);
+      }
+    }
+  },
+
+  track: async function (promiseOrFn) {
+    this.start();
+    try {
+      const promise = typeof promiseOrFn === "function" ? promiseOrFn() : promiseOrFn;
+      return await promise;
+    } finally {
+      this.finish();
+    }
+  }
+};
+
+// Shared Cross-Page State & Auto-Refresh Sync
+window.CocoStateSync = window.CocoStateSync || {
+  getTarget: function () {
+    return {
+      level: localStorage.getItem("coco_practice_level") || "A1",
+      format: (localStorage.getItem("coco_practice_format") || "goethe").toLowerCase(),
+      lastUpdate: localStorage.getItem("coco_last_target_update") || "0",
+    };
+  },
+
+  notifyTargetChanged: function (level, format) {
+    const ts = Date.now().toString();
+    const lvl = (level || "A1").toUpperCase().trim();
+    const fmt = (format || "goethe").toLowerCase().trim();
+
+    localStorage.setItem("coco_last_target_update", ts);
+    localStorage.setItem("coco_practice_level", lvl);
+    localStorage.setItem("coco_practice_format", fmt);
+
+    try {
+      localStorage.removeItem("coco_practice_hub_materials_cache");
+      localStorage.removeItem("coco_dashboard_stats_cache");
+      localStorage.removeItem("coco_mock_attempts_cache");
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent("coco:target-changed", {
+      detail: { level: lvl, format: fmt, timestamp: ts }
+    }));
+  },
+
+  notifyAttemptCompleted: function (details = {}) {
+    const ts = Date.now().toString();
+    localStorage.setItem("coco_last_attempt_update", ts);
+
+    try {
+      localStorage.removeItem("coco_practice_hub_materials_cache");
+      localStorage.removeItem("coco_dashboard_stats_cache");
+      localStorage.removeItem("coco_mock_attempts_cache");
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent("coco:attempt-completed", {
+      detail: { ...details, timestamp: ts }
+    }));
+  },
+
+  notifyCreditsUpdated: function (credits) {
+    const ts = Date.now().toString();
+    localStorage.setItem("coco_last_credits_update", ts);
+    window.dispatchEvent(new CustomEvent("coco:credits-updated", {
+      detail: { credits, timestamp: ts }
+    }));
+  },
+
+  notifyMaterialsChanged: function () {
+    const ts = Date.now().toString();
+    localStorage.setItem("coco_last_materials_update", ts);
+    try {
+      localStorage.removeItem("coco_practice_hub_materials_cache");
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent("coco:materials-changed", {
+      detail: { timestamp: ts }
+    }));
+  }
+};
+
 async function getFirebaseTools() {
   if (!firebaseReady) return null;
   if (firebaseTools) return firebaseTools;
@@ -2779,6 +2910,7 @@ async function saveExamMaterial(event) {
     }
 
     await loadExamMaterials();
+    if (window.CocoStateSync) window.CocoStateSync.notifyMaterialsChanged();
 
     message.className = "success";
     message.textContent = `Successfully saved metadata for ${id} in Supabase materials table!`;
@@ -2832,6 +2964,7 @@ async function deleteExamMaterial(id) {
       throw new Error("Supabase service layer is not available.");
     }
     await loadExamMaterials();
+    if (window.CocoStateSync) window.CocoStateSync.notifyMaterialsChanged();
     renderAdminExamMaterials();
   } catch (error) {
     alert(friendlyError(error));
@@ -3272,7 +3405,7 @@ async function loadRouteData(path, parts) {
   if (path === "/admin/analytics") await loadAnalyticsEvents();
 }
 
-async function router() {
+async function executeRoute() {
   const path = location.hash.replace("#", "") || "/";
   const parts = path.split("/").filter(Boolean);
   document.body.classList.remove("account-chrome-hidden");
@@ -3337,6 +3470,46 @@ async function router() {
     requestAnimationFrame(() => scrollToHomeSection(sectionId));
   }
 }
+
+async function router() {
+  if (window.AppLoader && typeof window.AppLoader.track === "function") {
+    return await window.AppLoader.track(executeRoute);
+  }
+  return await executeRoute();
+}
+
+// Cross-page auto-refresh listeners
+window.addEventListener("coco:target-changed", (e) => {
+  const path = location.hash.replace("#", "") || "/";
+  if (path === "/account" || path === "/profile-setup") {
+    if (currentUserProfile && e.detail) {
+      if (e.detail.level) currentUserProfile.level = e.detail.level;
+      if (e.detail.format) currentUserProfile.format = e.detail.format;
+    }
+    router();
+  }
+});
+
+window.addEventListener("coco:materials-changed", () => {
+  const path = location.hash.replace("#", "") || "/";
+  if (path === "/admin/exam-materials") {
+    loadExamMaterials().then(() => renderAdminExamMaterials());
+  }
+});
+
+window.addEventListener("storage", (e) => {
+  const path = location.hash.replace("#", "") || "/";
+  if (e.key === "coco_last_target_update" && (path === "/account" || path === "/profile-setup")) {
+    const target = window.CocoStateSync.getTarget();
+    if (currentUserProfile) {
+      currentUserProfile.level = target.level;
+      currentUserProfile.format = target.format;
+    }
+    router();
+  } else if (e.key === "coco_last_materials_update" && path === "/admin/exam-materials") {
+    loadExamMaterials().then(() => renderAdminExamMaterials());
+  }
+});
 
 async function startSite() {
   const tools = await getFirebaseTools();

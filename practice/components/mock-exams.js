@@ -196,10 +196,8 @@ window.MockExamsComponent = {
     const proModulesCount = examInfo.modules.filter(m => m.status === "pro").length;
     const modulesSummaryText = `${availableModulesCount} Available · ${proModulesCount} PRO`;
 
-    // Schedule async fetch of completed mock attempts from Supabase
-    setTimeout(() => {
-      this.initMockData(appState);
-    }, 0);
+    // Live async fetch of completed mock attempts tied to real loader
+    this._initPromise = this.initMockData(appState);
 
     return `
       <div class="view-fade-in mock-exam-page" id="mock-exams-root">
@@ -470,6 +468,9 @@ window.MockExamsComponent = {
       };
 
       await supabase.from("mock_attempts").insert([payload]);
+      if (window.CocoStateSync) {
+        window.CocoStateSync.notifyAttemptCompleted({ type: "mock", level, format, scorePercent });
+      }
     } catch (err) {
       console.warn("MockExams: Supabase save mock attempt error:", err);
     }
