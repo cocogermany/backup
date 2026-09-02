@@ -817,7 +817,7 @@ window.InteractivePlayerComponent = {
                 class="gram-option-btn ${isSelected ? 'selected' : ''}"
                 data-question-id="${this.escapeHtml(questionId)}"
                 data-option-value="${this.escapeHtml(opt)}"
-                onclick="window.InteractivePlayerComponent.selectGrammatikOption(${this.escapeInlineJavaScript(questionId)}, ${this.escapeInlineJavaScript(opt)}, this)"
+                onclick='window.InteractivePlayerComponent.selectGrammatikOption(${this.escapeInlineJavaScript(questionId)}, ${this.escapeInlineJavaScript(opt)}, this)'
               >${this.escapeHtml(opt)}</button>
             `;
           }).join("")}
