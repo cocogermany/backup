@@ -95,7 +95,7 @@ window.PracticeHubComponent = {
             </div>
             <div class="teil-selector-wrap">
               <select id="practice-teil-select" class="teil-selector-select" onchange="window.PracticeHubComponent.setTeilFilter(this.value)" aria-label="Filter by Teil">
-                <option value="All" ${activeTeil === "All" || activeTeil === "Default" ? "selected" : ""}>Default</option>
+                <option value="All" ${activeTeil === "All" || activeTeil === "Default" ? "selected" : ""}>Teil - All</option>
                 <option value="Teil 1" ${activeTeil === "Teil 1" ? "selected" : ""}>Teil 1</option>
                 <option value="Teil 2" ${activeTeil === "Teil 2" ? "selected" : ""}>Teil 2</option>
                 <option value="Teil 3" ${activeTeil === "Teil 3" ? "selected" : ""}>Teil 3</option>
