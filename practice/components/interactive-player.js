@@ -625,7 +625,7 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-cbt-workspace layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
+      <div class="exam-cbt-workspace player-view-lesen layout-${this.layoutMode}" id="exam-cbt-workspace" data-active-tab="${this.activeMobileTab}">
         <!-- READING PANEL (Left / Top in vertical) -->
         <section class="exam-cbt-reading-panel" id="panel-reading" aria-label="Reading Document">
           <div class="exam-doc-meta">
@@ -670,7 +670,7 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-single-panel-workspace" id="exam-cbt-workspace">
+      <div class="exam-hoeren-workspace player-view-hoeren exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
@@ -679,32 +679,37 @@ window.InteractivePlayerComponent = {
 
         <h1 class="exam-doc-title" style="margin-bottom:16px;">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
 
-        <!-- Audio Player (top) -->
-        <div class="exam-audio-card" style="margin-bottom:28px;">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <i data-lucide="volume-2" style="width:18px;height:18px;color:#1e293b;"></i>
-            <span style="font-size:0.85rem; font-weight:700;">Audio Track</span>
+        <!-- Dedicated Hören Audio Card -->
+        <div class="hoeren-audio-card exam-audio-card" style="margin-bottom:28px;">
+          <div class="hoeren-audio-header">
+            <div class="hoeren-audio-label">
+              <i data-lucide="headphones" style="width:18px;height:18px;color:var(--exam-ink-color);"></i>
+              <span>Audio Track</span>
+            </div>
+            <span class="hoeren-audio-badge">Hören</span>
           </div>
           ${material.audioUrl
-            ? `<audio controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
+            ? `<audio class="hoeren-audio-player" controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
             : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
         </div>
 
         <!-- Questions / Answers below audio -->
-        <div class="exam-section-header">
-          <h2 class="exam-section-title">Fragen</h2>
-          <span class="exam-section-count">${totalQuestions} Fragen</span>
-        </div>
+        <div class="hoeren-questions-container">
+          <div class="exam-section-header">
+            <h2 class="exam-section-title">Fragen</h2>
+            <span class="exam-section-count">${totalQuestions} Fragen</span>
+          </div>
 
-        <div class="exam-questions-list">
-          ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
-        </div>
+          <div class="exam-questions-list">
+            ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
+          </div>
 
-        <div class="exam-submit-bar">
-          <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
-            <i data-lucide="check" style="width:16px;height:16px;"></i>
-            <span>Prüfung abgeben (Submit Exam)</span>
-          </button>
+          <div class="exam-submit-bar">
+            <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
+              <i data-lucide="check" style="width:16px;height:16px;"></i>
+              <span>Prüfung abgeben (Submit Exam)</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -716,7 +721,7 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-single-panel-workspace">
+      <div class="exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
@@ -744,7 +749,7 @@ window.InteractivePlayerComponent = {
     const totalQuestions = questions.length;
 
     return `
-      <div class="exam-single-panel-workspace" id="exam-cbt-workspace">
+      <div class="exam-grammatik-workspace player-view-grammatik exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
@@ -835,7 +840,7 @@ window.InteractivePlayerComponent = {
 
   renderWritingInterface: function (material) {
     return `
-      <div class="exam-single-panel-workspace">
+      <div class="exam-writing-workspace player-view-schreiben exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
@@ -862,7 +867,7 @@ window.InteractivePlayerComponent = {
 
   renderSpeakingInterface: function (material) {
     return `
-      <div class="exam-single-panel-workspace">
+      <div class="exam-speaking-workspace player-view-sprechen exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
