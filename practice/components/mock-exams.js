@@ -5,21 +5,196 @@
  * Connected directly to Supabase database (plans & mock_attempts).
  */
 
+const EXAM_META = {
+  goethe: {
+    A1: {
+      title: "Goethe-Zertifikat A1: Start Deutsch 1",
+      subtitle: "Official Goethe Beginner German Examination",
+      desc: "Comprehensive mock test simulating the official Goethe-Zertifikat A1 format. Tests basic everyday communication, vocabulary, and grammar structures.",
+      duration: "55 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
+      ]
+    },
+    A2: {
+      title: "Goethe-Zertifikat A2",
+      subtitle: "Official Goethe Elementary German Examination",
+      desc: "Full mock simulation for elementary German. Evaluates understanding of simple sentences and frequently used expressions related to everyday situations.",
+      duration: "70 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "30 mins", questions: "20 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "30 mins", questions: "20 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "20 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    B1: {
+      title: "Goethe-Zertifikat B1",
+      subtitle: "Official Goethe Intermediate German Examination",
+      desc: "Standard intermediate proficiency simulation. Assesses independent German language usage in familiar contexts like work, school, and leisure.",
+      duration: "95 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "45 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "40 mins", questions: "30 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "30 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    B2: {
+      title: "Goethe-Zertifikat B2",
+      subtitle: "Official Goethe Upper-Intermediate Examination",
+      desc: "Upper-intermediate simulation measuring spontaneous and fluent interaction with complex technical, social, and topical discussions.",
+      duration: "115 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "55 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "40 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "35 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    C1: {
+      title: "Goethe-Zertifikat C1",
+      subtitle: "Official Goethe Advanced German Examination",
+      desc: "Advanced level simulation requiring high-level mastery of expressive, idiomatic, and complex syntactic German constructs.",
+      duration: "135 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "65 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "45 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "40 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    C2: {
+      title: "Goethe-Zertifikat C2: GDS",
+      subtitle: "Official Goethe Mastery Examination",
+      desc: "Mastery level examination simulation demonstrating near-native fluency in abstract academic, cultural, and professional contexts.",
+      duration: "150 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "70 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "50 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "45 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    }
+  },
+  telc: {
+    A1: {
+      title: "telc Deutsch A1: Start Deutsch 1",
+      subtitle: "Official telc Beginner German Examination",
+      desc: "Authentic telc A1 exam simulator testing baseline listening, reading comprehension, and language element structures under timed conditions.",
+      duration: "55 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
+      ]
+    },
+    A2: {
+      title: "telc Deutsch A2",
+      subtitle: "Official telc Elementary German Examination",
+      desc: "Full telc A2 simulation evaluating practical everyday communication, short dialogues, information notices, and basic grammar.",
+      duration: "70 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "30 mins", questions: "20 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "30 mins", questions: "20 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "20 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    B1: {
+      title: "telc Deutsch B1: Zertifikat Deutsch",
+      subtitle: "Official telc Intermediate German Examination",
+      desc: "Standard telc B1 simulation covering Sprachbausteine, reading passages, audio broadcasts, and structured writing tasks.",
+      duration: "95 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "45 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "40 mins", questions: "30 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "30 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    B2: {
+      title: "telc Deutsch B2",
+      subtitle: "Official telc Upper-Intermediate Examination",
+      desc: "Upper-intermediate telc test simulator evaluating advanced comprehension of arguments, complex texts, and professional communication.",
+      duration: "115 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "55 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "40 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "35 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    C1: {
+      title: "telc Deutsch C1 Hochschule",
+      subtitle: "Official telc Advanced Academic Examination",
+      desc: "Advanced academic German examination simulation designed for university admission and professional recognition in German-speaking countries.",
+      duration: "135 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "65 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "45 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "40 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    },
+    C2: {
+      title: "telc Deutsch C2",
+      subtitle: "Official telc Mastery Examination",
+      desc: "Mastery level academic examination simulating rigorous reading analysis, subtle audio nuances, and professional composition.",
+      duration: "150 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "70 mins", questions: "30 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "50 mins", questions: "25 Questions", status: "available" },
+        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "45 mins", questions: "2 Tasks", status: "pro" }
+      ]
+    }
+  }
+};
+
 window.MockExamsComponent = {
   render: function (appState) {
     const level = appState ? (appState.currentLevel || "A1") : "A1";
     const rawFormat = appState ? (appState.currentFormat || "goethe") : "goethe";
-    const formatName = rawFormat.toLowerCase() === "telc" ? "TELC" : "Goethe";
-    const mockExamId = `mock-${level.toLowerCase()}-full-1`;
+    const formatKey = rawFormat.toLowerCase().includes("telc") ? "telc" : "goethe";
+    const formatLabel = formatKey === "telc" ? "TELC" : "Goethe";
+    const levelUpper = (level || "A1").toUpperCase();
+    const mockExamId = `mock-${levelUpper.toLowerCase()}-full-1`;
 
-    const duration = level === "A1" ? "60 mins" : level === "A2" ? "75 mins" : level === "B1" ? "90 mins" : "120 mins";
+    const formatDict = EXAM_META[formatKey] || EXAM_META.goethe;
+    const examInfo = formatDict[levelUpper] || {
+      title: `${formatLabel}-Zertifikat ${levelUpper}`,
+      subtitle: `Official ${formatLabel} ${levelUpper} German Examination`,
+      desc: `Comprehensive mock examination simulating official ${formatLabel} ${levelUpper} format and time standards.`,
+      duration: "65 mins",
+      passingScore: "60% (60/100 pts)",
+      modules: [
+        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
+        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
+        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
+        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
+      ]
+    };
 
-    const sections = [
-      { name: "Lesen (Reading)", time: level === "A1" ? "20 mins" : "25 mins", questions: "15 Questions" },
-      { name: "Hören (Listening)", time: level === "A1" ? "20 mins" : "20 mins", questions: "15 Questions" },
-      { name: "Schreiben (Writing)", time: level === "A1" ? "15 mins" : "20 mins", questions: "1-2 Tasks" },
-      { name: "Sprechen (Speaking)", time: level === "A1" ? "15 mins" : "15 mins", questions: "3 Tasks" }
-    ];
+    const availableModulesCount = examInfo.modules.filter(m => m.status === "available").length;
+    const proModulesCount = examInfo.modules.filter(m => m.status === "pro").length;
+    const modulesSummaryText = `${availableModulesCount} Available · ${proModulesCount} PRO`;
 
     // Schedule async fetch of completed mock attempts from Supabase
     setTimeout(() => {
@@ -36,7 +211,7 @@ window.MockExamsComponent = {
           </div>
           <div class="mock-header-badge">
             <span class="badge-pill badge-gold">
-              <i data-lucide="shield-check" style="width:14px;height:14px;"></i> ${formatName} / TELC Standard
+              <i data-lucide="shield-check" style="width:14px;height:14px;"></i> ${formatLabel} Official Standard
             </span>
           </div>
         </div>
@@ -45,11 +220,11 @@ window.MockExamsComponent = {
         <div class="card mock-hero-card">
           <div class="mock-hero-top">
             <div class="mock-hero-badge-row">
-              <span class="mock-badge-level">${formatName} · ${level}</span>
-              <span class="mock-badge-simulation"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> Full Mock Exam Simulation</span>
+              <span class="mock-badge-level">${formatLabel} · ${levelUpper}</span>
+              <span class="mock-badge-simulation"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> Full Mock Simulation</span>
             </div>
-            <h2 class="mock-hero-title">${formatName}-Zertifikat ${level} Examination</h2>
-            <p class="mock-hero-desc">Experience the complete examination suite with authentic timing, audio playback controls, writing evaluations, and automated score certification.</p>
+            <h2 class="mock-hero-title">${examInfo.title}</h2>
+            <p class="mock-hero-desc">${examInfo.desc}</p>
           </div>
 
           <!-- Key Information Metrics Grid -->
@@ -59,8 +234,8 @@ window.MockExamsComponent = {
                 <i data-lucide="layers"></i>
               </div>
               <div class="mock-metric-content">
-                <span class="mock-metric-label">Sections</span>
-                <span class="mock-metric-value">4 Modules</span>
+                <span class="mock-metric-label">Included Modules</span>
+                <span class="mock-metric-value">${modulesSummaryText}</span>
               </div>
             </div>
 
@@ -69,8 +244,8 @@ window.MockExamsComponent = {
                 <i data-lucide="clock"></i>
               </div>
               <div class="mock-metric-content">
-                <span class="mock-metric-label">Duration</span>
-                <span class="mock-metric-value">${duration}</span>
+                <span class="mock-metric-label">Total Duration</span>
+                <span class="mock-metric-value">${examInfo.duration}</span>
               </div>
             </div>
 
@@ -79,8 +254,8 @@ window.MockExamsComponent = {
                 <i data-lucide="target"></i>
               </div>
               <div class="mock-metric-content">
-                <span class="mock-metric-label">Passing Score</span>
-                <span class="mock-metric-value">60% (60/100 pts)</span>
+                <span class="mock-metric-label">Passing Criteria</span>
+                <span class="mock-metric-value">${examInfo.passingScore}</span>
               </div>
             </div>
           </div>
@@ -88,18 +263,28 @@ window.MockExamsComponent = {
           <!-- Compact Sections Breakdown -->
           <div class="mock-sections-overview">
             <div class="mock-overview-header">
-              <span>Included Exam Modules</span>
+              <span>Exam Modules Breakdown</span>
             </div>
             <div class="mock-sections-chips">
-              ${sections.map(s => `
-                <div class="mock-section-chip">
-                  <div class="mock-chip-dot"></div>
-                  <div class="mock-chip-info">
-                    <span class="mock-chip-name">${s.name}</span>
-                    <span class="mock-chip-time">${s.time} · ${s.questions}</span>
+              ${examInfo.modules.map(m => {
+                const isPro = m.status === "pro";
+                return `
+                  <div class="mock-section-chip ${isPro ? 'is-pro-locked' : 'is-available'}">
+                    <div class="mock-chip-dot ${isPro ? 'is-pro-locked' : 'is-available'}">
+                      ${isPro ? '<i data-lucide="lock" style="width:11px;height:11px;"></i>' : ''}
+                    </div>
+                    <div class="mock-chip-info">
+                      <div class="mock-chip-header">
+                        <span class="mock-chip-name">${m.name}</span>
+                        <span class="mock-chip-badge ${isPro ? 'badge-pro' : 'badge-available'}">
+                          ${isPro ? 'PRO ONLY' : 'Available'}
+                        </span>
+                      </div>
+                      <span class="mock-chip-time">${m.time} · ${m.questions}</span>
+                    </div>
                   </div>
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           </div>
 
