@@ -11,6 +11,7 @@ window.PracticeHubComponent = {
     format: "goethe",
     membership: "FREE",
     activeModule: "All",
+    activeTeil: "All",
     page: 1,
     searchQuery: "",
     totalCount: 0,
@@ -44,6 +45,7 @@ window.PracticeHubComponent = {
   render: function (appState, queryParams) {
     this._lastAppState = appState || this._lastAppState;
     const activeModule = queryParams ? (queryParams.get("module") || "All") : "All";
+    const activeTeil = queryParams ? (queryParams.get("teil") || "All") : (this.currentQuery.activeTeil || "All");
     const pageParam = queryParams ? parseInt(queryParams.get("page") || "1", 10) : 1;
     const level = appState ? (appState.currentLevel || "A1") : "A1";
     const format = appState ? (appState.currentFormat || "goethe") : "goethe";
@@ -53,6 +55,7 @@ window.PracticeHubComponent = {
     this.currentQuery.format = format;
     this.currentQuery.membership = membership;
     this.currentQuery.activeModule = activeModule;
+    this.currentQuery.activeTeil = activeTeil;
     this.currentQuery.page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
     // Schedule async initialization after shell renders
@@ -85,9 +88,20 @@ window.PracticeHubComponent = {
             </button>
           </div>
 
-          <div class="search-box">
-            <i data-lucide="search"></i>
-            <input type="text" id="practice-search-input" placeholder="Search topic or keyword..." value="${this.currentQuery.searchQuery}" oninput="window.PracticeHubComponent.handleSearchInput(this.value)">
+          <div class="filter-search-row">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="practice-search-input" placeholder="Search topic or keyword..." value="${this.currentQuery.searchQuery}" oninput="window.PracticeHubComponent.handleSearchInput(this.value)">
+            </div>
+            <div class="teil-selector-wrap">
+              <select id="practice-teil-select" class="teil-selector-select" onchange="window.PracticeHubComponent.setTeilFilter(this.value)" aria-label="Filter by Teil">
+                <option value="All" ${activeTeil === "All" || activeTeil === "Default" ? "selected" : ""}>Default</option>
+                <option value="Teil 1" ${activeTeil === "Teil 1" ? "selected" : ""}>Teil 1</option>
+                <option value="Teil 2" ${activeTeil === "Teil 2" ? "selected" : ""}>Teil 2</option>
+                <option value="Teil 3" ${activeTeil === "Teil 3" ? "selected" : ""}>Teil 3</option>
+                <option value="Teil 4" ${activeTeil === "Teil 4" ? "selected" : ""}>Teil 4</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -164,7 +178,7 @@ window.PracticeHubComponent = {
     const pagContainer = document.getElementById("practice-pagination-container");
 
     const uid = this.getCurrentUserUid(appState) || "local-user";
-    const cacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${this.currentQuery.page}_q${this.currentQuery.searchQuery}`;
+    const cacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_t${this.currentQuery.activeTeil}_p${this.currentQuery.page}_q${this.currentQuery.searchQuery}`;
 
     // Always ensure fresh completed materials list is loaded
     this.completedMaterialIds = await this.fetchCompletedMaterialIds(appState);
@@ -194,6 +208,9 @@ window.PracticeHubComponent = {
         const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
         params.set("page", res.totalPages);
         if (this.currentQuery.activeModule !== "All") params.set("module", this.currentQuery.activeModule);
+        if (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+          params.set("teil", this.currentQuery.activeTeil);
+        }
         window.history.replaceState(null, "", `#practice?${params.toString()}`);
         res = await this.querySupabaseMaterials();
       }
@@ -203,7 +220,7 @@ window.PracticeHubComponent = {
       this.currentQuery.totalPages = res.totalPages;
 
       // Update cache
-      const resolvedCacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_p${res.page}_q${this.currentQuery.searchQuery}`;
+      const resolvedCacheKey = `hub_cache_${uid}_${this.currentQuery.level}_${this.currentQuery.format}_${this.currentQuery.activeModule}_t${this.currentQuery.activeTeil}_p${res.page}_q${this.currentQuery.searchQuery}`;
       this.setCachedResult(resolvedCacheKey, res.materials, res.totalCount, res.page, res.totalPages);
 
       // Render live fresh data
@@ -281,6 +298,15 @@ window.PracticeHubComponent = {
       );
     }
 
+    // Apply Teil filter after completed-material filtering
+    if (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+      const targetTeil = this.currentQuery.activeTeil.toLowerCase().trim();
+      allMaterials = allMaterials.filter(mat => {
+        const matTeil = String(mat.teil || "").toLowerCase().trim();
+        return matTeil === targetTeil;
+      });
+    }
+
     const totalCount = allMaterials.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / 10));
     const page = Math.min(Math.max(1, this.currentQuery.page), totalPages);
@@ -301,16 +327,25 @@ window.PracticeHubComponent = {
     if (!container) return;
 
     // Filter out completed materials as authoritative safeguard immediately before rendering
-    const availableMaterials = (materials || []).filter(
+    let availableMaterials = (materials || []).filter(
       mat => mat && !this.completedMaterialIds.has(String(mat.id || "").trim())
     );
 
+    if (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+      const targetTeil = this.currentQuery.activeTeil.toLowerCase().trim();
+      availableMaterials = availableMaterials.filter(mat => {
+        const matTeil = String(mat.teil || "").toLowerCase().trim();
+        return matTeil === targetTeil;
+      });
+    }
+
     if (!availableMaterials || availableMaterials.length === 0) {
       const isCompletedEmpty = this.completedMaterialIds && this.completedMaterialIds.size > 0;
+      const teilInfo = (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") ? ` (${this.currentQuery.activeTeil})` : "";
       container.innerHTML = `
         <div class="card" style="grid-column: 1 / -1; text-align:center; padding:40px;">
           <i data-lucide="${isCompletedEmpty ? 'check-circle-2' : 'folder-open'}" style="width:32px;height:32px;color:${isCompletedEmpty ? 'var(--emerald)' : 'var(--muted)'};margin-bottom:12px;"></i>
-          <p style="font-weight:600; color:var(--ink);">${isCompletedEmpty ? `All practice materials completed for module: ${this.currentQuery.activeModule}` : `No practice materials found for module: ${this.currentQuery.activeModule}`}</p>
+          <p style="font-weight:600; color:var(--ink);">${isCompletedEmpty ? `All practice materials completed for module: ${this.currentQuery.activeModule}${teilInfo}` : `No practice materials found for module: ${this.currentQuery.activeModule}${teilInfo}`}</p>
           <p style="font-size:0.8rem; color:var(--muted); margin-top:4px;">${isCompletedEmpty ? 'Check your scores and history in Learning Progress.' : `Target Level: ${this.currentQuery.level} (${this.currentQuery.format})`}</p>
         </div>
       `;
@@ -340,6 +375,10 @@ window.PracticeHubComponent = {
 
       const safeId = String(mat.id).replace(/'/g, "\\'");
 
+      const teilHtml = (mat.teil && String(mat.teil).trim())
+        ? `<span class="badge-pill mat-teil-badge">${String(mat.teil).trim()}</span>`
+        : "";
+
       const actionBtnHtml = `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="event.stopPropagation(); window.PracticeApp.openPrepModal('${safeId}')">
              <i data-lucide="play"></i> Practice
            </button>`;
@@ -347,10 +386,11 @@ window.PracticeHubComponent = {
       return `
         <div class="card material-card mat-item-card" style="cursor:pointer;" onclick="window.PracticeApp.openPrepModal('${safeId}')" data-title="${(mat.title || '').toLowerCase()}">
           <div class="mat-card-header">
-            <div style="display:flex; gap:6px; align-items:center;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
               <span class="badge-pill mat-module-badge ${moduleBadgeClass}">
                 ${displayModule}
               </span>
+              ${teilHtml}
             </div>
             <span class="mat-duration">
               <i data-lucide="clock"></i>
@@ -424,8 +464,44 @@ window.PracticeHubComponent = {
       }
     });
 
-    const params = new URLSearchParams();
-    if (moduleName !== "All") params.set("module", moduleName);
+    const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+    if (moduleName !== "All") {
+      params.set("module", moduleName);
+    } else {
+      params.delete("module");
+    }
+    if (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+      params.set("teil", this.currentQuery.activeTeil);
+    } else {
+      params.delete("teil");
+    }
+    params.delete("page");
+
+    const newHash = `#practice${params.toString() ? "?" + params.toString() : ""}`;
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, "", newHash);
+    }
+    this.executeFetchAndRender();
+  },
+
+  setTeilFilter: function (teilValue) {
+    this.currentQuery.activeTeil = teilValue || "All";
+    this.currentQuery.page = 1;
+
+    const selectEl = document.getElementById("practice-teil-select");
+    if (selectEl) selectEl.value = this.currentQuery.activeTeil;
+
+    const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+    if (this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+      params.set("teil", this.currentQuery.activeTeil);
+    } else {
+      params.delete("teil");
+    }
+    if (this.currentQuery.activeModule !== "All") {
+      params.set("module", this.currentQuery.activeModule);
+    }
+    params.delete("page");
+
     const newHash = `#practice${params.toString() ? "?" + params.toString() : ""}`;
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, "", newHash);
@@ -449,6 +525,9 @@ window.PracticeHubComponent = {
     const params = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
     params.set("page", newPage);
     if (this.currentQuery.activeModule !== "All") params.set("module", this.currentQuery.activeModule);
+    if (this.currentQuery.activeTeil && this.currentQuery.activeTeil !== "All" && this.currentQuery.activeTeil !== "Default") {
+      params.set("teil", this.currentQuery.activeTeil);
+    }
 
     window.history.replaceState(null, "", `#practice?${params.toString()}`);
     this.executeFetchAndRender();

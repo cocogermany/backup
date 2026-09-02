@@ -1653,6 +1653,16 @@ a {
   transform: translateY(-1px);
 }
 
+.filter-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 440px;
+  min-width: 240px;
+  justify-content: flex-end;
+}
+
 .search-box {
   display: flex;
   align-items: center;
@@ -1661,9 +1671,13 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 8px 12px;
-  min-width: 200px;
+  min-width: 140px;
   flex: 1;
   max-width: 320px;
+}
+
+.filter-search-row .search-box {
+  max-width: none;
 }
 
 .search-box input {
@@ -1672,6 +1686,55 @@ a {
   font-size: 0.82rem;
   outline: none;
   width: 100%;
+}
+
+.teil-selector-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.teil-selector-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 7px 28px 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.teil-selector-select:hover {
+  border-color: #d6cfc4;
+}
+
+.teil-selector-select:focus {
+  border-color: var(--brown);
+  box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.12);
+}
+
+.mat-teil-badge {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .filter-search-row {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 /* Practice Grid & Material Cards */
