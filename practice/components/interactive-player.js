@@ -204,6 +204,7 @@ window.InteractivePlayerComponent = {
     this.activeMobileTab = "reading";
     this.styleMode = this.getSavedStyleMode();
     this.layoutMode = "h-split";
+    this.hoerenLayoutMode = "default";
 
     const settings = this.currentSettings || this.getPrepSettings();
     this.currentSettings = settings;
@@ -263,8 +264,8 @@ window.InteractivePlayerComponent = {
 
         <!-- FLOATING DISPLAY LAYOUT POPOVER -->
         <div class="exam-popover" id="exam-layout-popover" hidden onclick="event.stopPropagation()">
-          <div class="exam-popover-header">Display Layout</div>
-          <div class="exam-layout-grid-options">
+          <div class="exam-popover-header" id="exam-layout-popover-header">Display Layout</div>
+          <div class="exam-layout-grid-options" id="exam-layout-options-container">
             <button type="button" class="exam-layout-opt-btn ${this.layoutMode === 'h-split' ? 'active' : ''}" id="opt-layout-h-split" onclick="window.InteractivePlayerComponent.setLayoutMode('h-split')">
               <span>Horizontal</span>
               <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
@@ -407,8 +408,77 @@ window.InteractivePlayerComponent = {
     if (e) e.stopPropagation();
     const popover = document.getElementById("exam-layout-popover");
     if (popover) {
+      this.updateLayoutPopover();
       popover.hidden = !popover.hidden;
     }
+  },
+
+  updateLayoutPopover: function () {
+    const container = document.getElementById("exam-layout-options-container");
+    if (!container) return;
+
+    const module = this.currentMaterial ? this.currentMaterial.module : "Lesen";
+
+    if (module === "Hören") {
+      const mode = this.hoerenLayoutMode || "default";
+      container.innerHTML = `
+        <button type="button" class="exam-layout-opt-btn ${mode === 'default' ? 'active' : ''}" id="opt-hoeren-default" onclick="window.InteractivePlayerComponent.setHoerenLayoutMode('default')">
+          <span>Standard</span>
+          <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Default</span>
+        </button>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'fixed-audio' ? 'active' : ''}" id="opt-hoeren-fixed-audio" onclick="window.InteractivePlayerComponent.setHoerenLayoutMode('fixed-audio')">
+          <span>Fix Audio to Top</span>
+          <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Sticky</span>
+        </button>
+      `;
+    } else {
+      const mode = this.layoutMode || "h-split";
+      container.innerHTML = `
+        <button type="button" class="exam-layout-opt-btn ${mode === 'h-split' ? 'active' : ''}" id="opt-layout-h-split" onclick="window.InteractivePlayerComponent.setLayoutMode('h-split')">
+          <span>Horizontal</span>
+          <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
+        </button>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'reading-focus' ? 'active' : ''}" id="opt-layout-reading-focus" onclick="window.InteractivePlayerComponent.setLayoutMode('reading-focus')">
+          <span>Reading Focus</span>
+          <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">60 / 40</span>
+        </button>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'questions-focus' ? 'active' : ''}" id="opt-layout-questions-focus" onclick="window.InteractivePlayerComponent.setLayoutMode('questions-focus')">
+          <span>Question Focus</span>
+          <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">40 / 60</span>
+        </button>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'v-split' ? 'active' : ''}" id="opt-layout-v-split" onclick="window.InteractivePlayerComponent.setLayoutMode('v-split')">
+          <span>Vertical</span>
+          <span style="font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--exam-ink-muted);">50 / 50</span>
+        </button>
+        <div class="exam-layout-divider" style="height:1px; background:#e2e8f0; margin:4px 0;"></div>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'reading-full' ? 'active' : ''}" id="opt-layout-reading-full" onclick="window.InteractivePlayerComponent.setLayoutMode('reading-full')">
+          <span>Reading</span>
+          <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Full Focus</span>
+        </button>
+        <button type="button" class="exam-layout-opt-btn ${mode === 'questions-full' ? 'active' : ''}" id="opt-layout-questions-full" onclick="window.InteractivePlayerComponent.setLayoutMode('questions-full')">
+          <span>Questions</span>
+          <span style="font-size:0.75rem; color:var(--exam-ink-muted);">Full Focus</span>
+        </button>
+      `;
+    }
+  },
+
+  setHoerenLayoutMode: function (mode) {
+    this.hoerenLayoutMode = mode;
+    const workspace = document.getElementById("exam-cbt-workspace");
+    if (workspace) {
+      workspace.classList.remove("layout-default", "layout-fixed-audio");
+      workspace.classList.add(`layout-${mode}`);
+      workspace.setAttribute("data-hoeren-layout", mode);
+    }
+
+    document.querySelectorAll(".exam-layout-opt-btn").forEach(btn => btn.classList.remove("active"));
+    const activeBtn = document.getElementById(`opt-hoeren-${mode}`);
+    if (activeBtn) activeBtn.classList.add("active");
+
+    // Close layout menu after selection
+    const popover = document.getElementById("exam-layout-popover");
+    if (popover) popover.hidden = true;
   },
 
   setLayoutMode: function (mode) {
@@ -418,7 +488,7 @@ window.InteractivePlayerComponent = {
       rootContainer.setAttribute("data-layout-mode", mode);
     }
     const workspace = document.getElementById("exam-cbt-workspace");
-    if (workspace) {
+    if (workspace && !workspace.classList.contains("player-view-hoeren")) {
       // Remove previous layout classes
       workspace.classList.remove(
         "layout-h-split",
@@ -599,9 +669,11 @@ window.InteractivePlayerComponent = {
     if (!contentArea) return;
 
     const isGrammatik = Boolean(material && material.module === "Grammatik");
+    const isHoeren = Boolean(material && material.module === "Hören");
     const mainContainer = document.getElementById("player-main-container");
     if (mainContainer) {
       mainContainer.classList.toggle("is-grammatik", isGrammatik);
+      mainContainer.classList.toggle("is-hoeren", isHoeren);
       mainContainer.setAttribute("data-module", material?.module || "");
     }
 
@@ -617,7 +689,12 @@ window.InteractivePlayerComponent = {
     contentArea.innerHTML = this.renderMaterialWorkspace(material);
     this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
-    this.setLayoutMode(this.layoutMode);
+    if (isHoeren) {
+      this.setHoerenLayoutMode(this.hoerenLayoutMode || "default");
+    } else {
+      this.setLayoutMode(this.layoutMode);
+    }
+    this.updateLayoutPopover();
     this.updateMobileTabQuestionCount();
   },
 
@@ -685,19 +762,20 @@ window.InteractivePlayerComponent = {
   renderListeningInterface: function (material) {
     const questions = material.questions || [];
     const totalQuestions = questions.length;
+    const hoerenMode = this.hoerenLayoutMode || "default";
 
     return `
-      <div class="exam-hoeren-workspace player-view-hoeren exam-single-panel-workspace" id="exam-cbt-workspace">
+      <div class="exam-hoeren-workspace player-view-hoeren exam-single-panel-workspace layout-${hoerenMode}" id="exam-cbt-workspace" data-hoeren-layout="${hoerenMode}">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
           <span>Hören</span>
         </div>
 
-        <h1 class="exam-doc-title" style="margin-bottom:16px;">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
+        <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Hörtext")}</h1>
 
         <!-- Dedicated Hören Audio Card -->
-        <div class="hoeren-audio-card exam-audio-card" style="margin-bottom:28px;">
+        <div class="hoeren-audio-card exam-audio-card" id="hoeren-audio-card">
           <div class="hoeren-audio-header">
             <div class="hoeren-audio-label">
               <i data-lucide="headphones" style="width:18px;height:18px;color:var(--exam-ink-color);"></i>
@@ -710,23 +788,23 @@ window.InteractivePlayerComponent = {
             : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
         </div>
 
-        <!-- Questions / Answers below audio -->
-        <div class="hoeren-questions-container">
-          <div class="exam-section-header">
-            <h2 class="exam-section-title">Fragen</h2>
-            <span class="exam-section-count">${totalQuestions} Fragen</span>
-          </div>
+        <!-- Questions Section Header -->
+        <div class="exam-section-header hoeren-section-header" id="hoeren-section-header">
+          <h2 class="exam-section-title">Fragen</h2>
+          <span class="exam-section-count">${totalQuestions} Fragen</span>
+        </div>
 
-          <div class="exam-questions-list">
-            ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
-          </div>
+        <!-- Questions List -->
+        <div class="exam-questions-list hoeren-questions-list">
+          ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
+        </div>
 
-          <div class="exam-submit-bar">
-            <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
-              <i data-lucide="check" style="width:16px;height:16px;"></i>
-              <span>Prüfung abgeben (Submit Exam)</span>
-            </button>
-          </div>
+        <!-- Submit Bar -->
+        <div class="exam-submit-bar">
+          <button type="button" class="exam-primary-submit-btn" id="exam-submit-btn" onclick='window.InteractivePlayerComponent.submitAnswers(${this.escapeInlineJavaScript(material.id)}, this)'>
+            <i data-lucide="check" style="width:16px;height:16px;"></i>
+            <span>Prüfung abgeben (Submit Exam)</span>
+          </button>
         </div>
       </div>
     `;
@@ -1099,9 +1177,11 @@ window.InteractivePlayerComponent = {
     if (!contentArea) return;
 
     const isGrammatik = Boolean(material && material.module === "Grammatik");
+    const isHoeren = Boolean(material && material.module === "Hören");
     const mainContainer = document.getElementById("player-main-container");
     if (mainContainer) {
       mainContainer.classList.toggle("is-grammatik", isGrammatik);
+      mainContainer.classList.toggle("is-hoeren", isHoeren);
       mainContainer.setAttribute("data-module", material?.module || "");
     }
     const layoutBtn = document.getElementById("exam-layout-btn");
@@ -1128,7 +1208,12 @@ window.InteractivePlayerComponent = {
 
     this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
-    this.setLayoutMode(this.layoutMode);
+    if (isHoeren) {
+      this.setHoerenLayoutMode(this.hoerenLayoutMode || "default");
+    } else {
+      this.setLayoutMode(this.layoutMode);
+    }
+    this.updateLayoutPopover();
 
     // Fill review feedback on each question
     const questions = material.questions || [];
