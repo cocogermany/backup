@@ -1288,7 +1288,9 @@ window.InteractivePlayerComponent = {
     };
 
     // Save practice attempt directly to Supabase
-    const saveResult = await this.savePracticeAttemptToSupabase(material, earnedMarks, actualTotal, pct);
+    // Keep correct_answers as actual correct answers count (integer)
+    // Keep total_questions as actual question count (integer)
+    const saveResult = await this.savePracticeAttemptToSupabase(material, rawScore, actualTotal, pct);
     if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
       if (btnEl) {
         btnEl.disabled = false;
@@ -1533,9 +1535,9 @@ window.InteractivePlayerComponent = {
         return { success: false, error: err };
       }
 
-      const storedMarks = (typeof correctAnswers === "number")
-        ? Math.round((correctAnswers + Number.EPSILON) * 100) / 100
-        : parseFloat(correctAnswers || 0) || 0;
+      // Keep practice_attempts.correct_answers as the actual number of correctly answered questions (integer)
+      // Keep total_questions as the actual number of questions (integer)
+      const correctCount = parseInt(correctAnswers || 0, 10);
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
 
       let scorePercent;
@@ -1543,8 +1545,9 @@ window.InteractivePlayerComponent = {
         scorePercent = customScorePercent;
       } else {
         const multiplier = this.calculateMultiplier(material);
+        const earnedMarks = Math.round((correctCount * multiplier + Number.EPSILON) * 100) / 100;
         const totalMarks = Math.round((totalCount * multiplier + Number.EPSILON) * 100) / 100;
-        scorePercent = totalMarks > 0 ? Math.round((storedMarks / totalMarks) * 100) : 0;
+        scorePercent = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
       }
 
       const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Grammatik");
@@ -1561,7 +1564,7 @@ window.InteractivePlayerComponent = {
         level: material.level || "A1",
         format: dbFormat,
         module: dbModule,
-        correct_answers: storedMarks,
+        correct_answers: correctCount,
         total_questions: totalCount,
         score_percent: scorePercent,
         completed_at: new Date().toISOString()
