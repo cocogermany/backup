@@ -29,11 +29,104 @@ window.InteractivePlayerComponent = {
   activeMobileTab: "reading", // "reading" | "questions"
   isSubmitted: false,
   isReviewMode: false,
-  lastScore: { score: 0, total: 0, pct: 0 },
+  lastScore: { score: 0, total: 0, pct: 0, marksDisplay: "" },
   warningToastShown: false,
   timeExpiredModalShown: false,
   activeQuestionId: null,
   renderRequestId: 0,
+
+  calculateMultiplier: function (material) {
+    if (!material) return 1;
+
+    // Determine exam format:
+    // If exam is "both", use user's currently selected Goethe/telc format from existing learning target/profile data
+    let format = String(material.exam || "").toLowerCase().trim();
+    if (format === "both" || (format !== "goethe" && format !== "telc")) {
+      let userFormat = "";
+      if (window.AppState && window.AppState.currentFormat) {
+        userFormat = window.AppState.currentFormat;
+      } else if (window.CocoStateSync && typeof window.CocoStateSync.getTarget === "function") {
+        userFormat = window.CocoStateSync.getTarget()?.format || "";
+      } else if (window.AppState?.userProfile?.format) {
+        userFormat = window.AppState.userProfile.format;
+      }
+      if (!userFormat) {
+        userFormat = localStorage.getItem("coco_practice_format") || "goethe";
+      }
+      format = String(userFormat).toLowerCase().trim() === "telc" ? "telc" : "goethe";
+    }
+
+    const level = String(material.level || "").toUpperCase().trim();
+    const isA1 = level === "A1" || level.startsWith("A1");
+    const isA2 = level === "A2" || level.startsWith("A2");
+    const isB1B2 = level === "B1" || level === "B2" || level.startsWith("B1") || level.startsWith("B2");
+
+    const rawModule = String(material.module || "").trim().toLowerCase();
+    const isLesen = rawModule.includes("lesen");
+    const isHoeren = rawModule.includes("h") && (rawModule.includes("ren") || rawModule.includes("oren"));
+    const isGrammatik = rawModule === "grammatik" || rawModule === "grammar" || rawModule.includes("sprachbaustein");
+
+    // Teil detection:
+    const rawTeil = String(material.teil || this.preloadedMaterial?.teil || "").toLowerCase().trim();
+    let teilNum = null;
+    const matchTeil = rawTeil.match(/\d+/);
+    if (matchTeil) {
+      teilNum = parseInt(matchTeil[0], 10);
+    } else {
+      const titleMatch = String(material.title || "").match(/teil\s*(\d+)/i);
+      if (titleMatch) teilNum = parseInt(titleMatch[1], 10);
+      else {
+        const idMatch = String(material.id || "").match(/teil\s*(\d+)/i);
+        if (idMatch) teilNum = parseInt(idMatch[1], 10);
+      }
+    }
+
+    // Goethe rules:
+    // A1 Lesen/Hören: ×1
+    // A2 Lesen/Hören: ×1.25
+    // B1/B2 Lesen/Hören: ×3.33
+    if (format === "goethe") {
+      if (isLesen || isHoeren) {
+        if (isA1) return 1;
+        if (isA2) return 1.25;
+        if (isB1B2) return 3.33;
+      }
+      return 1;
+    }
+
+    // telc rules:
+    // A1 Lesen/Hören: ×1
+    // A2 Lesen/Hören: ×1
+    // B1/B2 Lesen Teil 1/2: ×5
+    // B1/B2 Lesen Teil 3: ×2.5
+    // B1/B2 Hören Teil 1/3: ×5
+    // B1/B2 Hören Teil 2: ×2.5
+    // B1/B2 Grammatik (Sprachbausteine): ×1.5
+    if (format === "telc") {
+      if (isA1 && (isLesen || isHoeren)) return 1;
+      if (isA2 && (isLesen || isHoeren)) return 1;
+      if (isB1B2) {
+        if (isLesen) {
+          if (teilNum === 3 || rawTeil.includes("teil 3") || rawTeil === "3") return 2.5;
+          if (teilNum === 1 || teilNum === 2 || rawTeil.includes("1") || rawTeil.includes("2")) return 5;
+          const qCount = Array.isArray(material.questions) ? material.questions.length : 0;
+          return qCount >= 10 ? 2.5 : 5;
+        }
+        if (isHoeren) {
+          if (teilNum === 2 || rawTeil.includes("teil 2") || rawTeil === "2") return 2.5;
+          if (teilNum === 1 || teilNum === 3 || rawTeil.includes("1") || rawTeil.includes("3")) return 5;
+          const qCount = Array.isArray(material.questions) ? material.questions.length : 0;
+          return qCount >= 10 ? 2.5 : 5;
+        }
+        if (isGrammatik) {
+          return 1.5;
+        }
+      }
+      return 1;
+    }
+
+    return 1;
+  },
 
   getPrepSettings: function () {
     try {
@@ -651,6 +744,7 @@ window.InteractivePlayerComponent = {
               exam: dbMat.exam || "goethe",
               level: dbMat.level || level,
               module: dbMat.module === "Grammar" ? "Grammatik" : (dbMat.module || "Lesen"),
+              teil: dbMat.teil || "",
               difficulty: dbMat.difficulty || "Medium",
               duration_minutes: dbMat.duration_minutes,
               estimatedSeconds: (!isNaN(durMin) && durMin > 0) ? durMin * 60 : (dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600),
@@ -672,7 +766,14 @@ window.InteractivePlayerComponent = {
     if (contentPath) {
       const content = await this.fetchMaterialContent(contentPath);
       if (renderRequestId !== this.renderRequestId) return;
-      material = { ...material, ...content };
+      material = {
+        ...material,
+        ...content,
+        teil: material?.teil || content?.teil || "",
+        exam: material?.exam || content?.exam || "goethe",
+        level: material?.level || content?.level || level,
+        module: material?.module || content?.module || "Lesen"
+      };
     }
 
     if (!material) {
@@ -1159,20 +1260,35 @@ window.InteractivePlayerComponent = {
 
     const material = this.currentMaterial || this.getFallbackMaterialContent(materialId);
     const questions = material.questions || [];
-    const total = questions.length || 1;
-    let score = 0;
+    const actualTotal = questions.length || 1;
+    let rawScore = 0;
 
     questions.forEach(q => {
       if (this.userAnswers[q.id] === q.correctAnswer) {
-        score++;
+        rawScore++;
       }
     });
 
-    const pct = Math.round((score / total) * 100);
-    this.lastScore = { score, total, pct };
+    const multiplier = this.calculateMultiplier(material);
+    const earnedMarks = Math.round((rawScore * multiplier + Number.EPSILON) * 100) / 100;
+    const totalMarks = Math.round((actualTotal * multiplier + Number.EPSILON) * 100) / 100;
+    const pct = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
+
+    const formatNum = (n) => (Number.isInteger(n) ? String(n) : String(Math.round((n + Number.EPSILON) * 100) / 100));
+    const marksDisplay = `${formatNum(rawScore)}/${formatNum(actualTotal)} × ${formatNum(multiplier)} = ${formatNum(earnedMarks)}/${formatNum(totalMarks)} marks`;
+
+    this.lastScore = {
+      score: earnedMarks,
+      total: totalMarks,
+      rawScore: rawScore,
+      rawTotal: actualTotal,
+      multiplier: multiplier,
+      marksDisplay: marksDisplay,
+      pct: pct
+    };
 
     // Save practice attempt directly to Supabase
-    const saveResult = await this.savePracticeAttemptToSupabase(material, score, total);
+    const saveResult = await this.savePracticeAttemptToSupabase(material, earnedMarks, actualTotal, pct);
     if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
       if (btnEl) {
         btnEl.disabled = false;
@@ -1200,8 +1316,9 @@ window.InteractivePlayerComponent = {
     const contentArea = document.getElementById("player-content-area");
     if (!contentArea) return;
 
-    const { score, total, pct } = this.lastScore;
+    const { score, total, pct, marksDisplay } = this.lastScore;
     const isPassed = pct >= 60;
+    const displayScore = marksDisplay || `${score} / ${total}`;
 
     contentArea.innerHTML = `
       <div class="exam-results-screen">
@@ -1209,8 +1326,8 @@ window.InteractivePlayerComponent = {
           <div class="exam-results-badge">PRÜFUNG BEENDET</div>
           <h1 class="exam-results-title">Test Completed</h1>
 
-          <div class="exam-results-score-box">
-            <span class="exam-results-score-num">${score} / ${total}</span>
+          <div class="exam-results-score-box" style="flex-wrap: wrap;">
+            <span class="exam-results-score-num" style="font-size: clamp(1.2rem, 3.8vw, 1.85rem); word-break: break-word;">${displayScore}</span>
             <span class="exam-results-score-pct">(${pct}%)</span>
           </div>
 
@@ -1273,7 +1390,7 @@ window.InteractivePlayerComponent = {
     contentArea.innerHTML = `
       <div class="exam-review-top-banner">
         <div>
-          <span>Review Mode</span> · Score: <strong>${this.lastScore.score}/${this.lastScore.total} (${this.lastScore.pct}%)</strong>
+          <span>Review Mode</span> · Score: <strong>${this.lastScore.marksDisplay || `${this.lastScore.score}/${this.lastScore.total}`} (${this.lastScore.pct}%)</strong>
         </div>
         <button type="button" class="exam-cbt-btn" style="background:#ffffff; color:#0f172a; font-size:0.75rem; padding:4px 8px;" onclick="window.InteractivePlayerComponent.renderResultsScreen()">
           Back to Summary
@@ -1339,9 +1456,9 @@ window.InteractivePlayerComponent = {
     this.timerStarted = false;
     this.hasTimerStarted = false;
 
-    this.lastScore = { score: 9, total: 10, pct: 90 };
+    this.lastScore = { score: 9, total: 10, rawScore: 9, rawTotal: 10, multiplier: 1, marksDisplay: "9/10 × 1 = 9/10 marks", pct: 90 };
 
-    const saveResult = await this.savePracticeAttemptToSupabase(material, 9, 10);
+    const saveResult = await this.savePracticeAttemptToSupabase(material, 9, 10, 90);
     if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
       if (btnEl) {
         btnEl.disabled = false;
@@ -1371,9 +1488,9 @@ window.InteractivePlayerComponent = {
     this.timerStarted = false;
     this.hasTimerStarted = false;
 
-    this.lastScore = { score: 8, total: 10, pct: 80 };
+    this.lastScore = { score: 8, total: 10, rawScore: 8, rawTotal: 10, multiplier: 1, marksDisplay: "8/10 × 1 = 8/10 marks", pct: 80 };
 
-    const saveResult = await this.savePracticeAttemptToSupabase(material, 8, 10);
+    const saveResult = await this.savePracticeAttemptToSupabase(material, 8, 10, 80);
     if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
       if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
         const errorMsg = saveResult?.error?.message || "Failed to save speaking attempt. Please check your connection.";
@@ -1391,7 +1508,7 @@ window.InteractivePlayerComponent = {
     this.renderResultsScreen();
   },
 
-  savePracticeAttemptToSupabase: async function (material, correctAnswers, totalQuestions) {
+  savePracticeAttemptToSupabase: async function (material, correctAnswers, totalQuestions, customScorePercent) {
     if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) {
       const err = new Error("Supabase service unavailable");
       console.error("Player: Supabase attempt save error:", err);
@@ -1416,9 +1533,19 @@ window.InteractivePlayerComponent = {
         return { success: false, error: err };
       }
 
-      const correctCount = parseInt(correctAnswers || 0, 10);
+      const storedMarks = (typeof correctAnswers === "number")
+        ? Math.round((correctAnswers + Number.EPSILON) * 100) / 100
+        : parseFloat(correctAnswers || 0) || 0;
       const totalCount = Math.max(1, parseInt(totalQuestions || 1, 10));
-      const scorePercent = Math.round((correctCount / totalCount) * 100);
+
+      let scorePercent;
+      if (customScorePercent !== undefined && customScorePercent !== null && !isNaN(customScorePercent)) {
+        scorePercent = customScorePercent;
+      } else {
+        const multiplier = this.calculateMultiplier(material);
+        const totalMarks = Math.round((totalCount * multiplier + Number.EPSILON) * 100) / 100;
+        scorePercent = totalMarks > 0 ? Math.round((storedMarks / totalMarks) * 100) : 0;
+      }
 
       const dbModule = material.module === "Grammar" ? "Grammatik" : (material.module || "Grammatik");
 
@@ -1434,7 +1561,7 @@ window.InteractivePlayerComponent = {
         level: material.level || "A1",
         format: dbFormat,
         module: dbModule,
-        correct_answers: correctCount,
+        correct_answers: storedMarks,
         total_questions: totalCount,
         score_percent: scorePercent,
         completed_at: new Date().toISOString()
