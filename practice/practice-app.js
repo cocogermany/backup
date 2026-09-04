@@ -1019,7 +1019,61 @@
         startBtn.innerHTML = `<span class="btn-spinner"></span> Starting...`;
       }
 
-      // Call secure Worker endpoint to atomically deduct 1 credit
+      const isSchreiben = Boolean(material && (
+        material.module === "Schreiben" ||
+        material.isWriting ||
+        String(material.id || "").toLowerCase().includes("schreiben") ||
+        String(material.title || "").toLowerCase().includes("schreiben")
+      ));
+
+      // SCHREIBEN SPECIFIC FLOW: Check weekly credits via Worker (do NOT deduct daily credits)
+      if (isSchreiben) {
+        let checkOk = false;
+        let checkRes = null;
+
+        try {
+          const idToken = await this.getFirebaseIdToken();
+          if (window.SupabaseService && window.SupabaseService.checkSchreibenCreditsWorker) {
+            checkRes = await window.SupabaseService.checkSchreibenCreditsWorker(idToken);
+            if (checkRes && checkRes.success && checkRes.schreiben_enabled && checkRes.schreiben_credits_remaining > 0) {
+              checkOk = true;
+            }
+          }
+        } catch (err) {
+          console.warn("PracticeApp: Schreiben credit check error:", err);
+        }
+
+        if (startBtn) {
+          startBtn.disabled = false;
+          startBtn.innerHTML = originalText;
+        }
+
+        if (!checkOk) {
+          this.closePrepModal();
+          if (checkRes && checkRes.schreiben_enabled === false) {
+            this.showToast("⭐ Schreiben tasks require a PRO plan. Upgrade to access writing evaluations.", "warning", 4000);
+            const creditsModal = document.getElementById("credits-detail-modal");
+            this.updateCreditsModalUI();
+            if (creditsModal) creditsModal.hidden = false;
+          } else {
+            this.showToast("⚡ You have used all your weekly Schreiben credits. Quota resets next week.", "warning", 4000);
+          }
+          return;
+        }
+
+        // Allowed: Open player without consuming weekly or daily credit
+        this.closePrepModal();
+
+        if (window.InteractivePlayerComponent) {
+          window.InteractivePlayerComponent.preloadedMaterial = material;
+          window.InteractivePlayerComponent.currentSettings = settings;
+        }
+
+        window.location.hash = `#player?id=${material.id}`;
+        return;
+      }
+
+      // Call secure Worker endpoint to atomically deduct 1 credit (Lesen, Hören, Grammatik)
       let deductOk = false;
       let newRemaining = null;
 

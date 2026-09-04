@@ -1582,6 +1582,14 @@ body.exam-mode .app-viewport {
   transition: all 0.15s ease;
 }
 
+/* Writing Evaluation Results Screen */
+.exam-results-screen.writing-results-screen {
+  display: block;
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Review Top Banner */
 .exam-review-top-banner {
   background: #0f172a;

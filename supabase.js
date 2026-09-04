@@ -341,6 +341,62 @@ async function consumeLearningCreditSupabase(idToken) {
   return resData;
 }
 
+/**
+ * Check Schreiben Weekly Credits via Cloudflare Worker POST /learning/schreiben/check
+ */
+async function checkSchreibenCreditsSupabase(idToken) {
+  const workerBase = getWorkerBaseUrl();
+  const endpoint = `${workerBase}/learning/schreiben/check`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok && !resData.error) {
+    throw new Error(resData.message || `Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
+/**
+ * Evaluate Schreiben submission via Cloudflare Worker POST /learning/schreiben/evaluate
+ */
+async function evaluateSchreibenSupabase(payload, idToken) {
+  const workerBase = getWorkerBaseUrl();
+  const endpoint = `${workerBase}/learning/schreiben/evaluate`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload || {}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok && !resData.error) {
+    throw new Error(resData.message || `Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
 // ===================================================
 // GLOBAL EXPORT FOR NON-MODULE SCRIPTS
 // ===================================================
@@ -357,6 +413,10 @@ const SupabaseService = {
   submitLearningOnboarding: submitLearningOnboardingSupabase,
   checkLearningCredits: checkLearningCreditsSupabase,
   consumeCreditWorker: consumeLearningCreditSupabase,
+  checkSchreibenCredits: checkSchreibenCreditsSupabase,
+  checkSchreibenCreditsWorker: checkSchreibenCreditsSupabase,
+  evaluateSchreiben: evaluateSchreibenSupabase,
+  evaluateSchreibenWorker: evaluateSchreibenSupabase,
   getWorkerBaseUrl,
 };
 

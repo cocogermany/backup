@@ -29,6 +29,8 @@ window.InteractivePlayerComponent = {
   activeMobileTab: "reading", // "reading" | "questions"
   isSubmitted: false,
   isReviewMode: false,
+  currentSchreibenAnswer: "",
+  currentSchreibenResult: null,
   lastScore: { score: 0, total: 0, pct: 0, marksDisplay: "" },
   warningToastShown: false,
   timeExpiredModalShown: false,
@@ -221,6 +223,8 @@ window.InteractivePlayerComponent = {
     return {
       ...(typeof content.passage === "string" ? { passage: content.passage } : {}),
       ...(typeof content.prompt === "string" ? { prompt: content.prompt } : {}),
+      ...(typeof content.task === "string" ? { task: content.task } : {}),
+      ...(typeof content.question === "string" ? { question: content.question } : {}),
       ...(typeof content.title === "string" ? { contentTitle: content.title } : {}),
       ...(questions.length ? { questions } : {}),
       ...(audioPath ? { audioUrl: this.resolveWorkerUrl(audioPath) } : {}),
@@ -798,6 +802,10 @@ window.InteractivePlayerComponent = {
     }
 
     this.currentMaterial = material;
+    this.isSubmitted = false;
+    this.isReviewMode = false;
+    this.currentSchreibenAnswer = "";
+    this.currentSchreibenResult = null;
 
     // Render fixed progress bar
     this.renderFixedProgressBar(material.questions || []);
@@ -1100,28 +1108,65 @@ window.InteractivePlayerComponent = {
   },
 
   renderWritingInterface: function (material) {
+    const examFormat = (material.exam || "Goethe").toUpperCase();
+    const level = (material.level || "A1").toUpperCase();
+    const title = material.contentTitle || material.title || "Schreibaufgabe";
+    const taskText = material.task || material.prompt || material.question || (material.questions && material.questions[0] && material.questions[0].question) || "Bitte verfasse einen Text zur Aufgabenstellung.";
+
     return `
       <div class="exam-writing-workspace player-view-schreiben exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
-          <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
+          <span class="badge-pill badge-gold" style="font-size:0.75rem; padding:3px 10px; font-weight:700;">${this.escapeHtml(examFormat)} ${this.escapeHtml(level)}</span>
           <span>·</span>
-          <span>Schreiben</span>
+          <span style="font-weight:600; color:var(--exam-ink-muted);">Schreiben</span>
         </div>
 
-        <h1 class="exam-doc-title">${this.escapeHtml(material.contentTitle || material.title || "Schreibaufgabe")}</h1>
+        <h1 class="exam-doc-title" style="margin-top:10px;">${this.escapeHtml(title)}</h1>
 
-        <div class="exam-prompt-card">
-          <p class="exam-prompt-text">${this.escapeHtml(material.prompt || "Write a response to the prompt.")}</p>
-          <textarea class="writing-textarea" id="writing-input" placeholder="Liebe/r ..., ich schreibe dir, weil..." oninput="window.InteractivePlayerComponent.updateWordCount(this)"></textarea>
-          <div style="margin-top:10px; font-size:0.8rem; color:var(--exam-ink-muted);" id="word-count-display">
-            Word Count: 0 words (Recommended: 30-40 words)
+        <!-- Writing Task Prompt Card -->
+        <div class="exam-prompt-card" style="background:#ffffff; border:1px solid var(--exam-border-color); border-radius:8px; padding:20px; margin-bottom:20px;">
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--exam-ink-muted); margin-bottom:8px; letter-spacing:0.04em;">
+            Aufgabenstellung (Writing Task)
           </div>
+          <div class="exam-prompt-text" style="font-size:0.96rem; line-height:1.65; color:var(--exam-ink-color); white-space:pre-wrap;">${this.escapeHtml(taskText)}</div>
         </div>
 
-        <button type="button" class="exam-primary-submit-btn" onclick="window.InteractivePlayerComponent.submitWriting(this)">
-          <i data-lucide="send" style="width:16px;height:16px;"></i>
-          <span>Aufgabe abgeben (Submit Writing)</span>
-        </button>
+        <!-- Student Answer Text Area -->
+        <div class="exam-answer-box" style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label for="writing-input" style="font-size:0.85rem; font-weight:700; color:var(--exam-ink-color);">
+              Deine Antwort (Your Response):
+            </label>
+            <div id="word-count-display" style="font-size:0.82rem; font-weight:600; color:var(--exam-ink-muted);">
+              0 / 200 Wörter
+            </div>
+          </div>
+          <textarea
+            class="writing-textarea"
+            id="writing-input"
+            placeholder="Schreibe deinen Text hier... (Maximal 200 Wörter)"
+            oninput="window.InteractivePlayerComponent.updateWordCount(this)"
+            rows="12"
+          ></textarea>
+          <div id="writing-error-message" style="display:none; color:#ef4444; font-size:0.82rem; margin-top:6px; font-weight:600;"></div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <button
+            type="button"
+            class="exam-primary-submit-btn"
+            id="writing-submit-btn"
+            onclick="window.InteractivePlayerComponent.submitWriting(this)"
+            style="min-width:220px;"
+          >
+            <i data-lucide="send" style="width:16px;height:16px;"></i>
+            <span>Text zur Bewertung einreichen</span>
+          </button>
+          <span style="font-size:0.8rem; color:var(--exam-ink-muted);">
+            Maximal 200 Wörter · 1 wöchentlicher Credit nach Auswertung
+          </span>
+        </div>
       </div>
     `;
   },
@@ -1242,9 +1287,39 @@ window.InteractivePlayerComponent = {
 
   updateWordCount: function (textarea) {
     const text = (textarea.value || "").trim();
-    const count = text ? text.split(/\s+/).length : 0;
-    const el = document.getElementById("word-count-display");
-    if (el) el.textContent = `Word Count: ${count} words (Recommended: 30-40 words)`;
+    const words = text ? text.split(/\s+/).filter(Boolean) : [];
+    const count = words.length;
+    const displayEl = document.getElementById("word-count-display");
+    const errorEl = document.getElementById("writing-error-message");
+    const submitBtn = document.getElementById("writing-submit-btn");
+
+    if (displayEl) {
+      if (count > 200) {
+        displayEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">${count} / 200 Wörter (Limit überschritten!)</span>`;
+      } else {
+        displayEl.textContent = `${count} / 200 Wörter`;
+        displayEl.style.color = count > 180 ? "#d97706" : "var(--exam-ink-muted)";
+      }
+    }
+
+    if (count > 200) {
+      if (errorEl) {
+        errorEl.textContent = `Die maximale Wortanzahl beträgt 200 Wörter. Bitte kürze deinen Text um ${count - 200} Wörter.`;
+        errorEl.style.display = "block";
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = "0.5";
+      }
+    } else {
+      if (errorEl) {
+        errorEl.style.display = "none";
+      }
+      if (submitBtn && !submitBtn.innerHTML.includes("btn-spinner")) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "1";
+      }
+    }
   },
 
   submitAnswers: async function (materialId, btnEl) {
@@ -1315,6 +1390,12 @@ window.InteractivePlayerComponent = {
   },
 
   renderResultsScreen: function () {
+    this.isReviewMode = false;
+    const material = this.currentMaterial;
+    if (material && (material.module === "Schreiben" || material.isWriting) && this.currentSchreibenResult) {
+      return this.renderWritingResultsScreen();
+    }
+
     const contentArea = document.getElementById("player-content-area");
     if (!contentArea) return;
 
@@ -1358,6 +1439,143 @@ window.InteractivePlayerComponent = {
     if (window.lucide) window.lucide.createIcons();
   },
 
+  renderWritingResultsScreen: function () {
+    const contentArea = document.getElementById("player-content-area");
+    if (!contentArea) return;
+
+    const evaluation = this.currentSchreibenResult || {};
+    const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : (this.lastScore?.pct || 0);
+    const isPassed = scorePercent >= 60;
+    const criteria = Array.isArray(evaluation.criteria) ? evaluation.criteria : [];
+    const mistakes = Array.isArray(evaluation.mistakes) ? evaluation.mistakes : [];
+    const feedback = evaluation.feedback || "";
+    const material = this.currentMaterial || {};
+    const wordCount = evaluation.word_count || (this.currentSchreibenAnswer ? this.currentSchreibenAnswer.trim().split(/\s+/).filter(Boolean).length : 0);
+
+    contentArea.innerHTML = `
+      <div class="exam-results-screen writing-results-screen" style="max-width:860px; margin:0 auto; padding:24px 16px 80px;">
+        <div class="card" style="padding:28px; border-radius:12px; border:1px solid var(--exam-border-color); background:#ffffff; box-shadow:0 4px 16px rgba(0,0,0,0.04); margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+            <div>
+              <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span class="badge-pill badge-gold" style="font-weight:700; font-size:0.75rem;">
+                  ${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml((material.level || "A1").toUpperCase())}
+                </span>
+                <span style="font-size:0.8rem; color:var(--exam-ink-muted);">Schreiben · Ergebnis</span>
+              </div>
+              <h1 style="font-size:1.6rem; font-weight:800; color:var(--exam-ink-color); margin:0;">
+                Bewertungsergebnis (Evaluation Result)
+              </h1>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge-pill ${isPassed ? 'badge-emerald' : 'badge-rose'}" style="font-size:0.85rem; font-weight:700; padding:6px 14px;">
+                ${isPassed ? '✓ Bestanden (Passed)' : '✗ Nicht bestanden (Needs Practice)'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Overall Score Box -->
+          <div style="display:flex; align-items:center; gap:20px; padding:18px; background:var(--bg-subtle, #f8fafc); border-radius:8px; margin-bottom:20px;">
+            <div style="font-size:2.6rem; font-weight:800; color:${isPassed ? '#059669' : '#e11d48'}; line-height:1;">
+              ${scorePercent}%
+            </div>
+            <div>
+              <div style="font-weight:700; font-size:1rem; color:var(--exam-ink-color); margin-bottom:2px;">
+                ${isPassed ? 'CEFR-Prüfungsanforderung erfüllt' : 'Mindestpunktzahl: 60% erforderlich'}
+              </div>
+              <div style="font-size:0.85rem; color:var(--exam-ink-muted);">
+                Wortanzahl: ${wordCount} Wörter · Max. 200 Wörter
+              </div>
+            </div>
+          </div>
+
+          <!-- Overall Feedback -->
+          ${feedback ? `
+            <div style="margin-bottom:24px; padding:16px; border-left:4px solid #3b82f6; background:#eff6ff; border-radius:0 8px 8px 0;">
+              <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; color:#1d4ed8; letter-spacing:0.04em; margin-bottom:6px;">
+                Gesamteinschätzung (General Feedback)
+              </div>
+              <p style="margin:0; font-size:0.92rem; line-height:1.6; color:#1e293b;">${this.escapeHtml(feedback)}</p>
+            </div>
+          ` : ''}
+
+          <!-- Criteria Assessment Grid -->
+          <div style="margin-bottom:24px;">
+            <h3 style="font-size:1.05rem; font-weight:700; color:var(--exam-ink-color); margin:0 0 14px 0;">
+              Bewertungskriterien (Evaluation Criteria)
+            </h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+              ${criteria.map(c => {
+                const score = typeof c.score === "number" ? c.score : 3;
+                const max = typeof c.max_score === "number" ? c.max_score : 5;
+                const pct = Math.round((score / max) * 100);
+                return `
+                  <div style="background:#ffffff; border:1px solid var(--exam-border-color); border-radius:8px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                      <span style="font-size:0.88rem; font-weight:700; color:var(--exam-ink-color);">${this.escapeHtml(c.name)}</span>
+                      <span style="font-size:0.85rem; font-weight:700; color:#0284c7;">${score} / ${max}</span>
+                    </div>
+                    <div style="height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-bottom:8px;">
+                      <div style="height:100%; width:${pct}%; background:${pct >= 60 ? '#10b981' : '#f59e0b'}; border-radius:999px;"></div>
+                    </div>
+                    ${c.feedback ? `<div style="font-size:0.8rem; line-height:1.45; color:var(--exam-ink-muted);">${this.escapeHtml(c.feedback)}</div>` : ''}
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+
+          <!-- Mistakes and Corrections Section -->
+          ${mistakes.length > 0 ? `
+            <div style="margin-bottom:24px;">
+              <h3 style="font-size:1.05rem; font-weight:700; color:var(--exam-ink-color); margin:0 0 14px 0;">
+                Gefundene Fehler & Korrekturen (Mistakes & Corrections)
+              </h3>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                ${mistakes.map(m => `
+                  <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px 14px;">
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px;">
+                      <span style="background:#fee2e2; color:#b91c1c; font-size:0.82rem; padding:2px 8px; border-radius:4px; font-weight:600; text-decoration:line-through;">
+                        ${this.escapeHtml(m.original || "")}
+                      </span>
+                      <span style="color:#6b7280; font-size:0.82rem;">➔</span>
+                      <span style="background:#dcfce7; color:#15803d; font-size:0.82rem; padding:2px 8px; border-radius:4px; font-weight:700;">
+                        ${this.escapeHtml(m.correction || "")}
+                      </span>
+                    </div>
+                    ${m.explanation ? `<div style="font-size:0.82rem; color:#7c2d12; line-height:1.45; margin-top:4px;">${this.escapeHtml(m.explanation)}</div>` : ''}
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : `
+            <div style="margin-bottom:24px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.88rem; color:#166534;">
+              ✓ Keine gravierenden sprachlichen Fehler gefunden.
+            </div>
+          `}
+
+          <!-- Actions -->
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; padding-top:20px; border-top:1px solid var(--exam-border-color);">
+            <button type="button" class="btn-exam-primary" onclick="window.InteractivePlayerComponent.enterReviewMode()">
+              <i data-lucide="eye" style="width:16px;height:16px;"></i>
+              <span>Eingereichten Text prüfen (Review Text)</span>
+            </button>
+            <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.retryTest()">
+              <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i>
+              <span>Erneut versuchen (Try Again)</span>
+            </button>
+            <button type="button" class="btn-exam-secondary" onclick="window.InteractivePlayerComponent.confirmExitExam()">
+              <i data-lucide="grid" style="width:16px;height:16px;"></i>
+              <span>Zurück zum Practice Hub</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+  },
+
   enterReviewMode: function () {
     this.isReviewMode = true;
     const material = this.currentMaterial;
@@ -1365,6 +1583,66 @@ window.InteractivePlayerComponent = {
 
     const contentArea = document.getElementById("player-content-area");
     if (!contentArea) return;
+
+    if (material.module === "Schreiben" || material.isWriting) {
+      const evaluation = this.currentSchreibenResult || {};
+      const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : (this.lastScore?.pct || 0);
+      const taskText = material.task || material.prompt || material.question || "Schreibaufgabe";
+      const studentAnswer = this.currentSchreibenAnswer || "";
+      const wordCount = studentAnswer ? studentAnswer.trim().split(/\s+/).filter(Boolean).length : 0;
+
+      contentArea.innerHTML = `
+        <div class="exam-review-top-banner">
+          <div>
+            <span>Review Mode · Schreiben</span> · Bewertung: <strong>${scorePercent}%</strong> (${wordCount} Wörter)
+          </div>
+          <button type="button" class="exam-cbt-btn" style="background:#ffffff; color:#0f172a; font-size:0.75rem; padding:4px 8px;" onclick="window.InteractivePlayerComponent.renderResultsScreen()">
+            Zurück zur Übersicht (Back to Summary)
+          </button>
+        </div>
+
+        <div class="exam-writing-workspace player-view-schreiben exam-single-panel-workspace" id="exam-cbt-workspace">
+          <div class="exam-doc-meta">
+            <span class="badge-pill badge-gold" style="font-size:0.75rem; padding:3px 10px; font-weight:700;">${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml((material.level || "A1").toUpperCase())}</span>
+            <span>·</span>
+            <span style="font-weight:600; color:var(--exam-ink-muted);">Schreiben (Eingereichte Arbeit)</span>
+          </div>
+
+          <h1 class="exam-doc-title" style="margin-top:10px;">${this.escapeHtml(material.contentTitle || material.title || "Schreibaufgabe")}</h1>
+
+          <!-- Task Card -->
+          <div class="exam-prompt-card" style="background:#ffffff; border:1px solid var(--exam-border-color); border-radius:8px; padding:20px; margin-bottom:20px;">
+            <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; color:var(--exam-ink-muted); margin-bottom:8px; letter-spacing:0.04em;">
+              Aufgabenstellung (Writing Task)
+            </div>
+            <div class="exam-prompt-text" style="font-size:0.96rem; line-height:1.65; color:var(--exam-ink-color); white-space:pre-wrap;">${this.escapeHtml(taskText)}</div>
+          </div>
+
+          <!-- Submitted Text (Read Only) -->
+          <div class="exam-answer-box" style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:0.85rem; font-weight:700; color:var(--exam-ink-color);">
+                Deine abgegebene Antwort (${wordCount} Wörter):
+              </span>
+              <span class="badge-pill ${scorePercent >= 60 ? 'badge-emerald' : 'badge-rose'}" style="font-size:0.75rem;">
+                ${scorePercent}% Erreicht
+              </span>
+            </div>
+            <div style="background:#f8fafc; border:1px solid var(--exam-border-color); border-radius:8px; padding:18px; font-size:0.95rem; line-height:1.7; color:#1e293b; white-space:pre-wrap;">${this.escapeHtml(studentAnswer || "Keine Antwort erfasst.")}</div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <button type="button" class="btn-exam-primary" onclick="window.InteractivePlayerComponent.renderResultsScreen()">
+              <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+              <span>Zurück zur detaillierten Auswertung</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
 
     const isGrammatik = Boolean(material && material.module === "Grammatik");
     const isHoeren = Boolean(material && material.module === "Hören");
@@ -1448,39 +1726,126 @@ window.InteractivePlayerComponent = {
 
   submitWriting: async function (btnEl) {
     this.playClickSound("submit");
-    if (btnEl) {
-      btnEl.disabled = true;
-      btnEl.innerHTML = `<span class="btn-spinner"></span> Evaluating...`;
-    }
 
-    const material = this.currentMaterial || { id: "writing-1", module: "Schreiben", level: "A1", exam: "goethe" };
-    this.stopTimer();
-    this.timerStarted = false;
-    this.hasTimerStarted = false;
+    const textarea = document.getElementById("writing-input");
+    const answerText = (textarea?.value || "").trim();
+    const words = answerText ? answerText.split(/\s+/).filter(Boolean) : [];
+    const wordCount = words.length;
 
-    this.lastScore = { score: 9, total: 10, rawScore: 9, rawTotal: 10, multiplier: 1, marksDisplay: "9/10 × 1 = 9/10 marks", pct: 90 };
+    const errorEl = document.getElementById("writing-error-message");
 
-    const saveResult = await this.savePracticeAttemptToSupabase(material, 9, 10, 90);
-    if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
-      if (btnEl) {
-        btnEl.disabled = false;
-        btnEl.innerHTML = `<i data-lucide="send" style="width:16px;height:16px;"></i><span>Aufgabe abgeben (Submit Writing)</span>`;
-        if (window.lucide) window.lucide.createIcons();
+    if (wordCount === 0) {
+      if (errorEl) {
+        errorEl.textContent = "Bitte schreibe zuerst deinen Text, bevor du ihn einreichst.";
+        errorEl.style.display = "block";
       }
-      if (window.PracticeApp && typeof window.PracticeApp.showToast === "function") {
-        const errorMsg = saveResult?.error?.message || "Failed to save writing attempt. Please check your connection.";
-        window.PracticeApp.showToast(errorMsg, "error", 4000);
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast("Bitte gib einen Text ein.", "warning", 3500);
       }
       return;
     }
 
-    this.isSubmitted = true;
-
-    if (window.PracticeApp) {
-      window.PracticeApp.recordTestCompletion("Schreiben", 90);
+    if (wordCount > 200) {
+      if (errorEl) {
+        errorEl.textContent = `Die maximal erlaubte Wortanzahl ist 200 Wörter (aktuell: ${wordCount}).`;
+        errorEl.style.display = "block";
+      }
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast(`Maximal 200 Wörter erlaubt (${wordCount} Wörter).`, "error", 3500);
+      }
+      return;
     }
 
-    this.renderResultsScreen();
+    const originalBtnHtml = btnEl ? btnEl.innerHTML : "";
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<span class="btn-spinner"></span> Bewertung wird erstellt...`;
+    }
+
+    this.stopTimer();
+    this.timerStarted = false;
+    this.hasTimerStarted = false;
+
+    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe" };
+    const taskText = material.task || material.prompt || material.question || (material.questions && material.questions[0] && material.questions[0].question) || "Schreibaufgabe";
+
+    let evalRes = null;
+    try {
+      const idToken = await (window.PracticeApp?.getFirebaseIdToken ? window.PracticeApp.getFirebaseIdToken() : null);
+      if (!idToken) {
+        throw new Error("Du musst angemeldet sein, um die Auswertung zu starten.");
+      }
+
+      if (!window.SupabaseService?.evaluateSchreibenWorker) {
+        throw new Error("Der Bewertungsdienst ist derzeit nicht verfügbar.");
+      }
+
+      evalRes = await window.SupabaseService.evaluateSchreibenWorker(
+        {
+          material_id: material.id,
+          exam: material.exam || "goethe",
+          level: material.level || "A1",
+          task: taskText,
+          answer: answerText
+        },
+        idToken
+      );
+    } catch (err) {
+      console.error("Player: Schreiben evaluation error:", err);
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = originalBtnHtml;
+        if (window.lucide) window.lucide.createIcons();
+      }
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast(err.message || "Auswertungsfehler. Kein Credit abgezogen.", "error", 4500);
+      }
+      return;
+    }
+
+    if (!evalRes || !evalRes.success || !evalRes.evaluation) {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = originalBtnHtml;
+        if (window.lucide) window.lucide.createIcons();
+      }
+      const msg = evalRes?.message || "Auswertung fehlgeschlagen. Es wurde kein Credit abgezogen.";
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast(msg, "error", 4500);
+      }
+      return;
+    }
+
+    const evaluation = evalRes.evaluation;
+    const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 70;
+    const correctAnswers = Math.round(scorePercent / 10);
+    const totalQuestions = 10;
+
+    // Save attempt into practice_attempts with integer marks
+    const saveResult = await this.savePracticeAttemptToSupabase(material, correctAnswers, totalQuestions, scorePercent);
+    if (!saveResult || (!saveResult.success && !saveResult.alreadyCompleted)) {
+      console.warn("Player: Notice saving practice attempt to Supabase:", saveResult?.error);
+    }
+
+    this.isSubmitted = true;
+    this.currentSchreibenAnswer = answerText;
+    this.currentSchreibenResult = evaluation;
+
+    this.lastScore = {
+      score: correctAnswers,
+      total: totalQuestions,
+      rawScore: correctAnswers,
+      rawTotal: totalQuestions,
+      multiplier: 1,
+      marksDisplay: `${scorePercent}%`,
+      pct: scorePercent
+    };
+
+    if (window.PracticeApp) {
+      window.PracticeApp.recordTestCompletion("Schreiben", scorePercent);
+    }
+
+    this.renderWritingResultsScreen();
   },
 
   finishSpeaking: async function () {
@@ -1619,6 +1984,8 @@ window.InteractivePlayerComponent = {
     this.timerStarted = false;
     this.hasTimerStarted = false;
     this.userAnswers = {};
+    this.currentSchreibenAnswer = "";
+    this.currentSchreibenResult = null;
     this.isSubmitted = false;
     this.isReviewMode = false;
     this.warningToastShown = false;

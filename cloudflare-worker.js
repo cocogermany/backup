@@ -1097,27 +1097,12 @@ export default {
 
         const isNewWeek = !schreibenLastReset || (currentWeekStart > getLocalCalendarWeekStart(schreibenLastReset, userTimezone));
 
-        // Case A: New local week has started -> Reset allowance & consume 1 credit
+        // If new week has started, reset allowance before checking balance (do not deduct yet)
         if (isNewWeek) {
-          if (weeklySchreibenLimit <= 0) {
-            return responseJSON(
-              {
-                success: false,
-                error: "insufficient_credits",
-                message: "No weekly Schreiben credits available.",
-                schreiben_enabled: true,
-                schreiben_credits_remaining: 0,
-                weekly_schreiben_limit: weeklySchreibenLimit,
-                membership: membershipCode,
-              },
-              403,
-              request
-            );
-          }
+          schreibenCreditsRemaining = weeklySchreibenLimit;
+          schreibenLastReset = new Date().toISOString();
 
-          const newCredits = weeklySchreibenLimit - 1;
-          const nowIso = new Date().toISOString();
-          const resetRes = await fetch(
+          await fetch(
             `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`,
             {
               method: "PATCH",
@@ -1125,44 +1110,23 @@ export default {
                 "apikey": serviceRoleKey,
                 "Authorization": `Bearer ${serviceRoleKey}`,
                 "Content-Type": "application/json",
-                "Prefer": "return=representation",
               },
               body: JSON.stringify({
-                schreiben_credits_remaining: newCredits,
-                schreiben_last_reset: nowIso,
-                updated_at: nowIso,
+                schreiben_credits_remaining: schreibenCreditsRemaining,
+                schreiben_last_reset: schreibenLastReset,
+                updated_at: new Date().toISOString(),
               }),
             }
           );
-
-          if (!resetRes.ok) {
-            const errText = await resetRes.text();
-            return responseJSON({ error: `Supabase credit update error (${resetRes.status}): ${errText}` }, resetRes.status, request);
-          }
-
-          const resetData = await resetRes.json();
-          const updatedUser = resetData && resetData.length > 0 ? resetData[0] : { schreiben_credits_remaining: newCredits, membership: membershipCode };
-          return responseJSON(
-            {
-              success: true,
-              schreiben_credits_remaining: updatedUser.schreiben_credits_remaining,
-              weekly_schreiben_limit: weeklySchreibenLimit,
-              schreiben_enabled: true,
-              membership: updatedUser.membership || membershipCode,
-              uid,
-            },
-            200,
-            request
-          );
         }
 
-        // Case B: Same calendar week -> Check remaining credits & perform ATOMIC conditional decrement
+        // Re-check remaining credits before allowing evaluation
         if (schreibenCreditsRemaining <= 0) {
           return responseJSON(
             {
               success: false,
               error: "insufficient_credits",
-              message: "You have used all your weekly Schreiben credits.",
+              message: "You have used all your weekly Schreiben credits. Quota resets next week.",
               schreiben_enabled: true,
               schreiben_credits_remaining: 0,
               weekly_schreiben_limit: weeklySchreibenLimit,
@@ -1173,7 +1137,211 @@ export default {
           );
         }
 
-        const newCredits = schreibenCreditsRemaining - 1;
+        // 4. Validate input payload
+        let body = {};
+        try {
+          body = await request.json();
+        } catch (e) {
+          body = {};
+        }
+
+        const materialId = String(body.material_id || "schreiben-1");
+        const examFormat = String(body.exam || body.format || "goethe").trim();
+        const level = String(body.level || "A1").toUpperCase().trim();
+        const taskText = String(body.task || body.prompt || body.question || "").trim();
+        const studentAnswer = String(body.answer || body.student_answer || "").trim();
+
+        if (!studentAnswer) {
+          return responseJSON(
+            { success: false, error: "empty_answer", message: "Answer cannot be empty." },
+            400,
+            request
+          );
+        }
+
+        const wordCount = studentAnswer.split(/\s+/).filter(Boolean).length;
+        if (wordCount > 200) {
+          return responseJSON(
+            {
+              success: false,
+              error: "word_limit_exceeded",
+              message: `Your answer exceeds the maximum allowed 200 words (current: ${wordCount} words).`,
+            },
+            400,
+            request
+          );
+        }
+
+        // 5. Check Gemini API Secret in Worker Environment
+        const geminiApiKey = env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+          return responseJSON(
+            {
+              success: false,
+              error: "server_config_error",
+              message: "Server Configuration Error: GEMINI_API_KEY secret is not bound to the Cloudflare Worker.",
+            },
+            500,
+            request
+          );
+        }
+
+        // 6. Call Gemini Evaluation API
+        const evaluationPrompt = `
+You are a certified, professional German language examination evaluator for official ${examFormat.toUpperCase()} exams at the CEFR ${level} level.
+Evaluate the student's German writing task according to official ${examFormat.toUpperCase()} ${level} evaluation criteria.
+
+TASK/QUESTION:
+${taskText || "Schreibaufgabe"}
+
+STUDENT ANSWER:
+${studentAnswer}
+
+LEVEL: ${level}
+EXAM FORMAT: ${examFormat}
+
+Provide a strict, constructive, and comprehensive evaluation.
+Evaluate the submission on four criteria:
+1. Aufgabenerfüllung (Task Fulfillment & Completeness)
+2. Kohärenz & Textaufbau (Coherence, Structure & Connectors)
+3. Wortschatz (Vocabulary Range & Appropriateness for ${level})
+4. Grammatik & Form (Grammar, Syntax, Spelling & Morphology)
+
+You MUST respond ONLY with a valid JSON object strictly matching this schema:
+{
+  "score_percent": <integer between 0 and 100>,
+  "cefr_level_met": <boolean, true if score_percent >= 60>,
+  "criteria": [
+    {
+      "name": "Aufgabenerfüllung",
+      "score": <number between 0 and 5, can use 0.5 increments>,
+      "max_score": 5,
+      "feedback": "<concise feedback on task fulfillment>"
+    },
+    {
+      "name": "Kohärenz & Textaufbau",
+      "score": <number between 0 and 5>,
+      "max_score": 5,
+      "feedback": "<concise feedback on text structure and flow>"
+    },
+    {
+      "name": "Wortschatz",
+      "score": <number between 0 and 5>,
+      "max_score": 5,
+      "feedback": "<concise feedback on vocabulary appropriateness>"
+    },
+    {
+      "name": "Grammatik & Form",
+      "score": <number between 0 and 5>,
+      "max_score": 5,
+      "feedback": "<concise feedback on grammar and spelling>"
+    }
+  ],
+  "mistakes": [
+    {
+      "original": "<exact German phrase with mistake from student text>",
+      "correction": "<corrected German phrasing>",
+      "explanation": "<short, clear explanation of grammar or vocabulary rule>"
+    }
+  ],
+  "feedback": "<overall qualitative evaluation summary highlighting strengths and areas for improvement>"
+}
+`.trim();
+
+        let evaluationResult = null;
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+          const geminiRes = await fetch(geminiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: evaluationPrompt }],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.2,
+                responseMimeType: "application/json",
+              },
+            }),
+          });
+
+          if (!geminiRes.ok) {
+            const errBody = await geminiRes.text();
+            console.error("Gemini API Error:", geminiRes.status, errBody);
+            return responseJSON(
+              {
+                success: false,
+                error: "evaluation_service_error",
+                message: "Writing evaluation service temporarily unavailable. No credit was deducted. Please try again.",
+              },
+              502,
+              request
+            );
+          }
+
+          const geminiData = await geminiRes.json();
+          const candidateText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!candidateText) {
+            throw new Error("Empty evaluation response from language model");
+          }
+
+          const parsed = JSON.parse(candidateText);
+
+          // Validate required fields in parsed JSON
+          const rawScorePct = typeof parsed.score_percent === "number" ? parsed.score_percent : parseInt(parsed.score_percent || 0, 10);
+          const scorePercent = Math.max(0, Math.min(100, isNaN(rawScorePct) ? 60 : rawScorePct));
+
+          const criteria = Array.isArray(parsed.criteria) && parsed.criteria.length > 0
+            ? parsed.criteria.map((c) => ({
+                name: String(c.name || "Kriterium"),
+                score: typeof c.score === "number" ? c.score : parseFloat(c.score || 0) || 0,
+                max_score: typeof c.max_score === "number" ? c.max_score : 5,
+                feedback: String(c.feedback || ""),
+              }))
+            : [
+                { name: "Aufgabenerfüllung", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Aufgabe bewertet." },
+                { name: "Kohärenz & Aufbau", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Textaufbau bewertet." },
+                { name: "Wortschatz", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Wortschatz bewertet." },
+                { name: "Grammatik & Form", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Grammatik bewertet." },
+              ];
+
+          const mistakes = Array.isArray(parsed.mistakes)
+            ? parsed.mistakes.map((m) => ({
+                original: String(m.original || ""),
+                correction: String(m.correction || ""),
+                explanation: String(m.explanation || ""),
+              })).filter((m) => m.original || m.correction)
+            : [];
+
+          const feedback = String(parsed.feedback || "Deine Schreibaufgabe wurde erfolgreich ausgewertet.");
+
+          evaluationResult = {
+            score_percent: scorePercent,
+            cefr_level_met: scorePercent >= 60,
+            criteria,
+            mistakes,
+            feedback,
+            word_count: wordCount,
+          };
+        } catch (evalErr) {
+          console.error("Evaluation parsing error:", evalErr);
+          return responseJSON(
+            {
+              success: false,
+              error: "evaluation_failed",
+              message: "Failed to evaluate writing submission. No credit was deducted. Please try again.",
+            },
+            500,
+            request
+          );
+        }
+
+        // 7. Deduct EXACTLY ONE Schreiben credit ONLY AFTER successful evaluation
+        const newCredits = Math.max(0, schreibenCreditsRemaining - 1);
         const deductRes = await fetch(
           `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&schreiben_credits_remaining=gt.0`,
           {
@@ -1191,36 +1359,22 @@ export default {
           }
         );
 
-        if (!deductRes.ok) {
-          const errText = await deductRes.text();
-          return responseJSON({ error: `Supabase credit update error (${deductRes.status}): ${errText}` }, deductRes.status, request);
+        let finalRemaining = newCredits;
+        if (deductRes.ok) {
+          const deductData = await deductRes.json();
+          if (deductData && deductData.length > 0 && typeof deductData[0].schreiben_credits_remaining === "number") {
+            finalRemaining = deductData[0].schreiben_credits_remaining;
+          }
         }
 
-        const deductData = await deductRes.json();
-        if (!deductData || deductData.length === 0) {
-          return responseJSON(
-            {
-              success: false,
-              error: "insufficient_credits",
-              message: "You have used all your weekly Schreiben credits.",
-              schreiben_enabled: true,
-              schreiben_credits_remaining: 0,
-              weekly_schreiben_limit: weeklySchreibenLimit,
-              membership: membershipCode,
-            },
-            403,
-            request
-          );
-        }
-
-        const updatedUser = deductData[0];
         return responseJSON(
           {
             success: true,
-            schreiben_credits_remaining: updatedUser.schreiben_credits_remaining,
+            evaluation: evaluationResult,
+            schreiben_credits_remaining: finalRemaining,
             weekly_schreiben_limit: weeklySchreibenLimit,
-            schreiben_enabled: true,
-            membership: updatedUser.membership || membershipCode,
+            membership: membershipCode,
+            material_id: materialId,
             uid,
           },
           200,
