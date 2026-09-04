@@ -238,7 +238,7 @@
     refreshActiveView(options = {}) {
       const hash = window.location.hash || "#dashboard";
       const mainPath = hash.split("?")[0];
-      if (mainPath === "#player") return; // Keep ongoing drills uninterrupted
+      if (mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player") return; // Keep ongoing drills uninterrupted
 
       this.handleRoute({ isAutoRefresh: true, ...options });
     }
@@ -706,7 +706,7 @@
       const mainPath = hash.split("?")[0];
       const searchParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
 
-      const isExamMode = mainPath === "#player";
+      const isExamMode = mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player";
       if (isExamMode) {
         document.body.classList.add("exam-mode");
       } else {
@@ -752,6 +752,18 @@
             searchParams ? searchParams.get("id") : null,
             AppState
           );
+          break;
+
+        case "#schreiben":
+        case "#schreiben-player":
+          if (titleEl) titleEl.textContent = "Schreiben Player";
+          if (window.SchreibenPlayerComponent) {
+            viewport.innerHTML = window.SchreibenPlayerComponent.render(AppState, searchParams);
+            initPromise = window.SchreibenPlayerComponent._initPromise = window.SchreibenPlayerComponent.initPlayerMaterial(
+              searchParams ? searchParams.get("id") : null,
+              AppState
+            );
+          }
           break;
 
         case "#progress":
@@ -1061,15 +1073,15 @@
           return;
         }
 
-        // Allowed: Open player without consuming weekly or daily credit
+        // Allowed: Open dedicated Schreiben player without consuming weekly or daily credit
         this.closePrepModal();
 
-        if (window.InteractivePlayerComponent) {
-          window.InteractivePlayerComponent.preloadedMaterial = material;
-          window.InteractivePlayerComponent.currentSettings = settings;
+        if (window.SchreibenPlayerComponent) {
+          window.SchreibenPlayerComponent.preloadedMaterial = material;
+          window.SchreibenPlayerComponent.currentSettings = settings;
         }
 
-        window.location.hash = `#player?id=${material.id}`;
+        window.location.hash = `#schreiben?id=${material.id}`;
         return;
       }
 

@@ -1359,13 +1359,41 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
           }
         );
 
-        let finalRemaining = newCredits;
-        if (deductRes.ok) {
-          const deductData = await deductRes.json();
-          if (deductData && deductData.length > 0 && typeof deductData[0].schreiben_credits_remaining === "number") {
-            finalRemaining = deductData[0].schreiben_credits_remaining;
-          }
+        if (!deductRes.ok) {
+          const errText = await deductRes.text();
+          console.error(`Supabase credit deduction error (${deductRes.status}):`, errText);
+          return responseJSON(
+            {
+              success: false,
+              error: "credit_deduction_error",
+              message: `Database credit deduction error (${deductRes.status}): ${errText}`,
+            },
+            500,
+            request
+          );
         }
+
+        const deductData = await deductRes.json();
+        if (!deductData || deductData.length === 0) {
+          // Conditional check (schreiben_credits_remaining=gt.0) matched 0 rows
+          // (concurrent request already consumed the last credit, or quota exhausted)
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              message: "Concurrent evaluation or insufficient weekly credits: no credit was deducted.",
+              schreiben_credits_remaining: 0,
+              weekly_schreiben_limit: weeklySchreibenLimit,
+              membership: membershipCode,
+            },
+            409,
+            request
+          );
+        }
+
+        const finalRemaining = (typeof deductData[0].schreiben_credits_remaining === "number")
+          ? deductData[0].schreiben_credits_remaining
+          : newCredits;
 
         return responseJSON(
           {

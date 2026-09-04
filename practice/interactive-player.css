@@ -1253,12 +1253,10 @@ body.exam-mode .app-viewport {
 
 
 /* ==========================================================================
-   7. MODULE VIEWS: SCHREIBEN & SPRECHEN
+   7. MODULE VIEWS: SPRECHEN
    ========================================================================== */
 
-.exam-writing-workspace,
 .exam-speaking-workspace,
-.player-view-schreiben,
 .player-view-sprechen {
   width: 100%;
   max-width: 800px;
@@ -1288,28 +1286,6 @@ body.exam-mode .app-viewport {
 
 .exam-prompt-text:last-child {
   margin-bottom: 0;
-}
-
-.writing-textarea {
-  width: 100%;
-  min-height: 220px;
-  padding: 16px;
-  border: 1px solid var(--exam-border-color);
-  border-radius: 8px;
-  background: #ffffff;
-  font-family: inherit;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--exam-ink-color);
-  resize: vertical;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.writing-textarea:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .speaking-prep-box {
@@ -1582,14 +1558,6 @@ body.exam-mode .app-viewport {
   transition: all 0.15s ease;
 }
 
-/* Writing Evaluation Results Screen */
-.exam-results-screen.writing-results-screen {
-  display: block;
-  align-items: flex-start;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 /* Review Top Banner */
 .exam-review-top-banner {
   background: #0f172a;
@@ -1613,7 +1581,6 @@ body.exam-mode .app-viewport {
 .exam-review-top-banner + .exam-single-panel-workspace,
 .exam-review-top-banner + .exam-hoeren-workspace,
 .exam-review-top-banner + .exam-grammatik-workspace,
-.exam-review-top-banner + .exam-writing-workspace,
 .exam-review-top-banner + .exam-speaking-workspace {
   height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - 37px);
   margin-top: 0;
@@ -1676,7 +1643,6 @@ body.exam-mode .app-viewport {
   .player-view-hoeren,
   .exam-grammatik-workspace,
   .player-view-grammatik,
-  .exam-writing-workspace,
   .exam-speaking-workspace,
   .exam-results-screen {
     margin-top: calc(var(--exam-header-h) + var(--exam-progress-h));
@@ -1738,7 +1704,6 @@ body.exam-mode .app-viewport {
   .exam-review-top-banner + .exam-single-panel-workspace,
   .exam-review-top-banner + .exam-hoeren-workspace,
   .exam-review-top-banner + .exam-grammatik-workspace,
-  .exam-review-top-banner + .exam-writing-workspace,
   .exam-review-top-banner + .exam-speaking-workspace {
     height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h) - 37px);
   }

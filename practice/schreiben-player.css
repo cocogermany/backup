@@ -1,0 +1,804 @@
+/**
+ * Coco Germany Practice App - Dedicated Schreiben Player Stylesheet
+ * practice/schreiben-player.css
+ *
+ * Dedicated styling for the Schreiben examination experience.
+ * All rules scoped under .schreiben-player-root or .schreiben-* to prevent conflicts.
+ */
+
+:root {
+  --schreiben-bg: #f8fafc;
+  --schreiben-card-bg: #ffffff;
+  --schreiben-border: #e2e8f0;
+  --schreiben-ink: #0f172a;
+  --schreiben-ink-muted: #64748b;
+  --schreiben-primary: #0284c7;
+  --schreiben-primary-hover: #0369a1;
+  --schreiben-gold: #d97706;
+  --schreiben-gold-bg: #fef3c7;
+  --schreiben-emerald: #059669;
+  --schreiben-emerald-bg: #ecfdf5;
+  --schreiben-rose: #e11d48;
+  --schreiben-rose-bg: #ffe4e6;
+  --schreiben-header-h: 56px;
+}
+
+/* Base Root Container */
+.schreiben-player-root {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--schreiben-bg);
+  color: var(--schreiben-ink);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* Sticky Header */
+.schreiben-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--schreiben-header-h);
+  background: #ffffff;
+  border-bottom: 1px solid var(--schreiben-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.schreiben-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.schreiben-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #f1f5f9;
+  color: var(--schreiben-ink);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schreiben-exit-btn:hover {
+  background: #e2e8f0;
+  color: #0284c7;
+}
+
+.schreiben-header-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--schreiben-border);
+}
+
+.schreiben-brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schreiben-badge-gold {
+  background: var(--schreiben-gold-bg);
+  color: var(--schreiben-gold);
+  border: 1px solid #fde68a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.schreiben-header-meta {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--schreiben-ink-muted);
+}
+
+.schreiben-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.schreiben-credits-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+/* Main Content Area */
+.schreiben-content-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  box-sizing: border-box;
+}
+
+/* Workspace Card */
+.schreiben-workspace-card {
+  background: var(--schreiben-card-bg);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.schreiben-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.schreiben-badge-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.schreiben-badge-level {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.schreiben-badge-module {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.schreiben-badge-sub {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.schreiben-badge-credits {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.schreiben-task-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--schreiben-ink);
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+}
+
+/* Task Card */
+.schreiben-task-card {
+  background: #f8fafc;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.schreiben-task-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--schreiben-ink-muted);
+  margin-bottom: 10px;
+}
+
+.schreiben-task-body {
+  font-size: 0.98rem;
+  line-height: 1.68;
+  color: #1e293b;
+  white-space: pre-wrap;
+}
+
+/* Writing Input Card */
+.schreiben-input-card {
+  margin-bottom: 24px;
+}
+
+.schreiben-input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schreiben-input-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+}
+
+.schreiben-word-pill {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+
+.schreiben-pill-warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.schreiben-pill-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.schreiben-text-danger {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.schreiben-textarea {
+  width: 100%;
+  min-height: 260px;
+  padding: 18px;
+  border: 1.5px solid var(--schreiben-border);
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--schreiben-ink);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schreiben-textarea:focus {
+  border-color: var(--schreiben-primary);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.schreiben-error-banner {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Actions Bar */
+.schreiben-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--schreiben-border);
+}
+
+.schreiben-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--schreiben-primary);
+  color: #ffffff;
+  border: 1px solid var(--schreiben-primary);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schreiben-btn-primary:hover:not(:disabled) {
+  background: var(--schreiben-primary-hover);
+  border-color: var(--schreiben-primary-hover);
+}
+
+.schreiben-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.schreiben-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #ffffff;
+  color: var(--schreiben-ink);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schreiben-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.schreiben-footnote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--schreiben-ink-muted);
+}
+
+/* Loading Cards */
+.schreiben-loading-card,
+.schreiben-evaluating-card {
+  background: var(--schreiben-card-bg);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 12px;
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.schreiben-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 16px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--schreiben-primary);
+  border-radius: 50%;
+  animation: schreiben-spin 0.8s linear infinite;
+}
+
+.schreiben-spinner-lg {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  border: 4px solid #e2e8f0;
+  border-top-color: var(--schreiben-primary);
+  border-radius: 50%;
+  animation: schreiben-spin 0.8s linear infinite;
+}
+
+@keyframes schreiben-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.schreiben-loading-title,
+.schreiben-eval-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--schreiben-ink);
+  margin: 0 0 8px 0;
+}
+
+.schreiben-loading-sub,
+.schreiben-eval-sub {
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--schreiben-ink-muted);
+  max-width: 560px;
+  margin: 0 auto 16px;
+}
+
+.schreiben-eval-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0284c7;
+  padding: 6px 14px;
+  background: #f0f9ff;
+  border-radius: 999px;
+}
+
+/* Results Screen */
+.schreiben-results-card {
+  background: var(--schreiben-card-bg);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 12px;
+  padding: 36px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.schreiben-results-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--schreiben-border);
+}
+
+.schreiben-results-heading {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--schreiben-ink);
+  margin: 0;
+}
+
+.schreiben-status-badge {
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.schreiben-status-pass {
+  background: var(--schreiben-emerald-bg);
+  color: var(--schreiben-emerald);
+  border: 1px solid #a7f3d0;
+}
+
+.schreiben-status-fail {
+  background: var(--schreiben-rose-bg);
+  color: var(--schreiben-rose);
+  border: 1px solid #fecdd3;
+}
+
+/* Score Summary Box */
+.schreiben-score-summary-box {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.schreiben-score-figure {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.schreiben-score-pass {
+  color: var(--schreiben-emerald);
+}
+
+.schreiben-score-fail {
+  color: var(--schreiben-rose);
+}
+
+.schreiben-score-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+  margin-bottom: 4px;
+}
+
+.schreiben-score-sub {
+  font-size: 0.85rem;
+  color: var(--schreiben-ink-muted);
+}
+
+/* Qualitative Feedback Callout */
+.schreiben-feedback-callout {
+  margin-bottom: 28px;
+  padding: 18px 20px;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+}
+
+.schreiben-feedback-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.schreiben-feedback-text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  color: #1e293b;
+}
+
+/* Section Blocks */
+.schreiben-section-block {
+  margin-bottom: 28px;
+}
+
+.schreiben-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+  margin: 0 0 16px 0;
+}
+
+/* Criteria Grid */
+.schreiben-criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.schreiben-criteria-item {
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.schreiben-criteria-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.schreiben-criteria-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+}
+
+.schreiben-criteria-score {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.schreiben-progress-track {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.schreiben-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.schreiben-fill-pass {
+  background: #10b981;
+}
+
+.schreiben-fill-warn {
+  background: #f59e0b;
+}
+
+.schreiben-criteria-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--schreiben-ink-muted);
+}
+
+/* Mistakes List */
+.schreiben-mistakes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schreiben-mistake-card {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.schreiben-mistake-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.schreiben-badge-mistake {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.schreiben-arrow {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.schreiben-badge-correction {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.85rem;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.schreiben-mistake-exp {
+  font-size: 0.84rem;
+  color: #7c2d12;
+  line-height: 1.48;
+}
+
+.schreiben-clean-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #15803d;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* Results Actions */
+.schreiben-results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--schreiben-border);
+}
+
+/* Review Mode */
+.schreiben-review-card {
+  background: var(--schreiben-card-bg);
+  border: 1px solid var(--schreiben-border);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.schreiben-review-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+}
+
+.schreiben-review-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.schreiben-review-score {
+  color: #38bdf8;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.schreiben-review-back-btn {
+  padding: 5px 12px;
+  background: #ffffff;
+  color: #0f172a;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.schreiben-review-back-btn:hover {
+  background: #f1f5f9;
+}
+
+.schreiben-review-text {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #1e293b;
+  white-space: pre-wrap;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 6px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .schreiben-header {
+    padding: 0 14px;
+  }
+
+  .schreiben-exit-label {
+    display: none;
+  }
+
+  .schreiben-content-container {
+    padding: 16px 12px 60px;
+  }
+
+  .schreiben-workspace-card,
+  .schreiben-results-card,
+  .schreiben-review-card {
+    padding: 20px 16px;
+  }
+
+  .schreiben-task-title {
+    font-size: 1.3rem;
+  }
+
+  .schreiben-score-summary-box {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .schreiben-results-actions {
+    flex-direction: column;
+  }
+
+  .schreiben-results-actions button {
+    width: 100%;
+  }
+
+  .schreiben-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schreiben-btn-primary {
+    width: 100%;
+  }
+}

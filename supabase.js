@@ -376,11 +376,13 @@ async function evaluateSchreibenSupabase(payload, idToken) {
   const workerBase = getWorkerBaseUrl();
   const endpoint = `${workerBase}/learning/schreiben/evaluate`;
 
+  const token = idToken || (payload && (payload.idToken || payload.id_token));
+
   const headers = {
     "Content-Type": "application/json",
   };
-  if (idToken) {
-    headers["Authorization"] = `Bearer ${idToken}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(endpoint, {
