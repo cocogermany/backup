@@ -5,165 +5,112 @@
  * Connected directly to Supabase database (plans & mock_attempts).
  */
 
+const EXAM_MODULES = [
+  { name: "Lesen", desc: "Reading comprehension", time: "Reading comprehension", status: "available" },
+  { name: "Hören", desc: "Listening comprehension", time: "Listening comprehension", status: "available" },
+  { name: "Grammatik", desc: "Language structures", time: "Language structures", status: "available" },
+  { name: "Schreiben", desc: "Writing tasks", time: "Writing tasks", status: "pro" }
+];
+
 const EXAM_META = {
   goethe: {
     A1: {
       title: "Goethe-Zertifikat A1: Start Deutsch 1",
       subtitle: "Official Goethe Beginner German Examination",
-      desc: "Comprehensive mock test simulating the official Goethe-Zertifikat A1 format. Tests basic everyday communication, vocabulary, and grammar structures.",
-      duration: "55 mins",
+      desc: "Comprehensive mock test simulating the official Goethe-Zertifikat A1 format. Tests basic everyday communication, vocabulary, and grammar structures. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     A2: {
       title: "Goethe-Zertifikat A2",
       subtitle: "Official Goethe Elementary German Examination",
-      desc: "Full mock simulation for elementary German. Evaluates understanding of simple sentences and frequently used expressions related to everyday situations.",
-      duration: "70 mins",
+      desc: "Full mock simulation for elementary German. Evaluates understanding of simple sentences and frequently used expressions related to everyday situations. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "30 mins", questions: "20 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "30 mins", questions: "20 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "20 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     B1: {
       title: "Goethe-Zertifikat B1",
       subtitle: "Official Goethe Intermediate German Examination",
-      desc: "Standard intermediate proficiency simulation. Assesses independent German language usage in familiar contexts like work, school, and leisure.",
-      duration: "95 mins",
+      desc: "Standard intermediate proficiency simulation. Assesses independent German language usage in familiar contexts like work, school, and leisure. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "45 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "40 mins", questions: "30 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "30 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     B2: {
       title: "Goethe-Zertifikat B2",
       subtitle: "Official Goethe Upper-Intermediate Examination",
-      desc: "Upper-intermediate simulation measuring spontaneous and fluent interaction with complex technical, social, and topical discussions.",
-      duration: "115 mins",
+      desc: "Upper-intermediate simulation measuring spontaneous and fluent interaction with complex technical, social, and topical discussions. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "55 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "40 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "35 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     C1: {
       title: "Goethe-Zertifikat C1",
       subtitle: "Official Goethe Advanced German Examination",
-      desc: "Advanced level simulation requiring high-level mastery of expressive, idiomatic, and complex syntactic German constructs.",
-      duration: "135 mins",
+      desc: "Advanced level simulation requiring high-level mastery of expressive, idiomatic, and complex syntactic German constructs. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "65 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "45 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "40 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     C2: {
       title: "Goethe-Zertifikat C2: GDS",
       subtitle: "Official Goethe Mastery Examination",
-      desc: "Mastery level examination simulation demonstrating near-native fluency in abstract academic, cultural, and professional contexts.",
-      duration: "150 mins",
+      desc: "Mastery level examination simulation demonstrating near-native fluency in abstract academic, cultural, and professional contexts. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "70 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "50 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "45 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     }
   },
   telc: {
     A1: {
       title: "telc Deutsch A1: Start Deutsch 1",
       subtitle: "Official telc Beginner German Examination",
-      desc: "Authentic telc A1 exam simulator testing baseline listening, reading comprehension, and language element structures under timed conditions.",
-      duration: "55 mins",
+      desc: "Authentic telc A1 exam simulator testing baseline listening, reading comprehension, and language element structures. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     A2: {
       title: "telc Deutsch A2",
       subtitle: "Official telc Elementary German Examination",
-      desc: "Full telc A2 simulation evaluating practical everyday communication, short dialogues, information notices, and basic grammar.",
-      duration: "70 mins",
+      desc: "Full telc A2 simulation evaluating practical everyday communication, short dialogues, information notices, and basic grammar. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "30 mins", questions: "20 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "30 mins", questions: "20 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "20 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     B1: {
       title: "telc Deutsch B1: Zertifikat Deutsch",
       subtitle: "Official telc Intermediate German Examination",
-      desc: "Standard telc B1 simulation covering Sprachbausteine, reading passages, audio broadcasts, and structured writing tasks.",
-      duration: "95 mins",
+      desc: "Standard telc B1 simulation covering Sprachbausteine, reading passages, audio broadcasts, and structured writing tasks. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "45 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "40 mins", questions: "30 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "30 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     B2: {
       title: "telc Deutsch B2",
       subtitle: "Official telc Upper-Intermediate Examination",
-      desc: "Upper-intermediate telc test simulator evaluating advanced comprehension of arguments, complex texts, and professional communication.",
-      duration: "115 mins",
+      desc: "Upper-intermediate telc test simulator evaluating advanced comprehension of arguments, complex texts, and professional communication. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "55 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "40 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "35 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     C1: {
       title: "telc Deutsch C1 Hochschule",
       subtitle: "Official telc Advanced Academic Examination",
-      desc: "Advanced academic German examination simulation designed for university admission and professional recognition in German-speaking countries.",
-      duration: "135 mins",
+      desc: "Advanced academic German examination simulation designed for university admission and professional recognition in German-speaking countries. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "65 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "45 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "40 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     },
     C2: {
       title: "telc Deutsch C2",
       subtitle: "Official telc Mastery Examination",
-      desc: "Mastery level academic examination simulating rigorous reading analysis, subtle audio nuances, and professional composition.",
-      duration: "150 mins",
+      desc: "Mastery level academic examination simulating rigorous reading analysis, subtle audio nuances, and professional composition. The question set and duration are determined when the simulation starts.",
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "70 mins", questions: "30 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "50 mins", questions: "25 Questions", status: "available" },
-        { name: "Grammatik", time: "15 mins", questions: "15 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "45 mins", questions: "2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     }
   }
 };
@@ -181,15 +128,10 @@ window.MockExamsComponent = {
     const examInfo = formatDict[levelUpper] || {
       title: `${formatLabel}-Zertifikat ${levelUpper}`,
       subtitle: `Official ${formatLabel} ${levelUpper} German Examination`,
-      desc: `Comprehensive mock examination simulating official ${formatLabel} ${levelUpper} format and time standards.`,
-      duration: "65 mins",
+      desc: `Comprehensive mock examination simulating official ${formatLabel} ${levelUpper} format. The question set and duration are determined when the simulation starts.`,
+      duration: "Calculated at start",
       passingScore: "60% (60/100 pts)",
-      modules: [
-        { name: "Lesen (Reading)", time: "25 mins", questions: "15 Questions", status: "available" },
-        { name: "Hören (Listening)", time: "20 mins", questions: "15 Questions", status: "available" },
-        { name: "Grammatik", time: "10 mins", questions: "10 Questions", status: "available" },
-        { name: "Schreiben (Writing)", time: "15 mins", questions: "1-2 Tasks", status: "pro" }
-      ]
+      modules: EXAM_MODULES
     };
 
     const availableModulesCount = examInfo.modules.filter(m => m.status === "available").length;
@@ -275,7 +217,7 @@ window.MockExamsComponent = {
                           ${isPro ? 'PRO ONLY' : 'Available'}
                         </span>
                       </div>
-                      <span class="mock-chip-time">${m.time} · ${m.questions}</span>
+                      <span class="mock-chip-time">${m.desc || m.time}</span>
                     </div>
                   </div>
                 `;
