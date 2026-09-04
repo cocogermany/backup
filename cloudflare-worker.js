@@ -168,6 +168,41 @@ function responseJSON(data, status = 200, request = null) {
   });
 }
 
+/**
+ * Helper to compute the local calendar week start date (Monday) in YYYY-MM-DD format
+ * using the user's IANA timezone.
+ */
+function getLocalCalendarWeekStart(dateInput, timezone) {
+  let dateObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(dateObj.getTime())) {
+    dateObj = new Date();
+  }
+
+  let ymd = "";
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone || "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    ymd = formatter.format(dateObj); // "YYYY-MM-DD"
+  } catch (e) {
+    ymd = dateObj.toISOString().split("T")[0];
+  }
+
+  const [year, month, day] = ymd.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = (utcDate.getUTCDay() + 6) % 7; // Monday = 0, ..., Sunday = 6
+
+  const mondayUtc = new Date(Date.UTC(year, month - 1, day - dayOfWeek));
+  const mYear = mondayUtc.getUTCFullYear();
+  const mMonth = String(mondayUtc.getUTCMonth() + 1).padStart(2, "0");
+  const mDay = String(mondayUtc.getUTCDate()).padStart(2, "0");
+
+  return `${mYear}-${mMonth}-${mDay}`;
+}
+
 export default {
   async fetch(request, env) {
     // 1. Preflight OPTIONS request handling for all endpoints
@@ -788,7 +823,412 @@ export default {
         );
       }
 
-      // 6. Upload File (POST /upload)
+      // 6. Schreiben Weekly Credits Check (POST /learning/schreiben/check or GET /learning/schreiben/check)
+      if ((request.method === "POST" || request.method === "GET") && url.pathname === "/learning/schreiben/check") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Fetch user row
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Fetch plan details (authoritative allowance)
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        const schreibenEnabled = Boolean(plan && plan.schreiben_enabled);
+        const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+
+        // Initialize user record if missing
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const dailyPracticeCredits = (plan && typeof plan.daily_practice_credits === "number") ? plan.daily_practice_credits : 10;
+          const newUser = {
+            uid,
+            membership: membershipCode,
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: dailyPracticeCredits,
+            last_reset: todayIsoDate,
+            schreiben_credits_remaining: weeklySchreibenLimit,
+            schreiben_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (!createRes.ok) {
+            const errText = await createRes.text();
+            return responseJSON({ error: `Supabase user creation error (${createRes.status}): ${errText}` }, createRes.status, request);
+          }
+
+          const createdData = await createRes.json();
+          userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
+        }
+
+        // 3. Timezone and weekly reset check
+        const userTimezone = userRow.timezone || "UTC";
+        const currentWeekStart = getLocalCalendarWeekStart(new Date(), userTimezone);
+        let schreibenLastReset = userRow.schreiben_last_reset ? String(userRow.schreiben_last_reset) : "";
+        let schreibenCreditsRemaining = typeof userRow.schreiben_credits_remaining === "number"
+          ? userRow.schreiben_credits_remaining
+          : weeklySchreibenLimit;
+
+        let needsReset = false;
+        if (!schreibenLastReset) {
+          needsReset = true;
+        } else {
+          const lastResetWeekStart = getLocalCalendarWeekStart(schreibenLastReset, userTimezone);
+          if (currentWeekStart > lastResetWeekStart) {
+            needsReset = true;
+          }
+        }
+
+        if (needsReset) {
+          schreibenCreditsRemaining = weeklySchreibenLimit;
+          schreibenLastReset = new Date().toISOString();
+
+          await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`, {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              schreiben_credits_remaining: schreibenCreditsRemaining,
+              schreiben_last_reset: schreibenLastReset,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+        }
+
+        return responseJSON(
+          {
+            success: true,
+            uid,
+            membership: membershipCode,
+            schreiben_enabled: schreibenEnabled,
+            schreiben_credits_remaining: schreibenCreditsRemaining,
+            weekly_schreiben_limit: weeklySchreibenLimit,
+            schreiben_last_reset: schreibenLastReset,
+            timezone: userTimezone,
+          },
+          200,
+          request
+        );
+      }
+
+      // 7. Atomic Schreiben Credit Consumption & Evaluation (POST /learning/schreiben/evaluate)
+      if (request.method === "POST" && url.pathname === "/learning/schreiben/evaluate") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Fetch user row
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Fetch plan details
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        const schreibenEnabled = Boolean(plan && plan.schreiben_enabled);
+        const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+
+        // Re-check user's Schreiben eligibility
+        if (!schreibenEnabled) {
+          return responseJSON(
+            {
+              success: false,
+              error: "schreiben_not_enabled",
+              message: "Schreiben evaluation is not enabled for your plan.",
+              schreiben_enabled: false,
+              schreiben_credits_remaining: 0,
+              membership: membershipCode,
+            },
+            403,
+            request
+          );
+        }
+
+        // Initialize user record if missing
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const dailyPracticeCredits = (plan && typeof plan.daily_practice_credits === "number") ? plan.daily_practice_credits : 10;
+          const newUser = {
+            uid,
+            membership: membershipCode,
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: dailyPracticeCredits,
+            last_reset: todayIsoDate,
+            schreiben_credits_remaining: weeklySchreibenLimit,
+            schreiben_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (createRes.ok) {
+            const createdData = await createRes.json();
+            userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
+          } else {
+            userRow = newUser;
+          }
+        }
+
+        // 3. Timezone and weekly reset check before allowing evaluation
+        const userTimezone = userRow.timezone || "UTC";
+        const currentWeekStart = getLocalCalendarWeekStart(new Date(), userTimezone);
+        let schreibenLastReset = userRow.schreiben_last_reset ? String(userRow.schreiben_last_reset) : "";
+        let schreibenCreditsRemaining = typeof userRow.schreiben_credits_remaining === "number"
+          ? userRow.schreiben_credits_remaining
+          : weeklySchreibenLimit;
+
+        const isNewWeek = !schreibenLastReset || (currentWeekStart > getLocalCalendarWeekStart(schreibenLastReset, userTimezone));
+
+        // Case A: New local week has started -> Reset allowance & consume 1 credit
+        if (isNewWeek) {
+          if (weeklySchreibenLimit <= 0) {
+            return responseJSON(
+              {
+                success: false,
+                error: "insufficient_credits",
+                message: "No weekly Schreiben credits available.",
+                schreiben_enabled: true,
+                schreiben_credits_remaining: 0,
+                weekly_schreiben_limit: weeklySchreibenLimit,
+                membership: membershipCode,
+              },
+              403,
+              request
+            );
+          }
+
+          const newCredits = weeklySchreibenLimit - 1;
+          const nowIso = new Date().toISOString();
+          const resetRes = await fetch(
+            `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`,
+            {
+              method: "PATCH",
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+              },
+              body: JSON.stringify({
+                schreiben_credits_remaining: newCredits,
+                schreiben_last_reset: nowIso,
+                updated_at: nowIso,
+              }),
+            }
+          );
+
+          if (!resetRes.ok) {
+            const errText = await resetRes.text();
+            return responseJSON({ error: `Supabase credit update error (${resetRes.status}): ${errText}` }, resetRes.status, request);
+          }
+
+          const resetData = await resetRes.json();
+          const updatedUser = resetData && resetData.length > 0 ? resetData[0] : { schreiben_credits_remaining: newCredits, membership: membershipCode };
+          return responseJSON(
+            {
+              success: true,
+              schreiben_credits_remaining: updatedUser.schreiben_credits_remaining,
+              weekly_schreiben_limit: weeklySchreibenLimit,
+              schreiben_enabled: true,
+              membership: updatedUser.membership || membershipCode,
+              uid,
+            },
+            200,
+            request
+          );
+        }
+
+        // Case B: Same calendar week -> Check remaining credits & perform ATOMIC conditional decrement
+        if (schreibenCreditsRemaining <= 0) {
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              message: "You have used all your weekly Schreiben credits.",
+              schreiben_enabled: true,
+              schreiben_credits_remaining: 0,
+              weekly_schreiben_limit: weeklySchreibenLimit,
+              membership: membershipCode,
+            },
+            403,
+            request
+          );
+        }
+
+        const newCredits = schreibenCreditsRemaining - 1;
+        const deductRes = await fetch(
+          `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&schreiben_credits_remaining=gt.0`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation",
+            },
+            body: JSON.stringify({
+              schreiben_credits_remaining: newCredits,
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+
+        if (!deductRes.ok) {
+          const errText = await deductRes.text();
+          return responseJSON({ error: `Supabase credit update error (${deductRes.status}): ${errText}` }, deductRes.status, request);
+        }
+
+        const deductData = await deductRes.json();
+        if (!deductData || deductData.length === 0) {
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              message: "You have used all your weekly Schreiben credits.",
+              schreiben_enabled: true,
+              schreiben_credits_remaining: 0,
+              weekly_schreiben_limit: weeklySchreibenLimit,
+              membership: membershipCode,
+            },
+            403,
+            request
+          );
+        }
+
+        const updatedUser = deductData[0];
+        return responseJSON(
+          {
+            success: true,
+            schreiben_credits_remaining: updatedUser.schreiben_credits_remaining,
+            weekly_schreiben_limit: weeklySchreibenLimit,
+            schreiben_enabled: true,
+            membership: updatedUser.membership || membershipCode,
+            uid,
+          },
+          200,
+          request
+        );
+      }
+
+      // 8. Upload File (POST /upload)
       if (request.method === "POST" && (url.pathname === "/upload" || url.pathname === "/")) {
         const contentType = request.headers.get("content-type") || "";
 
