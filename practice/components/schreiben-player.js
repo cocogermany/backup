@@ -323,6 +323,9 @@ window.SchreibenPlayerComponent = {
     const contentArea = document.getElementById("schreiben-content-area");
     if (!contentArea) return;
 
+    const root = document.getElementById("schreiben-player-root");
+    if (root) root.scrollTop = 0;
+
     const material = this.currentMaterial || {};
     const examFormat = (material.exam || "Goethe").toUpperCase();
     const level = (material.level || "A1").toUpperCase();
@@ -656,6 +659,9 @@ window.SchreibenPlayerComponent = {
     const contentArea = document.getElementById("schreiben-content-area");
     if (!contentArea) return;
 
+    const root = document.getElementById("schreiben-player-root");
+    if (root) root.scrollTop = 0;
+
     const evaluation = this.evaluationResult || {};
     const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 0;
     const isPassed = scorePercent >= 60;
@@ -792,6 +798,9 @@ window.SchreibenPlayerComponent = {
     const contentArea = document.getElementById("schreiben-content-area");
     if (!contentArea) return;
 
+    const root = document.getElementById("schreiben-player-root");
+    if (root) root.scrollTop = 0;
+
     const evaluation = this.evaluationResult || {};
     const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 0;
     const material = this.currentMaterial || {};
@@ -860,6 +869,10 @@ window.SchreibenPlayerComponent = {
     this.isReviewMode = false;
     this.currentMaterial = null;
     this.preloadedMaterial = null;
+
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.remove("schreiben-mode");
+    }
 
     window.location.hash = "#practice?module=Schreiben";
   }

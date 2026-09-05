@@ -713,6 +713,13 @@
         document.body.classList.remove("exam-mode");
       }
 
+      const isSchreibenMode = mainPath === "#schreiben-player" || mainPath === "#schreiben";
+      if (isSchreibenMode) {
+        document.body.classList.add("schreiben-mode");
+      } else {
+        document.body.classList.remove("schreiben-mode");
+      }
+
       const viewport = document.getElementById("app-viewport");
       const titleEl = document.getElementById("topbar-title");
 
