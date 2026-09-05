@@ -745,7 +745,13 @@
           initPromise = window.PracticeHubComponent._initPromise = window.PracticeHubComponent.initHubData(AppState);
           break;
 
-        case "#player":
+        case "#player": {
+          const playerId = searchParams ? searchParams.get("id") : null;
+          const preloadedMat = (window.PracticeHubComponent?.loadedMaterials || []).find(m => m && String(m.id) === String(playerId));
+          if ((preloadedMat && preloadedMat.module === "Schreiben") || (playerId && playerId.toLowerCase().includes("schreiben"))) {
+            window.location.hash = `#schreiben-player?${searchParams ? searchParams.toString() : ""}`;
+            return;
+          }
           if (titleEl) titleEl.textContent = "Interactive Player";
           viewport.innerHTML = window.InteractivePlayerComponent.render(AppState, searchParams);
           initPromise = window.InteractivePlayerComponent._initPromise = window.InteractivePlayerComponent.initPlayerMaterial(
@@ -753,8 +759,12 @@
             AppState
           );
           break;
+        }
 
         case "#schreiben":
+          window.location.hash = `#schreiben-player?${searchParams ? searchParams.toString() : ""}`;
+          return;
+
         case "#schreiben-player":
           if (titleEl) titleEl.textContent = "Schreiben Player";
           if (window.SchreibenPlayerComponent) {
@@ -1073,6 +1083,12 @@
           return;
         }
 
+        if (checkRes && typeof checkRes.schreiben_credits_remaining === "number") {
+          AppState.schreibenCreditsRemaining = checkRes.schreiben_credits_remaining;
+          AppState.weeklySchreibenLimit = checkRes.weekly_schreiben_limit;
+          AppState.schreibenEnabled = checkRes.schreiben_enabled;
+        }
+
         // Allowed: Open dedicated Schreiben player without consuming weekly or daily credit
         this.closePrepModal();
 
@@ -1081,7 +1097,7 @@
           window.SchreibenPlayerComponent.currentSettings = settings;
         }
 
-        window.location.hash = `#schreiben?id=${material.id}`;
+        window.location.hash = `#schreiben-player?id=${material.id}`;
         return;
       }
 

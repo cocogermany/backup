@@ -749,7 +749,7 @@ window.InteractivePlayerComponent = {
               teil: dbMat.teil || "",
               difficulty: dbMat.difficulty || "Medium",
               duration_minutes: dbMat.duration_minutes,
-              estimatedSeconds: (!isNaN(durMin) && durMin > 0) ? durMin * 60 : (dbMat.module === "Schreiben" ? 1200 : dbMat.module === "Hören" ? 900 : 600),
+              estimatedSeconds: (!isNaN(durMin) && durMin > 0) ? durMin * 60 : (dbMat.module === "Hören" ? 900 : 600),
               contentPath: dbMat.content_path
             };
           }
@@ -788,10 +788,6 @@ window.InteractivePlayerComponent = {
     }
 
     material.module = material.module === "Grammar" ? "Grammatik" : (material.module || "Lesen");
-    if (material.module === "Schreiben") {
-      window.location.hash = `#schreiben?id=${material.id}`;
-      return;
-    }
     material.isSpeaking = material.module === "Sprechen";
     material.questions = Array.isArray(material.questions) ? material.questions : [];
 
@@ -1711,7 +1707,7 @@ window.InteractivePlayerComponent = {
       title: `${level} Practice Material (${id})`,
       exam: "goethe",
       level: level,
-      module: normalizedId.includes("hoeren") ? "Hören" : normalizedId.includes("schreiben") ? "Schreiben" : normalizedId.includes("sprechen") ? "Sprechen" : "Lesen",
+      module: normalizedId.includes("hoeren") ? "Hören" : normalizedId.includes("sprechen") ? "Sprechen" : "Lesen",
       estimatedSeconds: 600,
       passage: `
         <p>Dieses Übungsmaterial konnte nicht geladen werden.</p>

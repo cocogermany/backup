@@ -34,6 +34,101 @@ window.SchreibenPlayerComponent = {
       .replace(/'/g, "&#39;");
   },
 
+  stripHtml: function (html) {
+    if (!html) return "";
+    if (typeof document === "undefined") {
+      return String(html).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    }
+    const div = document.createElement("div");
+    div.innerHTML = String(html);
+    return div.textContent || div.innerText || "";
+  },
+
+  sanitizeRichText: function (value) {
+    const text = String(value ?? "");
+    if (typeof document === "undefined") return this.escapeHtml(text);
+
+    const template = document.createElement("template");
+    template.innerHTML = text;
+    template.content.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((node) => node.remove());
+    template.content.querySelectorAll("*").forEach((node) => {
+      [...node.attributes].forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const val = attribute.value.trim().toLowerCase();
+        if (name.startsWith("on") || name === "srcdoc" || ((name === "href" || name === "src") && val.startsWith("javascript:"))) {
+          node.removeAttribute(attribute.name);
+        }
+      });
+    });
+    return template.innerHTML;
+  },
+
+  extractTaskDetails: function (material) {
+    if (!material) {
+      return {
+        taskText: "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.",
+        taskHtml: "<p>Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.</p>"
+      };
+    }
+
+    const partsHtml = [];
+    const partsText = [];
+
+    // 1. Situation / Context / Passage (e.g. background scenario or letter/notice received)
+    const situation = material.situation || material.context || material.passage;
+    if (situation && typeof situation === "string" && situation.trim()) {
+      partsHtml.push(`<div class="schreiben-task-situation" style="margin-bottom:12px; font-style:italic; color:#334155; line-height:1.65;">${this.sanitizeRichText(situation)}</div>`);
+      partsText.push(`Situation / Kontext:\n${this.stripHtml(situation).trim()}`);
+    }
+
+    // 2. Main Task / Prompt / Instruction / Question
+    const mainTask = material.task || material.prompt || material.instructions || material.question ||
+      (Array.isArray(material.questions) && material.questions[0] && (material.questions[0].question || material.questions[0].prompt || material.questions[0].task)) || "";
+    if (mainTask && typeof mainTask === "string" && mainTask.trim()) {
+      partsHtml.push(`<div class="schreiben-task-instruction" style="font-weight:600; margin-bottom:12px; line-height:1.65;">${this.sanitizeRichText(mainTask)}</div>`);
+      partsText.push(`Aufgabe:\n${this.stripHtml(mainTask).trim()}`);
+    }
+
+    // 3. Leitpunkte / Guidelines / Cues (critical in Goethe/telc Schreiben)
+    const points = material.points || material.bullet_points || material.guidelines || material.cues ||
+      (Array.isArray(material.questions) && material.questions[0] && material.questions[0].points);
+    if (Array.isArray(points) && points.length > 0) {
+      const pointItems = points
+        .map((p) => {
+          const text = typeof p === "string" ? p : (p.text || p.point || JSON.stringify(p));
+          return `<li style="margin-bottom:4px;">${this.escapeHtml(text)}</li>`;
+        })
+        .join("");
+      partsHtml.push(`
+        <div class="schreiben-task-points-block" style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+          <div style="font-weight:700; font-size:0.82rem; color:#475569; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">Leitpunkte:</div>
+          <ul class="schreiben-task-points" style="margin:0; padding-left:20px; line-height:1.65; color:#1e293b;">${pointItems}</ul>
+        </div>
+      `);
+      partsText.push("Punkte:\n" + points.map((p) => `- ${typeof p === "string" ? p : (p.text || p.point || JSON.stringify(p))}`).join("\n"));
+    } else if (typeof points === "string" && points.trim()) {
+      partsHtml.push(`
+        <div class="schreiben-task-points-block" style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+          <div style="font-weight:700; font-size:0.82rem; color:#475569; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">Leitpunkte:</div>
+          <div class="schreiben-task-points" style="line-height:1.65; color:#1e293b;">${this.sanitizeRichText(points)}</div>
+        </div>
+      `);
+      partsText.push(`Punkte:\n${this.stripHtml(points).trim()}`);
+    }
+
+    // Fallback if none of the specific fields matched
+    if (partsHtml.length === 0) {
+      const fallback = material.description || "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.";
+      partsHtml.push(`<p style="line-height:1.65;">${this.escapeHtml(fallback)}</p>`);
+      partsText.push(fallback);
+    }
+
+    return {
+      taskHtml: partsHtml.join("\n"),
+      taskText: partsText.join("\n\n")
+    };
+  },
+
   resolveWorkerUrl: function (path) {
     const value = String(path || "").trim();
     if (!value) return "";
@@ -53,7 +148,12 @@ window.SchreibenPlayerComponent = {
     if (!contentPath) return null;
     try {
       const fullUrl = this.resolveWorkerUrl(contentPath);
-      const res = await fetch(fullUrl);
+      const urlObj = new URL(fullUrl);
+      urlObj.searchParams.set("v", Date.now().toString());
+      const res = await fetch(urlObj.href, {
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
@@ -190,8 +290,24 @@ window.SchreibenPlayerComponent = {
     }
 
     const creditsEl = document.getElementById("schreiben-credits-text");
-    if (creditsEl && window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number") {
-      creditsEl.textContent = `${window.AppState.schreibenCreditsRemaining} wöchentliche Credits`;
+    if (creditsEl) {
+      if (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number") {
+        creditsEl.textContent = `${window.AppState.schreibenCreditsRemaining} wöchentliche Credits`;
+      } else {
+        (async () => {
+          try {
+            const idToken = await (window.PracticeApp?.getFirebaseIdToken ? window.PracticeApp.getFirebaseIdToken() : null);
+            if (idToken && window.SupabaseService?.checkSchreibenCredits) {
+              const res = await window.SupabaseService.checkSchreibenCredits(idToken);
+              if (res && typeof res.schreiben_credits_remaining === "number") {
+                if (window.AppState) window.AppState.schreibenCreditsRemaining = res.schreiben_credits_remaining;
+                const el = document.getElementById("schreiben-credits-text");
+                if (el) el.textContent = `${res.schreiben_credits_remaining} wöchentliche Credits`;
+              }
+            }
+          } catch (e) {}
+        })();
+      }
     }
   },
 
@@ -203,9 +319,7 @@ window.SchreibenPlayerComponent = {
     const examFormat = (material.exam || "Goethe").toUpperCase();
     const level = (material.level || "A1").toUpperCase();
     const title = material.contentTitle || material.title || "Schreibaufgabe";
-    const taskText = material.task || material.prompt || material.question ||
-      (material.questions && material.questions[0] && material.questions[0].question) ||
-      "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.";
+    const taskDetails = this.extractTaskDetails(material);
 
     contentArea.innerHTML = `
       <div class="schreiben-workspace-card">
@@ -224,7 +338,7 @@ window.SchreibenPlayerComponent = {
             <i data-lucide="file-text" style="width:16px;height:16px; color:#0284c7;"></i>
             <span>Aufgabenstellung (Writing Task)</span>
           </div>
-          <div class="schreiben-task-body">${this.escapeHtml(taskText)}</div>
+          <div class="schreiben-task-body">${taskDetails.taskHtml}</div>
         </div>
 
         <!-- Student Input Section -->
@@ -379,7 +493,8 @@ window.SchreibenPlayerComponent = {
     }
 
     const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe" };
-    const taskText = material.task || material.prompt || material.question || "Schreibaufgabe";
+    const taskDetails = this.extractTaskDetails(material);
+    const taskText = taskDetails.taskText;
 
     let evalRes = null;
     try {
@@ -442,7 +557,7 @@ window.SchreibenPlayerComponent = {
     const correctCount = Math.round(scorePercent / 10);
     const totalCount = 10;
 
-    await this.savePracticeAttempt(material, correctCount, totalCount, scorePercent);
+    await this.savePracticeAttempt(material, correctCount, totalCount, scorePercent, evalRes.uid);
 
     if (window.PracticeApp?.recordTestCompletion) {
       window.PracticeApp.recordTestCompletion("Schreiben", scorePercent);
@@ -451,18 +566,27 @@ window.SchreibenPlayerComponent = {
     this.renderResultsScreen();
   },
 
-  savePracticeAttempt: async function (material, correctCount, totalCount, scorePercent) {
+  savePracticeAttempt: async function (material, correctCount, totalCount, scorePercent, serverUid) {
     if (!window.SupabaseService?.getSupabaseClient) return;
 
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
       if (!supabase) return;
 
-      let uid = window.AppState?.user?.uid;
+      let uid = serverUid || (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous" ? window.AppState.userProfile.uid : null);
+      if (!uid) {
+        uid = window.AppState?.user?.uid;
+      }
       if (!uid && typeof window.firebase !== "undefined" && window.firebase.auth) {
         uid = window.firebase.auth().currentUser?.uid;
       }
-      if (!uid) return;
+      if (!uid) {
+        uid = window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid");
+      }
+      if (!uid || uid === "local-user" || uid === "anonymous") {
+        console.warn("SchreibenPlayer: No valid UID found for practice attempt save.");
+        return;
+      }
 
       let dbFormat = String(material.exam || material.format || "").toLowerCase().trim();
       if (dbFormat !== "goethe" && dbFormat !== "telc") {
@@ -473,7 +597,7 @@ window.SchreibenPlayerComponent = {
       const attemptPayload = {
         uid: uid,
         material_id: String(material.id),
-        level: material.level || "A1",
+        level: (material.level || window.AppState?.currentLevel || "A1").toUpperCase(),
         format: dbFormat,
         module: "Schreiben",
         correct_answers: parseInt(correctCount || 0, 10),
@@ -486,8 +610,12 @@ window.SchreibenPlayerComponent = {
         .from("practice_attempts")
         .insert([attemptPayload]);
 
-      if (insertError && insertError.code !== "23505") {
-        console.warn("SchreibenPlayer: Error recording attempt:", insertError);
+      if (insertError) {
+        if (insertError.code === "23505") {
+          console.info("SchreibenPlayer: Practice attempt already completed for (uid, material_id).", insertError.message);
+        } else {
+          console.warn("SchreibenPlayer: Error recording attempt:", insertError);
+        }
       }
 
       try {
@@ -648,7 +776,7 @@ window.SchreibenPlayerComponent = {
     const evaluation = this.evaluationResult || {};
     const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 0;
     const material = this.currentMaterial || {};
-    const taskText = material.task || material.prompt || material.question || "Schreibaufgabe";
+    const taskDetails = this.extractTaskDetails(material);
     const studentText = this.studentAnswer || "";
     const wordCount = studentText ? studentText.trim().split(/\s+/).filter(Boolean).length : 0;
 
@@ -672,7 +800,7 @@ window.SchreibenPlayerComponent = {
             <i data-lucide="file-text" style="width:16px;height:16px; color:#0284c7;"></i>
             <span>Aufgabenstellung</span>
           </div>
-          <div class="schreiben-task-body">${this.escapeHtml(taskText)}</div>
+          <div class="schreiben-task-body">${taskDetails.taskHtml}</div>
         </div>
 
         <!-- Submitted Student Text -->

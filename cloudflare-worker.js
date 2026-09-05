@@ -1374,7 +1374,7 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
         }
 
         const deductData = await deductRes.json();
-        if (!deductData || deductData.length === 0) {
+        if (!deductData || !Array.isArray(deductData) || deductData.length === 0) {
           // Conditional check (schreiben_credits_remaining=gt.0) matched 0 rows
           // (concurrent request already consumed the last credit, or quota exhausted)
           return responseJSON(
