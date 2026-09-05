@@ -401,12 +401,25 @@ window.PracticeHubComponent = {
         ? `<span class="badge-pill mat-teil-badge">${String(mat.teil).trim()}</span>`
         : "";
 
-      const actionBtnHtml = `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="event.stopPropagation(); window.PracticeApp.openPrepModal('${safeId}')">
+      const isSchreiben = mat.module === "Schreiben" ||
+        String(mat.module || "").toLowerCase() === "schreiben" ||
+        Boolean(mat.isWriting) ||
+        String(mat.id || "").toLowerCase().includes("schreiben");
+
+      const cardClickAction = isSchreiben
+        ? `window.location.hash = '#schreiben-player?id=${safeId}';`
+        : `window.PracticeApp.openPrepModal('${safeId}');`;
+
+      const actionBtnHtml = isSchreiben
+        ? `<a href="#schreiben-player?id=${safeId}" class="btn-primary btn-sm mat-action-btn" onclick="event.stopPropagation(); window.location.hash = '#schreiben-player?id=${safeId}';" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+             <i data-lucide="play"></i> Practice
+           </a>`
+        : `<button type="button" class="btn-primary btn-sm mat-action-btn" onclick="event.stopPropagation(); window.PracticeApp.openPrepModal('${safeId}')">
              <i data-lucide="play"></i> Practice
            </button>`;
 
       return `
-        <div class="card material-card mat-item-card" style="cursor:pointer;" onclick="window.PracticeApp.openPrepModal('${safeId}')" data-title="${(mat.title || '').toLowerCase()}">
+        <div class="card material-card mat-item-card" style="cursor:pointer;" onclick="${cardClickAction}" data-title="${(mat.title || '').toLowerCase()}">
           <div class="mat-card-header">
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
               <span class="badge-pill mat-module-badge ${moduleBadgeClass}">

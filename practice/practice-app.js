@@ -1004,6 +1004,17 @@
         material = { id: materialId, title: `Practice Set (${materialId})` };
       }
 
+      const isSchreiben = Boolean(
+        (material && (material.module === "Schreiben" || String(material.module || "").toLowerCase() === "schreiben")) ||
+        (material && material.isWriting) ||
+        String(materialId || "").toLowerCase().includes("schreiben")
+      );
+
+      if (isSchreiben) {
+        window.location.hash = `#schreiben-player?id=${encodeURIComponent(materialId)}`;
+        return;
+      }
+
       this.pendingPrepMaterial = material;
 
       const titleEl = document.getElementById("prep-material-title");

@@ -202,9 +202,17 @@ window.SchreibenPlayerComponent = {
     const renderRequestId = ++this.renderRequestId;
     const level = appState ? appState.currentLevel || "A1" : "A1";
 
-    let material = this.preloadedMaterial && this.preloadedMaterial.id === materialId
+    let material = (this.preloadedMaterial && String(this.preloadedMaterial.id) === String(materialId))
       ? this.preloadedMaterial
       : null;
+
+    // Check loaded materials cache from Practice Hub
+    if (!material && materialId && window.PracticeHubComponent?.loadedMaterials) {
+      const found = window.PracticeHubComponent.loadedMaterials.find(m => m && String(m.id) === String(materialId));
+      if (found) {
+        material = { ...found };
+      }
+    }
 
     // Fetch from Supabase materials table if not preloaded
     if (!material && materialId && window.SupabaseService?.getSupabaseClient) {
@@ -567,11 +575,17 @@ window.SchreibenPlayerComponent = {
   },
 
   savePracticeAttempt: async function (material, correctCount, totalCount, scorePercent, serverUid) {
-    if (!window.SupabaseService?.getSupabaseClient) return;
+    if (!window.SupabaseService?.getSupabaseClient) {
+      console.warn("SchreibenPlayer: SupabaseService not available for practice attempt save.");
+      return { success: false, error: new Error("SupabaseService not available") };
+    }
 
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
-      if (!supabase) return;
+      if (!supabase) {
+        console.warn("SchreibenPlayer: Supabase client not initialized.");
+        return { success: false, error: new Error("Supabase client not initialized") };
+      }
 
       let uid = serverUid || (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous" ? window.AppState.userProfile.uid : null);
       if (!uid) {
@@ -583,9 +597,9 @@ window.SchreibenPlayerComponent = {
       if (!uid) {
         uid = window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid");
       }
-      if (!uid || uid === "local-user" || uid === "anonymous") {
+      if (!uid || (!serverUid && (uid === "local-user" || uid === "anonymous"))) {
         console.warn("SchreibenPlayer: No valid UID found for practice attempt save.");
-        return;
+        return { success: false, error: new Error("No valid UID found") };
       }
 
       let dbFormat = String(material.exam || material.format || "").toLowerCase().trim();
@@ -606,15 +620,17 @@ window.SchreibenPlayerComponent = {
         completed_at: new Date().toISOString()
       };
 
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from("practice_attempts")
         .insert([attemptPayload]);
 
       if (insertError) {
         if (insertError.code === "23505") {
           console.info("SchreibenPlayer: Practice attempt already completed for (uid, material_id).", insertError.message);
+          return { success: true, alreadyCompleted: true };
         } else {
           console.warn("SchreibenPlayer: Error recording attempt:", insertError);
+          return { success: false, error: insertError };
         }
       }
 
@@ -628,8 +644,11 @@ window.SchreibenPlayerComponent = {
       if (window.CocoStateSync?.notifyAttemptCompleted) {
         window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: "Schreiben", scorePercent });
       }
+
+      return { success: true, alreadyCompleted: false, data };
     } catch (err) {
       console.warn("SchreibenPlayer: Failed to persist practice attempt:", err);
+      return { success: false, error: err };
     }
   },
 

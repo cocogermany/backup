@@ -874,7 +874,7 @@ window.InteractivePlayerComponent = {
     if (!track) return;
 
     if (!questions || questions.length === 0) {
-      track.innerHTML = `<span style="font-size:0.8rem; color:var(--exam-ink-muted);">Schreib-/Sprechaufgabe</span>`;
+      track.innerHTML = `<span style="font-size:0.8rem; color:var(--exam-ink-muted);">Sprechaufgabe</span>`;
       return;
     }
 
