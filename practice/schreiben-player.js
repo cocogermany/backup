@@ -503,9 +503,22 @@ window.SchreibenPlayerComponent = {
       `;
     }
 
-    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe" };
+    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe", teil: "Teil 2" };
     const taskDetails = this.extractTaskDetails(material);
     const taskText = taskDetails.taskText;
+
+    // Resolve teil explicitly so the Worker can apply the correct rubric
+    let teil = String(material.teil || material.part || "").trim();
+    if (!teil) {
+      const match = String(material.title || material.id || "").match(/teil\s*(\d+)/i);
+      if (match) {
+        teil = `Teil ${match[1]}`;
+      } else if (material.level === "A1" || material.level === "A2") {
+        teil = "Teil 2";
+      } else {
+        teil = "Teil 1";
+      }
+    }
 
     let evalRes = null;
     try {
@@ -523,6 +536,7 @@ window.SchreibenPlayerComponent = {
           material_id: material.id,
           exam: material.exam || "goethe",
           level: material.level || "A1",
+          teil: teil,
           task: taskText,
           answer: answerText
         },

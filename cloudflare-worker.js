@@ -1145,11 +1145,150 @@ export default {
           body = {};
         }
 
+        // Helper: validate and resolve exam, level, and teil explicitly — never silently default to Teil 2
+        function resolveExamLevelTeil(rawExam, rawLevel, rawTeil) {
+          const exam = String(rawExam || "").toLowerCase().trim();
+          const level = String(rawLevel || "").toUpperCase().trim();
+          const teil = String(rawTeil || "").trim();
+
+          if (!exam) {
+            return { valid: false, error: "missing_exam", message: "The 'exam' field is required (e.g. 'goethe' or 'telc')." };
+          }
+          if (!["goethe", "telc"].includes(exam)) {
+            return { valid: false, error: "invalid_exam", message: `Unsupported exam format: '${rawExam}'. Must be 'goethe' or 'telc'.` };
+          }
+          if (!level) {
+            return { valid: false, error: "missing_level", message: "The 'level' field is required (e.g. 'A1', 'A2', 'B1', 'B2')." };
+          }
+          if (!["A1", "A2", "B1", "B2"].includes(level)) {
+            return { valid: false, error: "invalid_level", message: `Unsupported level: '${rawLevel}'. Must be A1, A2, B1, or B2.` };
+          }
+          if (!teil) {
+            return { valid: false, error: "missing_teil", message: "The 'teil' field is required (e.g. 'Teil 1', 'Teil 2'). The evaluator cannot apply the correct exam rubric without it." };
+          }
+
+          // Extract Teil number or keyword
+          const match = teil.match(/\b(?:teil|part)\s*(\d+)\b/i) || teil.match(/^(\d+)$/) || teil.match(/\b([1-4])\b/);
+          const num = match ? parseInt(match[1], 10) : null;
+          const lowerTeil = teil.toLowerCase();
+
+          let resolvedTeilNum = null;
+          let resolvedLabel = null;
+
+          if (exam === "goethe") {
+            if (level === "A1") {
+              if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("mitteilung") || lowerTeil.includes("brief")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              } else if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("formular")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              }
+            } else if (level === "A2") {
+              if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("sms") || lowerTeil.includes("notiz")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              } else if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("e-mail") || lowerTeil.includes("brief")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              }
+            } else if (level === "B1") {
+              if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("persönliche") || lowerTeil.includes("e-mail")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              } else if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("forum") || lowerTeil.includes("meinung")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              } else if (num === 3 || lowerTeil.includes("teil 3") || lowerTeil.includes("entschuldigung") || lowerTeil.includes("bitte")) {
+                resolvedTeilNum = 3;
+                resolvedLabel = "Teil 3";
+              }
+            } else if (level === "B2") {
+              if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("forum") || lowerTeil.includes("diskussion")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              } else if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("nachricht") || lowerTeil.includes("beschwerde") || lowerTeil.includes("bitte")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              }
+            }
+          } else if (exam === "telc") {
+            if (level === "A1") {
+              if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("mitteilung")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              } else if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("formular")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              }
+            } else if (level === "A2") {
+              if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("brief") || lowerTeil.includes("e-mail")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              } else if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("formular")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              }
+            } else if (level === "B1") {
+              if (num === 1 || num === 2 || lowerTeil.includes("brief") || lowerTeil.includes("e-mail")) {
+                resolvedTeilNum = num || 1;
+                resolvedLabel = `Teil ${resolvedTeilNum}`;
+              }
+            } else if (level === "B2") {
+              if (num === 1 || lowerTeil.includes("teil 1") || lowerTeil.includes("e-mail") || lowerTeil.includes("brief")) {
+                resolvedTeilNum = 1;
+                resolvedLabel = "Teil 1";
+              } else if (num === 2 || lowerTeil.includes("teil 2") || lowerTeil.includes("beschwerde")) {
+                resolvedTeilNum = 2;
+                resolvedLabel = "Teil 2";
+              }
+            }
+          }
+
+          // Fallback check if num is valid (1-4)
+          if (!resolvedTeilNum && num && num >= 1 && num <= 4) {
+            resolvedTeilNum = num;
+            resolvedLabel = `Teil ${num}`;
+          }
+
+          if (!resolvedTeilNum || !resolvedLabel) {
+            return {
+              valid: false,
+              error: "invalid_teil",
+              message: `Cannot determine a valid examination Teil from '${rawTeil}' for ${exam.toUpperCase()} ${level}. Valid Teile are e.g. 'Teil 1', 'Teil 2'.`
+            };
+          }
+
+          return {
+            valid: true,
+            exam,
+            level,
+            teil: resolvedLabel,
+            teilNum: resolvedTeilNum
+          };
+        }
+
         const materialId = String(body.material_id || "schreiben-1");
-        const examFormat = String(body.exam || body.format || "goethe").trim();
-        const level = String(body.level || "A1").toUpperCase().trim();
+        const rawExam = String(body.exam || body.format || "").trim();
+        const rawLevel = String(body.level || "").trim();
         const studentAnswer = String(body.answer || body.student_answer || "").trim();
-        const teilText = String(body.teil || body.part || "").trim();
+        const rawTeil = String(body.teil || body.part || "").trim();
+
+        // Validate and resolve exam, level, and teil strictly — never silently default
+        const teilResolution = resolveExamLevelTeil(rawExam, rawLevel, rawTeil);
+        if (!teilResolution.valid) {
+          return responseJSON(
+            { success: false, error: teilResolution.error, message: teilResolution.message },
+            400,
+            request
+          );
+        }
+
+        const examFormat = teilResolution.exam;
+        const level = teilResolution.level;
+        const teilText = teilResolution.teil;
+        const teilNum = teilResolution.teilNum;
+
 
         if (!studentAnswer) {
           return responseJSON(
@@ -1215,7 +1354,7 @@ export default {
             {
               success: false,
               error: "missing_task",
-              message: "Authoritative exam task is missing. Cannot evaluate without an official examination prompt.",
+              message: "Exam task is missing. Cannot evaluate without a valid examination prompt.",
             },
             400,
             request
@@ -1240,38 +1379,31 @@ export default {
           );
         }
 
-        // Helper: retrieve official Goethe/telc writing criteria and checklist for specific exam, level, and Teil
-        function getOfficialWritingChecklist(exam, lvl, teil) {
-          const formatName = String(exam || "goethe").toLowerCase().trim();
-          const level = String(lvl || "A1").toUpperCase().trim();
-          const part = String(teil || "").toLowerCase().trim();
-
-          let teilNum = 2; // Default for A1/A2 free writing
-          if (part.includes("1") || part.includes("teil 1") || part.includes("part 1")) teilNum = 1;
-          else if (part.includes("2") || part.includes("teil 2") || part.includes("part 2")) teilNum = 2;
-          else if (part.includes("3") || part.includes("teil 3") || part.includes("part 3")) teilNum = 3;
-
-          if (formatName === "telc") {
-            if (level === "A1") {
-              return `OFFICIAL TELC DEUTSCH A1 WRITING CRITERIA & CHECKLIST (Teil 2: Kurze Mitteilung):
+         // Helper: retrieve reference writing criteria and checklist for specific exam, level, and Teil
+         // NOTE: These criteria are based on generally published CEFR and exam guidelines.
+         // They have NOT been independently verified against current official exam rubrics.
+         function getWritingChecklist(exam, level, teilNum) {
+           if (exam === "telc") {
+             if (level === "A1") {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — TELC DEUTSCH A1 (Teil 2: Kurze Mitteilung):
 - Format & Expected Length: Short personal or semi-formal message/note (~30 words, typically 20–40 words).
 - Required Structure: Suitable greeting/salutation, concise text body addressing all Leitpunkte, closing formula with sender's name.
-- Register & Formality: Match context (informal 'du/ihr' for friends/colleagues vs. formal 'Sie/Ihnen' for official recipients).
+- Register & Formality: Match context (informal 'du/ihr' for friends/colleagues vs. formal 'Sie/Ihnen' for formal recipients).
 - Vocabulary & Connectors: Basic everyday A1 vocabulary; simple connectors ("und", "aber", "denn").
 - Grammar & Syntax: Present tense, basic Perfekt, verb in position 2 in main clauses, simple question forms.
 - Level Calibration: Simple, correct A1 German is fully sufficient for maximum marks. Do not penalize simple structures.`;
-            }
-            if (level === "A2") {
-              return `OFFICIAL TELC DEUTSCH A2 WRITING CRITERIA & CHECKLIST (Teil 2: Kurzer Brief / E-Mail):
+             }
+             if (level === "A2") {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — TELC DEUTSCH A2 (Teil 2: Kurzer Brief / E-Mail):
 - Format & Expected Length: Short letter or email (~30–50 words).
 - Required Structure: Clear salutation, structured body addressing all Leitpunkte, suitable closing formula and name.
 - Register & Formality: Consistent register ('du/ihr' vs 'Sie/Ihnen') throughout.
 - Connectors & Flow: Basic sentence connectors ("weil", "wenn", "deshalb", "denn", "dann").
 - Grammar & Vocabulary: Present, Perfekt, modal verbs, prepositions with correct case (Akkusativ/Dativ), accurate everyday A2 vocabulary.
 - Level Calibration: Reward effective communicative ability at A2 level. Do not expect complex subordinate clauses.`;
-            }
-            if (level === "B1") {
-              return `OFFICIAL TELC DEUTSCH B1 WRITING CRITERIA & CHECKLIST (Brief / E-Mail):
+             }
+             if (level === "B1") {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — TELC DEUTSCH B1 (Brief / E-Mail):
 - Format & Expected Length: Personal or semi-formal letter/email (~100 words).
 - Required Structure: Full letter framework (appropriate salutation, introduction, distinct paragraphs for Leitpunkte, closing formula).
 - Register & Formality: Precise adherence to register ('du/ihr' vs 'Sie/Ihnen'), courteous phrasing.
@@ -1279,106 +1411,107 @@ export default {
 - Connectors & Coherence: Logical progression, connectors ("da", "obwohl", "trotzdem", "sowohl... als auch", "deswegen").
 - Grammar & Vocabulary: Good range of B1 vocabulary, subordinate clauses (weil, dass, wenn, obwohl), relative clauses, infinitive with 'zu', correct cases and prepositions.
 - Level Calibration: Judge against B1 standards. Clear, well-connected sentences without unnecessary artificial complexity.`;
-            }
-            if (level === "B2") {
-              return `OFFICIAL TELC DEUTSCH B2 WRITING CRITERIA & CHECKLIST (Halbformelle / Formelle E-Mail):
+             }
+             if (level === "B2") {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — TELC DEUTSCH B2 (Halbformelle / Formelle E-Mail):
 - Format & Expected Length: Formal or semi-formal letter/email (~150 words, e.g. inquiry, complaint, application).
-- Required Structure: Official letter conventions (formal salutation, reference line/opening statement, well-structured arguments/requests, formal closing).
+- Required Structure: Formal letter conventions (formal salutation, reference line/opening statement, well-structured arguments/requests, formal closing).
 - Register & Formality: High formal register ('Sie/Ihnen', 'Sehr geehrte Damen und Herren', 'Mit freundlichen Grüßen'), diplomatic and polite tone.
 - Task Fulfillment: Comprehensive, differentiated coverage of all Leitpunkte with clear arguments and concrete details.
 - Connectors & Cohesion: Sophisticated transitions ("in Bezug auf", "darüber hinaus", "folglich", "demgegenüber").
 - Grammar & Vocabulary: Varied B2 vocabulary, idiomatic and professional expressions, Passiv, Konjunktiv II, complex subordinate clauses, prepositions with Genitiv/Dativ.`;
-            }
-          }
+             }
+           }
 
-          // GOETHE (Default or Goethe-specific)
-          if (level === "A1") {
-            return `OFFICIAL GOETHE A1 (START DEUTSCH 1) WRITING CRITERIA & CHECKLIST (Teil 2: Persönliche Kurzmitteilung):
+           // GOETHE
+           if (level === "A1") {
+             return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE A1 / START DEUTSCH 1 (Teil 2: Persönliche Kurzmitteilung):
 - Format & Expected Length: Short personal or semi-formal message, email, or note (~30 words, typically 20–40 words).
 - Required Structure: Appropriate greeting (e.g., "Liebe Eva,", "Hallo Paul," or formal "Sehr geehrte(r)..."), body sentences addressing all 3 Leitpunkte, proper sign-off ("Viele Grüße", "Herzliche Grüße") with sender name.
 - Register & Formality: Consistent address matching the relationship ('du' for friends/colleagues, 'Sie' for formal recipients).
 - Vocabulary & Connectors: Essential everyday A1 vocabulary; basic sentence linking ("und", "aber", "oder", "weil").
 - Grammar & Syntax: Regular verb conjugations, verb in position 2 (V2) in statements, verb in position 1 in yes/no questions, basic object pronouns and cases.
 - Level Calibration: A1 expects simple, comprehensible language. Full marks MUST be awarded for simple, accurate German that covers all Leitpunkte. Do NOT demand or reward overly complex constructions.`;
-          }
-          if (level === "A2") {
-            if (teilNum === 1) {
-              return `OFFICIAL GOETHE A2 WRITING CRITERIA & CHECKLIST (Teil 1: Kurze SMS / Notiz):
+           }
+           if (level === "A2") {
+             if (teilNum === 1) {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE A2 (Teil 1: Kurze SMS / Notiz):
 - Format & Expected Length: Brief informal message/SMS (~20–30 words) with 3 points.
 - Structure: Short greeting, concise direct statements covering the 3 points, informal closing.
 - Register: Informal ('du/ihr').
 - Vocabulary & Grammar: Practical daily vocabulary, present tense or Perfekt, modal verbs, correct verb placement.`;
-            }
-            return `OFFICIAL GOETHE A2 WRITING CRITERIA & CHECKLIST (Teil 2: Persönliche / Halbformelle E-Mail):
+             }
+             return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE A2 (Teil 2: Persönliche / Halbformelle E-Mail):
 - Format & Expected Length: Personal or semi-formal message/email (~40 words, typically 35–55 words).
 - Required Structure: Correct salutation, cohesive text body covering all 3 Leitpunkte, suitable closing formula with name.
 - Register & Formality: Consistent informal ('du') or semi-formal ('Sie') register.
 - Connectors & Coherence: Linking with "weil", "denn", "deshalb", "wenn", "oder", "aber", temporal sequence ("zuerst", "dann").
 - Grammar & Vocabulary: Correct Perfekt with haben/sein, modal verbs, accusative/dative prepositions, appropriate A2 lexical range.
 - Level Calibration: Judge whether communication is effective at A2. Do not penalize absence of B-level structures.`;
-          }
-          if (level === "B1") {
-            if (teilNum === 1) {
-              return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 1: Persönliche E-Mail):
+           }
+           if (level === "B1") {
+             if (teilNum === 1) {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE B1 (Teil 1: Persönliche E-Mail):
 - Format & Expected Length: Personal email (~80 words) covering 3 Leitpunkte (describing an event, giving reasons, making a proposal/meeting).
 - Structure: Friendly opening ("Liebe/Lieber..."), thematic paragraphs for each Leitpunkt, affectionate closing ("Liebe Grüße", "Bis bald").
 - Register: Informal ('du/ihr'), personal, conversational tone.
 - Task Fulfillment: Descriptive depth, clear reasons, concrete suggestion.
 - Connectors: "weil", "da", "deshalb", "obwohl", "trotzdem", "wenn", "um... zu".
 - Grammar & Vocabulary: Past tenses (Perfekt/Präteritum), Konjunktiv II for polite suggestions, varied B1 vocabulary.`;
-            }
-            if (teilNum === 2) {
-              return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 2: Forumsbeitrag / Meinung):
+             }
+             if (teilNum === 2) {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE B1 (Teil 2: Forumsbeitrag / Meinung):
 - Format & Expected Length: Discussion forum contribution (~80 words).
 - Structure: Opening statement addressing the forum topic, main body stating personal opinion and reasons, personal experience, brief conclusion.
 - Register: Public but accessible/neutral (no personal salutation like "Liebe...", but neutral greeting like "Hallo zusammen" or direct entry).
 - Task Fulfillment: Clear expression of opinion, justification, personal reflection.
 - Connectors: Argumentative connectors ("Meiner Meinung nach...", "Ein Grund dafür ist...", "Außerdem...", "Zusammenfassend...").
 - Grammar & Vocabulary: Opinion phrases, modal verbs, subordinate clauses with 'dass' and 'weil'.`;
-            }
-            return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 3: Formelle Entschuldigung / Bitte):
+             }
+             return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE B1 (Teil 3: Formelle Entschuldigung / Bitte):
 - Format & Expected Length: Brief formal message (~40 words, e.g. apologising for absence, requesting an appointment).
 - Structure: Formal salutation ("Sehr geehrte(r) Frau/Herr..."), clear concise reason/request, polite formal closing ("Mit freundlichen Grüßen").
 - Register: Strict formal register ('Sie/Ihnen'), courteous tone.
 - Task Fulfillment: Promptly and politely achieves communicative goal.
 - Grammar: Polite Konjunktiv II ("Ich möchte Sie bitten...", "Könnten Sie bitte..."), correct formal forms.`;
-          }
-          if (level === "B2") {
-            if (teilNum === 1) {
-              return `OFFICIAL GOETHE B2 WRITING CRITERIA & CHECKLIST (Teil 1: Diskussionsbeitrag / Forumsbeitrag):
+           }
+           if (level === "B2") {
+             if (teilNum === 1) {
+               return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE B2 (Teil 1: Diskussionsbeitrag / Forumsbeitrag):
 - Format & Expected Length: Well-developed opinion essay / forum post (minimum 150 words).
 - Required Content Points: 1) Personal opinion with arguments, 2) Reasons/causes for the situation, 3) Alternative options, 4) Evaluation of advantages/disadvantages.
 - Structure: Engaging introduction, distinct argumentative paragraphs with topic sentences, logical transitions, rounded conclusion.
 - Register: Neutral, articulate, and objective.
 - Connectors & Flow: "einerseits... andererseits", "darüber hinaus", "demgegenüber", "nicht nur... sondern auch", "folglich".
 - Grammar & Vocabulary: High lexical variety, abstract B2 terminology, Passiv, Konjunktiv II, Nomen-Verb-Verbindungen, relative and causal clauses.`;
-            }
-            return `OFFICIAL GOETHE B2 WRITING CRITERIA & CHECKLIST (Teil 2: Formelle Nachricht / Beschwerde / Bitte):
-- Format & Expected Length: Official business/formal email (minimum 100 words, e.g. complaint, request, clarification).
+             }
+             return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — GOETHE B2 (Teil 2: Formelle Nachricht / Beschwerde / Bitte):
+- Format & Expected Length: Formal email (minimum 100 words, e.g. complaint, request, clarification).
 - Structure: Standard formal letter layout (subject line concept, formal greeting, background context, detailed points of contention/request, deadline or expected action, formal sign-off).
 - Register: Impeccable formal business register ('Sie/Ihnen'), diplomatic assertiveness.
 - Grammar & Vocabulary: Advanced formal vocabulary, fixed idioms ("Ich wende mich an Sie, um...", "Bitte teilen Sie mir mit..."), passive forms, hypothetical and conditional clauses.`;
-          }
+           }
 
-          return `OFFICIAL ${formatName.toUpperCase()} ${level} WRITING CRITERIA & CHECKLIST:
+           return `EXAM WRITING CRITERIA & CHECKLIST (reference guide) — ${exam.toUpperCase()} ${level} (Teil ${teilNum}):
 - Task Fulfillment: Completely address all instructions and Leitpunkte.
 - Structure: Logical layout, clear opening, developed body, appropriate closing.
 - Register: Consistent formality ('du' vs 'Sie') matching the context.
 - Connectors: Appropriate cohesive devices for CEFR ${level}.
 - Grammar & Vocabulary: Accurate, effective usage calibrated strictly to CEFR ${level}. Do not penalize simple German if it is correct and completes the task.`;
-        }
+         }
 
-        const officialChecklist = getOfficialWritingChecklist(examFormat, level, teilText);
+
+        const writingChecklist = getWritingChecklist(examFormat, level, teilNum);
 
         // 6. Call Gemini Evaluation API with comprehensive dual-rubric prompt
         const evaluationPrompt = `
-You are evaluating this exact examination task against official examination criteria, not a generic German writing sample.
-You are an expert certified examination evaluator for official ${examFormat.toUpperCase()} German exams at the CEFR ${level} level.
+You are evaluating a specific ${examFormat.toUpperCase()} ${level} German examination writing task (${teilText}).
+Your role is to apply the task requirements, required Leitpunkte, and exam-format writing criteria below to assess the student's submission accurately and fairly — not as a generic German writing sample, but as a response to this specific exam task.
 
 EXAM SPECIFICATIONS:
-- Examination: ${examFormat.toUpperCase()}
+- Examination format: ${examFormat.toUpperCase()}
 - CEFR Level: ${level}
-- Teil / Component: ${teilText || "Schreiben"}
+- Teil / Component: ${teilText}
 
 EXAM SITUATION:
 ${situationText || "No additional situation provided."}
@@ -1393,14 +1526,14 @@ STUDENT SUBMISSION:
 ${studentAnswer}
 
 ================================================================================
-OFFICIAL ${examFormat.toUpperCase()} ${level} ${teilText ? teilText.toUpperCase() : "SCHREIBEN"} WRITING CRITERIA & CHECKLIST:
+EXAM WRITING CRITERIA & CHECKLIST (reference guide) — ${examFormat.toUpperCase()} ${level} ${teilText.toUpperCase()}:
 ================================================================================
-${officialChecklist}
+${writingChecklist}
 
 EVALUATION METHODOLOGY & MANDATORY CRITERIA:
 You MUST evaluate the student's submission against BOTH:
 (1) The exact task/question and all required Leitpunkte, AND
-(2) The official ${examFormat.toUpperCase()} ${level} Teil-specific writing criteria and checklist above.
+(2) The ${examFormat.toUpperCase()} ${level} ${teilText} writing criteria and reference checklist above.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RULE 0 — LANGUAGE REQUIREMENT (HIGHEST PRIORITY — CHECK THIS FIRST):
@@ -1438,7 +1571,7 @@ RULE 2 — RELEVANCE & COMPLETENESS:
 RULE 3 — TEXT STRUCTURE & APPROPRIATE CONNECTORS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Check text layout: Is there an appropriate opening salutation, coherent body, suitable closing formula, and sender name?
-- Check cohesive devices and connectors are appropriate for CEFR ${level} (see official checklist above).
+- Check cohesive devices and connectors are appropriate for CEFR ${level} (see reference checklist above).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RULE 4 — LEVEL-APPROPRIATE VOCABULARY:
@@ -1474,7 +1607,7 @@ Verify the submission satisfies the expected length for this exam part. Very sho
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EXAM-GRADE SCORE CALIBRATION — USE THESE BENCHMARKS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Apply the score_percent that reflects actual performance on THIS official exam:
+Apply the score_percent that reflects actual performance on THIS exam:
 
 score_percent 90–95%: All Leitpunkte fully and clearly addressed in correct, natural German. Excellent structure, appropriate vocabulary, and virtually error-free grammar for the level. Near-perfect performance. (95% is the absolute maximum — never exceed 95.)
 score_percent 75–89%: All Leitpunkte addressed, mostly correct language, minor errors that do not impede communication. Strong overall performance.
@@ -1680,11 +1813,19 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
 
           const parsed = JSON.parse(cleanCandidateText);
 
-          // Validate required fields in parsed JSON — hard-cap at 95 (never 100%)
-          const rawScorePct = typeof parsed.score_percent === "number" ? parsed.score_percent : parseInt(parsed.score_percent || 0, 10);
-          const scorePercent = Math.max(0, Math.min(95, isNaN(rawScorePct) ? 60 : rawScorePct));
+          // 1. Validate score_percent — never invent a score; fail the evaluation if missing/invalid
+          const rawScorePct = typeof parsed.score_percent === "number"
+            ? parsed.score_percent
+            : (parsed.score_percent !== undefined && parsed.score_percent !== null
+                ? parseFloat(String(parsed.score_percent))
+                : NaN);
+          if (isNaN(rawScorePct) || rawScorePct < 0 || rawScorePct > 100) {
+            throw new Error(`Gemini returned missing or invalid score_percent: ${JSON.stringify(parsed.score_percent)}`);
+          }
+          // Hard-cap at 0–95 (never 100%)
+          const scorePercent = Math.max(0, Math.min(95, Math.round(rawScorePct)));
 
-          // Criterion name normalization to English (FIX 3)
+          // 2. Criterion name normalization to English
           const nameMapping = {
             "aufgabenerfüllung": "Task Fulfillment",
             "task fulfillment": "Task Fulfillment",
@@ -1701,23 +1842,48 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
             "grammar and form": "Grammar & Form",
           };
 
-          const criteria = Array.isArray(parsed.criteria) && parsed.criteria.length > 0
-            ? parsed.criteria.map((c) => {
-                const rawName = String(c.name || "Criterion").trim();
-                const normalizedName = nameMapping[rawName.toLowerCase()] || rawName;
-                return {
-                  name: normalizedName,
-                  score: typeof c.score === "number" ? c.score : parseFloat(c.score || 0) || 0,
-                  max_score: typeof c.max_score === "number" ? c.max_score : 5,
-                  feedback: String(c.feedback || ""),
-                };
-              })
-            : [
-                { name: "Task Fulfillment", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Task fulfillment evaluated against required points." },
-                { name: "Coherence & Structure", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Coherence, greeting, and structure evaluated." },
-                { name: "Vocabulary", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Vocabulary range evaluated." },
-                { name: "Grammar & Form", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Grammar and spelling evaluated." },
-              ];
+          const REQUIRED_CRITERIA = ["Task Fulfillment", "Coherence & Structure", "Vocabulary", "Grammar & Form"];
+
+          // 3. Validate criteria — must be an array of 4; do NOT generate fallback scores
+          if (!Array.isArray(parsed.criteria) || parsed.criteria.length === 0) {
+            throw new Error("Gemini response did not include criteria array.");
+          }
+
+          const criteria = parsed.criteria.map((c, idx) => {
+            const rawName = String(c.name || "").trim();
+            const normalizedName = nameMapping[rawName.toLowerCase()] || rawName;
+
+            // Reject missing or non-numeric criterion score
+            const rawScore = typeof c.score === "number"
+              ? c.score
+              : (c.score !== undefined && c.score !== null ? parseFloat(String(c.score)) : NaN);
+            if (isNaN(rawScore) || rawScore < 0 || rawScore > 10) {
+              throw new Error(`Criterion "${rawName}" (index ${idx}) has missing or invalid score: ${JSON.stringify(c.score)}`);
+            }
+
+            return {
+              name: normalizedName,
+              // Clamp to 0–5, round to nearest 0.5
+              score: Math.max(0, Math.min(5, Math.round(rawScore * 2) / 2)),
+              max_score: typeof c.max_score === "number" ? c.max_score : 5,
+              feedback: String(c.feedback || ""),
+            };
+          });
+
+          // Build finalCriteria ensuring all 4 required criteria are present exactly once in standard order
+          const criteriaMap = new Map();
+          for (const c of criteria) {
+            if (REQUIRED_CRITERIA.includes(c.name) && !criteriaMap.has(c.name)) {
+              criteriaMap.set(c.name, c);
+            }
+          }
+
+          const missingCriteria = REQUIRED_CRITERIA.filter((r) => !criteriaMap.has(r));
+          if (missingCriteria.length > 0) {
+            throw new Error(`Gemini response is missing required criteria: ${missingCriteria.join(", ")}`);
+          }
+
+          const finalCriteria = REQUIRED_CRITERIA.map((name) => criteriaMap.get(name));
 
           const mistakes = Array.isArray(parsed.mistakes)
             ? parsed.mistakes.map((m) => ({
@@ -1733,7 +1899,7 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
             score_percent: scorePercent,
             cefr_level_met: scorePercent >= 60,
             word_count: wordCount,
-            criteria,
+            criteria: finalCriteria,
             mistakes,
             feedback,
           };
