@@ -1,0 +1,19 @@
+{
+  "exam": "goethe",
+  "level": "B2",
+  "teil": "Schreiben",
+  "task": {
+    "situation": "Sie haben in einer Online-Zeitung einen Artikel zum Thema „Homeoffice – Chance oder Risiko?“ gelesen. Im Artikel wird darüber diskutiert, ob Unternehmen ihren Mitarbeitenden grundsätzlich die Möglichkeit geben sollten, von zu Hause aus zu arbeiten.",
+    "aufgabe": "Nehmen Sie Stellung zu dieser Frage. Schreiben Sie einen Forumsbeitrag, in dem Sie Ihre Meinung begründen.",
+    "leitpunkte": [
+      "Äußern Sie Ihre Meinung zum Thema Homeoffice.",
+      "Nennen Sie Vorteile und Nachteile des Homeoffice.",
+      "Erläutern Sie, unter welchen Bedingungen Homeoffice sinnvoll ist.",
+      "Machen Sie einen Vorschlag, wie Unternehmen mit dem Thema Homeoffice umgehen sollten."
+    ],
+    "word_count": {
+      "minimum": 150,
+      "maximum": 200
+    }
+  }
+}

@@ -1394,8 +1394,8 @@ function renderHome() {
         <h2>Master German with Confidence</h2>
         <p>Prepare for Goethe & telc certification exams with clear, practical resources.</p>
         <div class="home-cta-actions">
-          <a class="button button-primary" href="#/practice">${icon("pen-tool")} Start Practice Now</a>
-          <a class="button button-secondary" href="#/resources/study-materials">${icon("book-open")} View Study Materials</a>
+          <a class="button button-primary" href="#/membership">${icon("crown")} View Membership Plans</a>
+          <a class="button button-secondary" href="#/practice">${icon("pen-tool")} Start Practice Now</a>
         </div>
       </div>
     </section>
@@ -3433,6 +3433,7 @@ async function executeRoute() {
   else if (path === "/videos") renderVideos();
   else if (path === "/about") renderAbout();
   else if (path === "/contact") renderContact();
+  else if (path === "/membership" || path === "/membership/") await renderMembership();
   else if (path === "/login") renderLogin("login");
   else if (path === "/register") renderLogin("register");
   else if (path === "/forgot-password") renderLogin("forgot");
