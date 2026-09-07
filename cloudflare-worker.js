@@ -1240,15 +1240,145 @@ export default {
           );
         }
 
-        // 6. Call Gemini Evaluation API with structured prompt (FIX 1, FIX 2, FIX 3, FIX 5)
+        // Helper: retrieve official Goethe/telc writing criteria and checklist for specific exam, level, and Teil
+        function getOfficialWritingChecklist(exam, lvl, teil) {
+          const formatName = String(exam || "goethe").toLowerCase().trim();
+          const level = String(lvl || "A1").toUpperCase().trim();
+          const part = String(teil || "").toLowerCase().trim();
+
+          let teilNum = 2; // Default for A1/A2 free writing
+          if (part.includes("1") || part.includes("teil 1") || part.includes("part 1")) teilNum = 1;
+          else if (part.includes("2") || part.includes("teil 2") || part.includes("part 2")) teilNum = 2;
+          else if (part.includes("3") || part.includes("teil 3") || part.includes("part 3")) teilNum = 3;
+
+          if (formatName === "telc") {
+            if (level === "A1") {
+              return `OFFICIAL TELC DEUTSCH A1 WRITING CRITERIA & CHECKLIST (Teil 2: Kurze Mitteilung):
+- Format & Expected Length: Short personal or semi-formal message/note (~30 words, typically 20–40 words).
+- Required Structure: Suitable greeting/salutation, concise text body addressing all Leitpunkte, closing formula with sender's name.
+- Register & Formality: Match context (informal 'du/ihr' for friends/colleagues vs. formal 'Sie/Ihnen' for official recipients).
+- Vocabulary & Connectors: Basic everyday A1 vocabulary; simple connectors ("und", "aber", "denn").
+- Grammar & Syntax: Present tense, basic Perfekt, verb in position 2 in main clauses, simple question forms.
+- Level Calibration: Simple, correct A1 German is fully sufficient for maximum marks. Do not penalize simple structures.`;
+            }
+            if (level === "A2") {
+              return `OFFICIAL TELC DEUTSCH A2 WRITING CRITERIA & CHECKLIST (Teil 2: Kurzer Brief / E-Mail):
+- Format & Expected Length: Short letter or email (~30–50 words).
+- Required Structure: Clear salutation, structured body addressing all Leitpunkte, suitable closing formula and name.
+- Register & Formality: Consistent register ('du/ihr' vs 'Sie/Ihnen') throughout.
+- Connectors & Flow: Basic sentence connectors ("weil", "wenn", "deshalb", "denn", "dann").
+- Grammar & Vocabulary: Present, Perfekt, modal verbs, prepositions with correct case (Akkusativ/Dativ), accurate everyday A2 vocabulary.
+- Level Calibration: Reward effective communicative ability at A2 level. Do not expect complex subordinate clauses.`;
+            }
+            if (level === "B1") {
+              return `OFFICIAL TELC DEUTSCH B1 WRITING CRITERIA & CHECKLIST (Brief / E-Mail):
+- Format & Expected Length: Personal or semi-formal letter/email (~100 words).
+- Required Structure: Full letter framework (appropriate salutation, introduction, distinct paragraphs for Leitpunkte, closing formula).
+- Register & Formality: Precise adherence to register ('du/ihr' vs 'Sie/Ihnen'), courteous phrasing.
+- Task Fulfillment: All provided Leitpunkte must be covered in detail with relevant explanations.
+- Connectors & Coherence: Logical progression, connectors ("da", "obwohl", "trotzdem", "sowohl... als auch", "deswegen").
+- Grammar & Vocabulary: Good range of B1 vocabulary, subordinate clauses (weil, dass, wenn, obwohl), relative clauses, infinitive with 'zu', correct cases and prepositions.
+- Level Calibration: Judge against B1 standards. Clear, well-connected sentences without unnecessary artificial complexity.`;
+            }
+            if (level === "B2") {
+              return `OFFICIAL TELC DEUTSCH B2 WRITING CRITERIA & CHECKLIST (Halbformelle / Formelle E-Mail):
+- Format & Expected Length: Formal or semi-formal letter/email (~150 words, e.g. inquiry, complaint, application).
+- Required Structure: Official letter conventions (formal salutation, reference line/opening statement, well-structured arguments/requests, formal closing).
+- Register & Formality: High formal register ('Sie/Ihnen', 'Sehr geehrte Damen und Herren', 'Mit freundlichen Grüßen'), diplomatic and polite tone.
+- Task Fulfillment: Comprehensive, differentiated coverage of all Leitpunkte with clear arguments and concrete details.
+- Connectors & Cohesion: Sophisticated transitions ("in Bezug auf", "darüber hinaus", "folglich", "demgegenüber").
+- Grammar & Vocabulary: Varied B2 vocabulary, idiomatic and professional expressions, Passiv, Konjunktiv II, complex subordinate clauses, prepositions with Genitiv/Dativ.`;
+            }
+          }
+
+          // GOETHE (Default or Goethe-specific)
+          if (level === "A1") {
+            return `OFFICIAL GOETHE A1 (START DEUTSCH 1) WRITING CRITERIA & CHECKLIST (Teil 2: Persönliche Kurzmitteilung):
+- Format & Expected Length: Short personal or semi-formal message, email, or note (~30 words, typically 20–40 words).
+- Required Structure: Appropriate greeting (e.g., "Liebe Eva,", "Hallo Paul," or formal "Sehr geehrte(r)..."), body sentences addressing all 3 Leitpunkte, proper sign-off ("Viele Grüße", "Herzliche Grüße") with sender name.
+- Register & Formality: Consistent address matching the relationship ('du' for friends/colleagues, 'Sie' for formal recipients).
+- Vocabulary & Connectors: Essential everyday A1 vocabulary; basic sentence linking ("und", "aber", "oder", "weil").
+- Grammar & Syntax: Regular verb conjugations, verb in position 2 (V2) in statements, verb in position 1 in yes/no questions, basic object pronouns and cases.
+- Level Calibration: A1 expects simple, comprehensible language. Full marks MUST be awarded for simple, accurate German that covers all Leitpunkte. Do NOT demand or reward overly complex constructions.`;
+          }
+          if (level === "A2") {
+            if (teilNum === 1) {
+              return `OFFICIAL GOETHE A2 WRITING CRITERIA & CHECKLIST (Teil 1: Kurze SMS / Notiz):
+- Format & Expected Length: Brief informal message/SMS (~20–30 words) with 3 points.
+- Structure: Short greeting, concise direct statements covering the 3 points, informal closing.
+- Register: Informal ('du/ihr').
+- Vocabulary & Grammar: Practical daily vocabulary, present tense or Perfekt, modal verbs, correct verb placement.`;
+            }
+            return `OFFICIAL GOETHE A2 WRITING CRITERIA & CHECKLIST (Teil 2: Persönliche / Halbformelle E-Mail):
+- Format & Expected Length: Personal or semi-formal message/email (~40 words, typically 35–55 words).
+- Required Structure: Correct salutation, cohesive text body covering all 3 Leitpunkte, suitable closing formula with name.
+- Register & Formality: Consistent informal ('du') or semi-formal ('Sie') register.
+- Connectors & Coherence: Linking with "weil", "denn", "deshalb", "wenn", "oder", "aber", temporal sequence ("zuerst", "dann").
+- Grammar & Vocabulary: Correct Perfekt with haben/sein, modal verbs, accusative/dative prepositions, appropriate A2 lexical range.
+- Level Calibration: Judge whether communication is effective at A2. Do not penalize absence of B-level structures.`;
+          }
+          if (level === "B1") {
+            if (teilNum === 1) {
+              return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 1: Persönliche E-Mail):
+- Format & Expected Length: Personal email (~80 words) covering 3 Leitpunkte (describing an event, giving reasons, making a proposal/meeting).
+- Structure: Friendly opening ("Liebe/Lieber..."), thematic paragraphs for each Leitpunkt, affectionate closing ("Liebe Grüße", "Bis bald").
+- Register: Informal ('du/ihr'), personal, conversational tone.
+- Task Fulfillment: Descriptive depth, clear reasons, concrete suggestion.
+- Connectors: "weil", "da", "deshalb", "obwohl", "trotzdem", "wenn", "um... zu".
+- Grammar & Vocabulary: Past tenses (Perfekt/Präteritum), Konjunktiv II for polite suggestions, varied B1 vocabulary.`;
+            }
+            if (teilNum === 2) {
+              return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 2: Forumsbeitrag / Meinung):
+- Format & Expected Length: Discussion forum contribution (~80 words).
+- Structure: Opening statement addressing the forum topic, main body stating personal opinion and reasons, personal experience, brief conclusion.
+- Register: Public but accessible/neutral (no personal salutation like "Liebe...", but neutral greeting like "Hallo zusammen" or direct entry).
+- Task Fulfillment: Clear expression of opinion, justification, personal reflection.
+- Connectors: Argumentative connectors ("Meiner Meinung nach...", "Ein Grund dafür ist...", "Außerdem...", "Zusammenfassend...").
+- Grammar & Vocabulary: Opinion phrases, modal verbs, subordinate clauses with 'dass' and 'weil'.`;
+            }
+            return `OFFICIAL GOETHE B1 WRITING CRITERIA & CHECKLIST (Teil 3: Formelle Entschuldigung / Bitte):
+- Format & Expected Length: Brief formal message (~40 words, e.g. apologising for absence, requesting an appointment).
+- Structure: Formal salutation ("Sehr geehrte(r) Frau/Herr..."), clear concise reason/request, polite formal closing ("Mit freundlichen Grüßen").
+- Register: Strict formal register ('Sie/Ihnen'), courteous tone.
+- Task Fulfillment: Promptly and politely achieves communicative goal.
+- Grammar: Polite Konjunktiv II ("Ich möchte Sie bitten...", "Könnten Sie bitte..."), correct formal forms.`;
+          }
+          if (level === "B2") {
+            if (teilNum === 1) {
+              return `OFFICIAL GOETHE B2 WRITING CRITERIA & CHECKLIST (Teil 1: Diskussionsbeitrag / Forumsbeitrag):
+- Format & Expected Length: Well-developed opinion essay / forum post (minimum 150 words).
+- Required Content Points: 1) Personal opinion with arguments, 2) Reasons/causes for the situation, 3) Alternative options, 4) Evaluation of advantages/disadvantages.
+- Structure: Engaging introduction, distinct argumentative paragraphs with topic sentences, logical transitions, rounded conclusion.
+- Register: Neutral, articulate, and objective.
+- Connectors & Flow: "einerseits... andererseits", "darüber hinaus", "demgegenüber", "nicht nur... sondern auch", "folglich".
+- Grammar & Vocabulary: High lexical variety, abstract B2 terminology, Passiv, Konjunktiv II, Nomen-Verb-Verbindungen, relative and causal clauses.`;
+            }
+            return `OFFICIAL GOETHE B2 WRITING CRITERIA & CHECKLIST (Teil 2: Formelle Nachricht / Beschwerde / Bitte):
+- Format & Expected Length: Official business/formal email (minimum 100 words, e.g. complaint, request, clarification).
+- Structure: Standard formal letter layout (subject line concept, formal greeting, background context, detailed points of contention/request, deadline or expected action, formal sign-off).
+- Register: Impeccable formal business register ('Sie/Ihnen'), diplomatic assertiveness.
+- Grammar & Vocabulary: Advanced formal vocabulary, fixed idioms ("Ich wende mich an Sie, um...", "Bitte teilen Sie mir mit..."), passive forms, hypothetical and conditional clauses.`;
+          }
+
+          return `OFFICIAL ${formatName.toUpperCase()} ${level} WRITING CRITERIA & CHECKLIST:
+- Task Fulfillment: Completely address all instructions and Leitpunkte.
+- Structure: Logical layout, clear opening, developed body, appropriate closing.
+- Register: Consistent formality ('du' vs 'Sie') matching the context.
+- Connectors: Appropriate cohesive devices for CEFR ${level}.
+- Grammar & Vocabulary: Accurate, effective usage calibrated strictly to CEFR ${level}. Do not penalize simple German if it is correct and completes the task.`;
+        }
+
+        const officialChecklist = getOfficialWritingChecklist(examFormat, level, teilText);
+
+        // 6. Call Gemini Evaluation API with comprehensive dual-rubric prompt
         const evaluationPrompt = `
-You are evaluating this exact examination task, not a generic German writing sample.
+You are evaluating this exact examination task against official examination criteria, not a generic German writing sample.
 You are an expert certified examination evaluator for official ${examFormat.toUpperCase()} German exams at the CEFR ${level} level.
 
-EXAM:
-- Exam format: ${examFormat.toUpperCase()}
-- CEFR level: ${level}
-- Teil: ${teilText || "Schreiben"}
+EXAM SPECIFICATIONS:
+- Examination: ${examFormat.toUpperCase()}
+- CEFR Level: ${level}
+- Teil / Component: ${teilText || "Schreiben"}
 
 EXAM SITUATION:
 ${situationText || "No additional situation provided."}
@@ -1256,43 +1386,69 @@ ${situationText || "No additional situation provided."}
 EXAM TASK:
 ${instructionText || rawTask}
 
-REQUIRED POINTS:
+REQUIRED LEITPUNKTE / POINTS:
 ${pointsFormatted}
 
-STUDENT ANSWER:
+STUDENT SUBMISSION:
 ${studentAnswer}
 
-EVALUATION METHODOLOGY & SCORING RULES:
-1. CHECK EVERY REQUIRED POINT INDIVIDUALLY BEFORE SCORING:
-   - Determine whether each required bullet point listed under REQUIRED POINTS was:
+================================================================================
+OFFICIAL ${examFormat.toUpperCase()} ${level} ${teilText ? teilText.toUpperCase() : "SCHREIBEN"} WRITING CRITERIA & CHECKLIST:
+================================================================================
+${officialChecklist}
+
+EVALUATION METHODOLOGY & MANDATORY CRITERIA:
+You MUST evaluate the student's submission against BOTH:
+(1) The exact task/question and all required Leitpunkte, AND
+(2) The official ${examFormat.toUpperCase()} ${level} Teil-specific writing criteria and checklist above.
+
+Verify each of the following 8 core dimensions:
+1. TASK / LEITPUNKTE FULFILLMENT:
+   - Check every individual Leitpunkt. Determine whether each was:
      * FULLY ADDRESSED: Clearly, comprehensibly, and adequately communicated in German.
      * PARTIALLY ADDRESSED: Incomplete, vague, or heavily obscured by grammatical/lexical errors.
      * NOT ADDRESSED: Omitted, ignored, or completely missing.
-2. TASK FULFILLMENT SCORING (PRIMARY DRIVER):
-   - Task Fulfillment score (0 to 5) must be based primarily on whether all required points were completed.
-   - Do NOT give 5/5 Task Fulfillment if any required point is missing or only partially addressed.
-   - If 1 required point is missing: Task Fulfillment score MUST NOT exceed 3.0 / 5.
-   - If 2 or more required points are missing: Task Fulfillment score MUST NOT exceed 1.5 / 5, and the overall score_percent MUST be heavily penalized (well below passing 60%).
-   - A grammatically excellent answer that ignores required points must NOT receive a high score.
-   - In the feedback for "Task Fulfillment", explicitly state in English which points were fulfilled and which specific points were missed or only partially answered.
-3. ALL EVALUATION OUTPUT MUST BE IN ENGLISH:
-   - All criteria feedback, general feedback, and mistake explanations must be written in clear English.
-   - Criteria names must be EXACTLY:
-     "Task Fulfillment"
-     "Coherence & Structure"
-     "Vocabulary"
-     "Grammar & Form"
-   - In "mistakes":
-     * "original" MUST be the exact German text from the student with the error.
-     * "correction" MUST be the corrected phrasing in German.
-     * "explanation" MUST be in English explaining the grammatical/lexical rule.
-     * Do NOT translate the student's German text into English.
-     * Do NOT rewrite the student's entire answer.
-4. SCORING SCALE:
-   - "score_percent": Integer from 0 to 100 representing overall CEFR performance.
-   - "cefr_level_met": Boolean, true ONLY if score_percent >= 60.
+   - Task fulfillment MUST strongly affect the final score.
+   - If 1 required Leitpunkt is missing: Task Fulfillment score MUST NOT exceed 3.0 / 5.
+   - If 2 or more required Leitpunkte are missing: Task Fulfillment score MUST NOT exceed 1.5 / 5, and the overall score_percent MUST be heavily penalized (well below passing 60%).
+   - A grammatically flawless answer that ignores required points must NOT receive a high score.
+2. RELEVANCE & COMPLETENESS:
+   - Does the answer stay strictly relevant to the scenario? Are all required components covered completely without off-topic filler?
+3. TEXT STRUCTURE & APPROPRIATE CONNECTORS:
+   - Check text layout: Opening greeting/salutation, coherent sentence and paragraph flow, suitable closing formula, sender name.
+   - Check cohesive devices and connectors appropriate for CEFR ${level}.
+4. VOCABULARY APPROPRIATE FOR THE LEVEL:
+   - Check whether vocabulary is suitable, accurate, and natural for CEFR ${level}.
+   - CRITICAL: Do NOT reward unnecessarily advanced German. Judge whether the language is appropriate and effective for the target level. An A1/A2 answer written in clear, natural, simple German that fulfills all Leitpunkte MUST be awarded full marks.
+5. GRAMMAR & SENTENCE STRUCTURE:
+   - Check sentence structure (verb position V2 in main clauses, verb-final in subordinate clauses), verb conjugation, cases (Nominativ, Akkusativ, Dativ), prepositions, spelling, and noun capitalization.
+   - CRITICAL: Do NOT invent mistakes. Only flag genuine grammatical, orthographical, syntactical, or lexical errors. Accept natural German phrasing and common colloquialisms if suitable for the register.
+6. REGISTER, FORMALITY & REQUIRED FORMAT:
+   - Check register: Is the distinction between informal ('du/ihr') and formal ('Sie/Ihnen') consistently maintained as required by the recipient?
+   - Is the format appropriate for the task type (e.g. personal email, formal inquiry, forum post)?
+7. COMMUNICATIVE EFFECTIVENESS:
+   - Can a native speaker understand the message effortlessly at the expected ${level} standard?
+8. WORD LIMIT & EXTENT:
+   - Student answer word count: ${wordCount} words.
+   - Verify that the text satisfies the expected length for this exam part without excessive brevity or fluff.
 
-You MUST respond ONLY with a valid JSON object matching this exact schema (no markdown fences, no explanatory text outside JSON):
+LANGUAGE & FORMAT OF EVALUATION:
+- All evaluator feedback, criteria explanations, and overall summaries MUST be in ENGLISH.
+- Criteria names must be EXACTLY:
+  "Task Fulfillment"
+  "Coherence & Structure"
+  "Vocabulary"
+  "Grammar & Form"
+- In "mistakes":
+  * "original": Exact German text from the student with the error.
+  * "correction": Corrected German phrasing.
+  * "explanation": Concise English explanation of the grammatical/orthographic rule.
+  * Do NOT translate the student's German text into English.
+  * Do NOT rewrite the student's entire answer.
+- "score_percent": Integer from 0 to 100 representing overall CEFR performance.
+- "cefr_level_met": Boolean, true ONLY if score_percent >= 60.
+
+Respond ONLY with a valid JSON object matching this exact schema (no markdown fences, no explanatory text outside JSON):
 {
   "score_percent": <integer between 0 and 100>,
   "cefr_level_met": <boolean, true if score_percent >= 60>,
@@ -1301,25 +1457,25 @@ You MUST respond ONLY with a valid JSON object matching this exact schema (no ma
       "name": "Task Fulfillment",
       "score": <number between 0 and 5, can use 0.5 increments>,
       "max_score": 5,
-      "feedback": "<concise feedback in English explicitly detailing the status of every required point>"
+      "feedback": "<concise English feedback explicitly detailing the status of every required Leitpunkt and completeness>"
     },
     {
       "name": "Coherence & Structure",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback in English on greeting, sign-off, text structure, and connectors>"
+      "feedback": "<concise English feedback on greeting, sign-off, text structure, connectors, and register>"
     },
     {
       "name": "Vocabulary",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback in English on vocabulary range and appropriateness for CEFR level>"
+      "feedback": "<concise English feedback on vocabulary range, appropriateness for target level, and register>"
     },
     {
       "name": "Grammar & Form",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback in English on grammar, spelling, and sentence structure>"
+      "feedback": "<concise English feedback on grammar, sentence structure, spelling, and verb placement>"
     }
   ],
   "mistakes": [
@@ -1329,7 +1485,7 @@ You MUST respond ONLY with a valid JSON object matching this exact schema (no ma
       "explanation": "<grammatical explanation in English>"
     }
   ],
-  "feedback": "<overall qualitative evaluation summary in English stating strengths and missed requirements>"
+  "feedback": "<overall qualitative evaluation summary in English addressing communicative effectiveness, strengths, and areas for improvement>"
 }
 `.trim();
 
