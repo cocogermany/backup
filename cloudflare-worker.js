@@ -1248,30 +1248,114 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
 }
 `.trim();
 
+        // --- Helper: fetch ordered list of low-cost Flash/Flash-Lite models ---
+        async function getAvailableFlashModels(apiKey) {
+          try {
+            const listRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+              { method: "GET" }
+            );
+            if (!listRes.ok) return null;
+            const listData = await listRes.json();
+            const models = Array.isArray(listData.models) ? listData.models : [];
+
+            // Filter: must support generateContent, name must contain "flash",
+            // must NOT contain "pro", "ultra", or "thinking"
+            const filtered = models.filter((m) => {
+              const n = (m.name || "").toLowerCase();
+              const methods = Array.isArray(m.supportedGenerationMethods) ? m.supportedGenerationMethods : [];
+              return (
+                methods.includes("generateContent") &&
+                n.includes("flash") &&
+                !n.includes("pro") &&
+                !n.includes("ultra") &&
+                !n.includes("thinking")
+              );
+            });
+
+            // Sort: flash-lite before flash, newer versions before older
+            // Extract short name after "models/" for sorting
+            filtered.sort((a, b) => {
+              const na = (a.name || "").toLowerCase();
+              const nb = (b.name || "").toLowerCase();
+              const aLite = na.includes("flash-lite") ? 0 : 1;
+              const bLite = nb.includes("flash-lite") ? 0 : 1;
+              if (aLite !== bLite) return aLite - bLite;
+              // Prefer higher version numbers — extract numeric parts
+              const verA = (na.match(/(\d+\.\d+|\d+)/) || ["0"])[0];
+              const verB = (nb.match(/(\d+\.\d+|\d+)/) || ["0"])[0];
+              return parseFloat(verB) - parseFloat(verA); // newer (larger) first
+            });
+
+            // Return short model IDs (strip "models/" prefix)
+            return filtered.map((m) => m.name.replace(/^models\//, ""));
+          } catch (e) {
+            console.error("Failed to list Gemini models:", e);
+            return null;
+          }
+        }
+
+        const flashModels = await getAvailableFlashModels(geminiApiKey);
+        // Always include the known fallback so we have at least one candidate
+        const modelCandidates = flashModels && flashModels.length > 0
+          ? flashModels
+          : ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"];
+
         let evaluationResult = null;
         try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
-          const geminiRes = await fetch(geminiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [{ text: evaluationPrompt }],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.2,
-                responseMimeType: "application/json",
-              },
-            }),
-          });
+          let candidateText = null;
+          let lastErrStatus = null;
+          let lastErrBody = null;
 
-          if (!geminiRes.ok) {
-            const errBody = await geminiRes.text();
-            console.error("Gemini API Error:", geminiRes.status, errBody);
+          for (const modelId of modelCandidates) {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+            let geminiRes;
+            try {
+              geminiRes = await fetch(geminiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: evaluationPrompt }] }],
+                  generationConfig: {
+                    temperature: 0.2,
+                    responseMimeType: "application/json",
+                  },
+                }),
+              });
+            } catch (fetchErr) {
+              console.error(`Gemini fetch error for model ${modelId}:`, fetchErr);
+              lastErrBody = String(fetchErr);
+              continue;
+            }
+
+            if (!geminiRes.ok) {
+              lastErrStatus = geminiRes.status;
+              lastErrBody = await geminiRes.text();
+              console.error(`Gemini API Error (${modelId}):`, lastErrStatus, lastErrBody);
+              continue; // try next model
+            }
+
+            let geminiData;
+            try {
+              geminiData = await geminiRes.json();
+            } catch (jsonErr) {
+              console.error(`Gemini JSON parse error for model ${modelId}:`, jsonErr);
+              continue;
+            }
+
+            const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) {
+              console.error(`Empty evaluation response from model ${modelId}`);
+              continue;
+            }
+
+            candidateText = text;
+            console.log(`Gemini evaluation succeeded with model: ${modelId}`);
+            break; // success — stop trying
+          }
+
+          if (!candidateText) {
+            // All candidates failed
             return responseJSON(
               {
                 success: false,
@@ -1281,12 +1365,6 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
               502,
               request
             );
-          }
-
-          const geminiData = await geminiRes.json();
-          const candidateText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!candidateText) {
-            throw new Error("Empty evaluation response from language model");
           }
 
           const parsed = JSON.parse(candidateText);
