@@ -1402,37 +1402,92 @@ You MUST evaluate the student's submission against BOTH:
 (1) The exact task/question and all required Leitpunkte, AND
 (2) The official ${examFormat.toUpperCase()} ${level} Teil-specific writing criteria and checklist above.
 
-Verify each of the following 8 core dimensions:
-1. TASK / LEITPUNKTE FULFILLMENT:
-   - Check every individual Leitpunkt. Determine whether each was:
-     * FULLY ADDRESSED: Clearly, comprehensibly, and adequately communicated in German.
-     * PARTIALLY ADDRESSED: Incomplete, vague, or heavily obscured by grammatical/lexical errors.
-     * NOT ADDRESSED: Omitted, ignored, or completely missing.
-   - Task fulfillment MUST strongly affect the final score.
-   - If 1 required Leitpunkt is missing: Task Fulfillment score MUST NOT exceed 3.0 / 5.
-   - If 2 or more required Leitpunkte are missing: Task Fulfillment score MUST NOT exceed 1.5 / 5, and the overall score_percent MUST be heavily penalized (well below passing 60%).
-   - A grammatically flawless answer that ignores required points must NOT receive a high score.
-2. RELEVANCE & COMPLETENESS:
-   - Does the answer stay strictly relevant to the scenario? Are all required components covered completely without off-topic filler?
-3. TEXT STRUCTURE & APPROPRIATE CONNECTORS:
-   - Check text layout: Opening greeting/salutation, coherent sentence and paragraph flow, suitable closing formula, sender name.
-   - Check cohesive devices and connectors appropriate for CEFR ${level}.
-4. VOCABULARY APPROPRIATE FOR THE LEVEL:
-   - Check whether vocabulary is suitable, accurate, and natural for CEFR ${level}.
-   - CRITICAL: Do NOT reward unnecessarily advanced German. Judge whether the language is appropriate and effective for the target level. An A1/A2 answer written in clear, natural, simple German that fulfills all Leitpunkte MUST be awarded full marks.
-5. GRAMMAR & SENTENCE STRUCTURE:
-   - Check sentence structure (verb position V2 in main clauses, verb-final in subordinate clauses), verb conjugation, cases (Nominativ, Akkusativ, Dativ), prepositions, spelling, and noun capitalization.
-   - CRITICAL: Do NOT invent mistakes. Only flag genuine grammatical, orthographical, syntactical, or lexical errors. Accept natural German phrasing and common colloquialisms if suitable for the register.
-6. REGISTER, FORMALITY & REQUIRED FORMAT:
-   - Check register: Is the distinction between informal ('du/ihr') and formal ('Sie/Ihnen') consistently maintained as required by the recipient?
-   - Is the format appropriate for the task type (e.g. personal email, formal inquiry, forum post)?
-7. COMMUNICATIVE EFFECTIVENESS:
-   - Can a native speaker understand the message effortlessly at the expected ${level} standard?
-8. WORD LIMIT & EXTENT:
-   - Student answer word count: ${wordCount} words.
-   - Verify that the text satisfies the expected length for this exam part without excessive brevity or fluff.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 0 — LANGUAGE REQUIREMENT (HIGHEST PRIORITY — CHECK THIS FIRST):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This is a German language examination. The student is required to write in GERMAN.
+- If the student writes MOSTLY in English or another non-German language (more than ~30% of content words are non-German), assign:
+  * Task Fulfillment: 0 / 5
+  * Overall score_percent: 0 to 10 (automatic failure)
+  * Feedback MUST explicitly state: "The answer was written in [language] rather than German. This is a German-language examination task and requires a German-language response. A non-German answer cannot receive credit."
+  * Do NOT evaluate grammar or vocabulary of the wrong language.
+  * Do NOT give partial credit because the English/other-language text is grammatically correct or covers the topic.
+  * Grammar & Form and Vocabulary for a non-German answer: 1 / 5 each (no German = no language to assess).
 
-LANGUAGE & FORMAT OF EVALUATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 1 — TASK & LEITPUNKTE FULFILLMENT (PRIMARY SCORING DRIVER):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Check every individual Leitpunkt. Determine whether each was:
+* FULLY ADDRESSED: Clearly, comprehensibly, and adequately communicated in German.
+* PARTIALLY ADDRESSED: Incomplete, vague, or heavily obscured by errors.
+* NOT ADDRESSED: Omitted, ignored, or completely missing.
+Task fulfillment is the PRIMARY driver of the score:
+- All Leitpunkte fully addressed → Task Fulfillment up to 5.0 / 5.
+- 1 required Leitpunkt missing → Task Fulfillment MUST NOT exceed 3.0 / 5, and overall score_percent MUST NOT exceed 65%.
+- 2 or more required Leitpunkte missing → Task Fulfillment MUST NOT exceed 1.5 / 5, and overall score_percent MUST NOT exceed 40%.
+- All 3+ Leitpunkte missing or an off-topic answer → Task Fulfillment 0 / 5, overall score_percent MUST be 0 to 20%.
+- A grammatically flawless answer that ignores required Leitpunkte must NOT receive a passing score.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 2 — RELEVANCE & COMPLETENESS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Does the answer stay strictly relevant to the scenario described?
+- Does it avoid off-topic content, unrelated preamble, or filler sentences?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 3 — TEXT STRUCTURE & APPROPRIATE CONNECTORS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Check text layout: Is there an appropriate opening salutation, coherent body, suitable closing formula, and sender name?
+- Check cohesive devices and connectors are appropriate for CEFR ${level} (see official checklist above).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 4 — LEVEL-APPROPRIATE VOCABULARY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Assess whether vocabulary is suitable, accurate, and natural for CEFR ${level}.
+- CRITICAL: Do NOT reward unnecessarily advanced German. Judge whether the language is appropriate and effective for the target level.
+- CRITICAL: A simple, correct A1/A2 German answer that fulfills all Leitpunkte MUST receive a high Vocabulary score. Simple ≠ poor.
+- Do NOT penalize a student for using simple, natural constructions at A1/A2.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 5 — GRAMMAR & SENTENCE STRUCTURE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Check verb position (V2 main clauses, verb-final subordinate clauses), verb conjugation, noun cases, prepositions, spelling, and noun capitalization.
+- CRITICAL: Do NOT invent mistakes. Only flag genuine errors. Do not treat natural colloquial phrasing as a grammar error.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 6 — REGISTER, FORMALITY & FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Is the informal/formal register ('du/ihr' vs 'Sie/Ihnen') correctly and consistently maintained?
+- Is the format (e.g. email, note, forum post, formal letter) appropriate for the task type and exam part?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 7 — COMMUNICATIVE EFFECTIVENESS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Would a native German speaker clearly understand the message at the expected ${level} standard?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 8 — WORD COUNT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Student answer word count: ${wordCount} words.
+Verify the submission satisfies the expected length for this exam part. Very short answers may not fully address all Leitpunkte.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXAM-GRADE SCORE CALIBRATION — USE THESE BENCHMARKS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Apply the score_percent that reflects actual performance on THIS official exam:
+
+score_percent 90–95%: All Leitpunkte fully and clearly addressed in correct, natural German. Excellent structure, appropriate vocabulary, and virtually error-free grammar for the level. Near-perfect performance. (95% is the absolute maximum — never exceed 95.)
+score_percent 75–89%: All Leitpunkte addressed, mostly correct language, minor errors that do not impede communication. Strong overall performance.
+score_percent 60–74%: Most Leitpunkte addressed, adequate language for the level, some grammatical/vocabulary errors. Passes the CEFR standard.
+score_percent 40–59%: One or more Leitpunkte clearly missing or only partially addressed, or significant language problems. Does not pass.
+score_percent 20–39%: Most Leitpunkte missing or answer largely off-topic, with major language issues.
+score_percent 0–19%: Answer in wrong language, completely off-task, blank, or meaningful German text absent.
+
+MAXIMUM POSSIBLE SCORE: 95. Never assign score_percent above 95 under any circumstances.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE & FORMAT OF EVALUATION OUTPUT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - All evaluator feedback, criteria explanations, and overall summaries MUST be in ENGLISH.
 - Criteria names must be EXACTLY:
   "Task Fulfillment"
@@ -1440,24 +1495,25 @@ LANGUAGE & FORMAT OF EVALUATION:
   "Vocabulary"
   "Grammar & Form"
 - In "mistakes":
-  * "original": Exact German text from the student with the error.
+  * "original": Exact German phrase from the student text with the error.
   * "correction": Corrected German phrasing.
   * "explanation": Concise English explanation of the grammatical/orthographic rule.
   * Do NOT translate the student's German text into English.
   * Do NOT rewrite the student's entire answer.
-- "score_percent": Integer from 0 to 100 representing overall CEFR performance.
-- "cefr_level_met": Boolean, true ONLY if score_percent >= 60.
+  * Do NOT populate "mistakes" if the submission is in a wrong language — there is no German to correct.
+- "score_percent": Integer from 0 to 95. NEVER exceed 95.
+- "cefr_level_met": true ONLY if score_percent >= 60.
 
 Respond ONLY with a valid JSON object matching this exact schema (no markdown fences, no explanatory text outside JSON):
 {
-  "score_percent": <integer between 0 and 100>,
+  "score_percent": <integer between 0 and 95>,
   "cefr_level_met": <boolean, true if score_percent >= 60>,
   "criteria": [
     {
       "name": "Task Fulfillment",
       "score": <number between 0 and 5, can use 0.5 increments>,
       "max_score": 5,
-      "feedback": "<concise English feedback explicitly detailing the status of every required Leitpunkt and completeness>"
+      "feedback": "<concise English feedback listing the fulfillment status of every required Leitpunkt>"
     },
     {
       "name": "Coherence & Structure",
@@ -1469,7 +1525,7 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
       "name": "Vocabulary",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise English feedback on vocabulary range, appropriateness for target level, and register>"
+      "feedback": "<concise English feedback on vocabulary range, appropriateness for the target level, and register>"
     },
     {
       "name": "Grammar & Form",
@@ -1480,12 +1536,12 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
   ],
   "mistakes": [
     {
-      "original": "<exact German phrase with mistake from student text>",
+      "original": "<exact German phrase from student text with mistake>",
       "correction": "<corrected German phrasing>",
       "explanation": "<grammatical explanation in English>"
     }
   ],
-  "feedback": "<overall qualitative evaluation summary in English addressing communicative effectiveness, strengths, and areas for improvement>"
+  "feedback": "<overall qualitative evaluation summary in English: communicative effectiveness, strengths, missed requirements, and score rationale>"
 }
 `.trim();
 
@@ -1624,9 +1680,9 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
 
           const parsed = JSON.parse(cleanCandidateText);
 
-          // Validate required fields in parsed JSON
+          // Validate required fields in parsed JSON — hard-cap at 95 (never 100%)
           const rawScorePct = typeof parsed.score_percent === "number" ? parsed.score_percent : parseInt(parsed.score_percent || 0, 10);
-          const scorePercent = Math.max(0, Math.min(100, isNaN(rawScorePct) ? 60 : rawScorePct));
+          const scorePercent = Math.max(0, Math.min(95, isNaN(rawScorePct) ? 60 : rawScorePct));
 
           // Criterion name normalization to English (FIX 3)
           const nameMapping = {
