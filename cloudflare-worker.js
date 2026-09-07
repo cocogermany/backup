@@ -1148,8 +1148,8 @@ export default {
         const materialId = String(body.material_id || "schreiben-1");
         const examFormat = String(body.exam || body.format || "goethe").trim();
         const level = String(body.level || "A1").toUpperCase().trim();
-        const taskText = String(body.task || body.prompt || body.question || "").trim();
         const studentAnswer = String(body.answer || body.student_answer || "").trim();
+        const teilText = String(body.teil || body.part || "").trim();
 
         if (!studentAnswer) {
           return responseJSON(
@@ -1159,6 +1159,7 @@ export default {
           );
         }
 
+        // Count words in student answer only (FIX 6)
         const wordCount = studentAnswer.split(/\s+/).filter(Boolean).length;
         if (wordCount > 200) {
           return responseJSON(
@@ -1171,6 +1172,59 @@ export default {
             request
           );
         }
+
+        // Validate and decompose the task (FIX 1, FIX 2, FIX 9)
+        const rawTask = String(body.task || body.prompt || body.question || "").trim();
+        let situationText = String(body.situation || body.context || body.passage || "").trim();
+        let instructionText = "";
+        let pointsList = Array.isArray(body.points)
+          ? body.points.map((p) => (typeof p === "string" ? p.trim() : String(p?.text || p?.point || "").trim())).filter(Boolean)
+          : (typeof body.points === "string" && body.points.trim() ? [body.points.trim()] : []);
+
+        if (rawTask) {
+          // Check for structured sections: "Situation / Kontext:", "Aufgabe:", "Punkte:" / "Leitpunkte:"
+          const situationMatch = rawTask.match(/(?:Situation\s*\/?\s*Kontext|Kontext|Situation)\s*:\s*([\s\S]*?)(?=(?:Aufgabe|Punkte|Leitpunkte)\s*:|$)/i);
+          const instructionMatch = rawTask.match(/Aufgabe\s*:\s*([\s\S]*?)(?=(?:Punkte|Leitpunkte)\s*:|$)/i);
+          const pointsMatch = rawTask.match(/(?:Punkte|Leitpunkte)\s*:\s*([\s\S]*)$/i);
+
+          if (situationMatch && !situationText) {
+            situationText = situationMatch[1].trim();
+          }
+          if (instructionMatch) {
+            instructionText = instructionMatch[1].trim();
+          }
+          if (pointsMatch && pointsList.length === 0) {
+            pointsList = pointsMatch[1]
+              .split(/\r?\n/)
+              .map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
+              .filter(Boolean);
+          }
+        }
+
+        if (!instructionText) {
+          instructionText = rawTask;
+        }
+
+        // Return error if task is missing or empty or a generic dummy placeholder (FIX 1, FIX 9)
+        const isGenericPlaceholder = rawTask.toLowerCase() === "schreibaufgabe" || instructionText.toLowerCase() === "schreibaufgabe";
+        if (
+          (!rawTask && !instructionText && !situationText && pointsList.length === 0) ||
+          (isGenericPlaceholder && !situationText && pointsList.length === 0)
+        ) {
+          return responseJSON(
+            {
+              success: false,
+              error: "missing_task",
+              message: "Authoritative exam task is missing. Cannot evaluate without an official examination prompt.",
+            },
+            400,
+            request
+          );
+        }
+
+        const pointsFormatted = pointsList.length > 0
+          ? pointsList.map((p, idx) => `Point ${idx + 1}: ${p}`).join("\n")
+          : "Address all instructions and requirements specified in the EXAM TASK.";
 
         // 5. Check Gemini API Secret in Worker Environment
         const geminiApiKey = env.GEMINI_API_KEY;
@@ -1186,69 +1240,100 @@ export default {
           );
         }
 
-        // 6. Call Gemini Evaluation API
+        // 6. Call Gemini Evaluation API with structured prompt (FIX 1, FIX 2, FIX 3, FIX 5)
         const evaluationPrompt = `
-You are a certified, professional German language examination evaluator for official ${examFormat.toUpperCase()} exams at the CEFR ${level} level.
-Evaluate the student's German writing task according to official ${examFormat.toUpperCase()} ${level} evaluation criteria.
+You are evaluating this exact examination task, not a generic German writing sample.
+You are an expert certified examination evaluator for official ${examFormat.toUpperCase()} German exams at the CEFR ${level} level.
 
-TASK/QUESTION:
-${taskText || "Schreibaufgabe"}
+EXAM:
+- Exam format: ${examFormat.toUpperCase()}
+- CEFR level: ${level}
+- Teil: ${teilText || "Schreiben"}
+
+EXAM SITUATION:
+${situationText || "No additional situation provided."}
+
+EXAM TASK:
+${instructionText || rawTask}
+
+REQUIRED POINTS:
+${pointsFormatted}
 
 STUDENT ANSWER:
 ${studentAnswer}
 
-LEVEL: ${level}
-EXAM FORMAT: ${examFormat}
+EVALUATION METHODOLOGY & SCORING RULES:
+1. CHECK EVERY REQUIRED POINT INDIVIDUALLY BEFORE SCORING:
+   - Determine whether each required bullet point listed under REQUIRED POINTS was:
+     * FULLY ADDRESSED: Clearly, comprehensibly, and adequately communicated in German.
+     * PARTIALLY ADDRESSED: Incomplete, vague, or heavily obscured by grammatical/lexical errors.
+     * NOT ADDRESSED: Omitted, ignored, or completely missing.
+2. TASK FULFILLMENT SCORING (PRIMARY DRIVER):
+   - Task Fulfillment score (0 to 5) must be based primarily on whether all required points were completed.
+   - Do NOT give 5/5 Task Fulfillment if any required point is missing or only partially addressed.
+   - If 1 required point is missing: Task Fulfillment score MUST NOT exceed 3.0 / 5.
+   - If 2 or more required points are missing: Task Fulfillment score MUST NOT exceed 1.5 / 5, and the overall score_percent MUST be heavily penalized (well below passing 60%).
+   - A grammatically excellent answer that ignores required points must NOT receive a high score.
+   - In the feedback for "Task Fulfillment", explicitly state in English which points were fulfilled and which specific points were missed or only partially answered.
+3. ALL EVALUATION OUTPUT MUST BE IN ENGLISH:
+   - All criteria feedback, general feedback, and mistake explanations must be written in clear English.
+   - Criteria names must be EXACTLY:
+     "Task Fulfillment"
+     "Coherence & Structure"
+     "Vocabulary"
+     "Grammar & Form"
+   - In "mistakes":
+     * "original" MUST be the exact German text from the student with the error.
+     * "correction" MUST be the corrected phrasing in German.
+     * "explanation" MUST be in English explaining the grammatical/lexical rule.
+     * Do NOT translate the student's German text into English.
+     * Do NOT rewrite the student's entire answer.
+4. SCORING SCALE:
+   - "score_percent": Integer from 0 to 100 representing overall CEFR performance.
+   - "cefr_level_met": Boolean, true ONLY if score_percent >= 60.
 
-Provide a strict, constructive, and comprehensive evaluation.
-Evaluate the submission on four criteria:
-1. Aufgabenerfüllung (Task Fulfillment & Completeness)
-2. Kohärenz & Textaufbau (Coherence, Structure & Connectors)
-3. Wortschatz (Vocabulary Range & Appropriateness for ${level})
-4. Grammatik & Form (Grammar, Syntax, Spelling & Morphology)
-
-You MUST respond ONLY with a valid JSON object strictly matching this schema:
+You MUST respond ONLY with a valid JSON object matching this exact schema (no markdown fences, no explanatory text outside JSON):
 {
   "score_percent": <integer between 0 and 100>,
   "cefr_level_met": <boolean, true if score_percent >= 60>,
   "criteria": [
     {
-      "name": "Aufgabenerfüllung",
+      "name": "Task Fulfillment",
       "score": <number between 0 and 5, can use 0.5 increments>,
       "max_score": 5,
-      "feedback": "<concise feedback on task fulfillment>"
+      "feedback": "<concise feedback in English explicitly detailing the status of every required point>"
     },
     {
-      "name": "Kohärenz & Textaufbau",
+      "name": "Coherence & Structure",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback on text structure and flow>"
+      "feedback": "<concise feedback in English on greeting, sign-off, text structure, and connectors>"
     },
     {
-      "name": "Wortschatz",
+      "name": "Vocabulary",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback on vocabulary appropriateness>"
+      "feedback": "<concise feedback in English on vocabulary range and appropriateness for CEFR level>"
     },
     {
-      "name": "Grammatik & Form",
+      "name": "Grammar & Form",
       "score": <number between 0 and 5>,
       "max_score": 5,
-      "feedback": "<concise feedback on grammar and spelling>"
+      "feedback": "<concise feedback in English on grammar, spelling, and sentence structure>"
     }
   ],
   "mistakes": [
     {
       "original": "<exact German phrase with mistake from student text>",
       "correction": "<corrected German phrasing>",
-      "explanation": "<short, clear explanation of grammar or vocabulary rule>"
+      "explanation": "<grammatical explanation in English>"
     }
   ],
-  "feedback": "<overall qualitative evaluation summary highlighting strengths and areas for improvement>"
+  "feedback": "<overall qualitative evaluation summary in English stating strengths and missed requirements>"
 }
 `.trim();
 
-        // --- Helper: fetch ordered list of low-cost Flash/Flash-Lite models ---
+        // --- Helper: fetch ordered list of low-cost Flash/Flash-Lite models (FIX 7) ---
         async function getAvailableFlashModels(apiKey) {
           try {
             const listRes = await fetch(
@@ -1274,17 +1359,15 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
             });
 
             // Sort: flash-lite before flash, newer versions before older
-            // Extract short name after "models/" for sorting
             filtered.sort((a, b) => {
               const na = (a.name || "").toLowerCase();
               const nb = (b.name || "").toLowerCase();
               const aLite = na.includes("flash-lite") ? 0 : 1;
               const bLite = nb.includes("flash-lite") ? 0 : 1;
               if (aLite !== bLite) return aLite - bLite;
-              // Prefer higher version numbers — extract numeric parts
               const verA = (na.match(/(\d+\.\d+|\d+)/) || ["0"])[0];
               const verB = (nb.match(/(\d+\.\d+|\d+)/) || ["0"])[0];
-              return parseFloat(verB) - parseFloat(verA); // newer (larger) first
+              return parseFloat(verB) - parseFloat(verA);
             });
 
             // Return short model IDs (strip "models/" prefix)
@@ -1295,11 +1378,19 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
           }
         }
 
+        const fallbackModels = [
+          "gemini-3.5-flash-lite",
+          "gemini-3.1-flash-lite",
+          "gemini-2.5-flash-lite",
+          "gemini-2.5-flash",
+          "gemini-2.0-flash-lite",
+          "gemini-2.0-flash"
+        ];
+
         const flashModels = await getAvailableFlashModels(geminiApiKey);
-        // Always include the known fallback so we have at least one candidate
         const modelCandidates = flashModels && flashModels.length > 0
-          ? flashModels
-          : ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"];
+          ? Array.from(new Set([...flashModels, ...fallbackModels]))
+          : fallbackModels;
 
         let evaluationResult = null;
         try {
@@ -1367,24 +1458,53 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
             );
           }
 
-          const parsed = JSON.parse(candidateText);
+          let cleanCandidateText = candidateText.trim();
+          if (cleanCandidateText.startsWith("```")) {
+            cleanCandidateText = cleanCandidateText
+              .replace(/^```(?:json)?\s*/i, "")
+              .replace(/\s*```$/i, "")
+              .trim();
+          }
+
+          const parsed = JSON.parse(cleanCandidateText);
 
           // Validate required fields in parsed JSON
           const rawScorePct = typeof parsed.score_percent === "number" ? parsed.score_percent : parseInt(parsed.score_percent || 0, 10);
           const scorePercent = Math.max(0, Math.min(100, isNaN(rawScorePct) ? 60 : rawScorePct));
 
+          // Criterion name normalization to English (FIX 3)
+          const nameMapping = {
+            "aufgabenerfüllung": "Task Fulfillment",
+            "task fulfillment": "Task Fulfillment",
+            "task fulfilment": "Task Fulfillment",
+            "kohärenz & textaufbau": "Coherence & Structure",
+            "kohärenz & aufbau": "Coherence & Structure",
+            "coherence & structure": "Coherence & Structure",
+            "coherence and structure": "Coherence & Structure",
+            "wortschatz": "Vocabulary",
+            "vocabulary": "Vocabulary",
+            "grammatik & form": "Grammar & Form",
+            "grammatik": "Grammar & Form",
+            "grammar & form": "Grammar & Form",
+            "grammar and form": "Grammar & Form",
+          };
+
           const criteria = Array.isArray(parsed.criteria) && parsed.criteria.length > 0
-            ? parsed.criteria.map((c) => ({
-                name: String(c.name || "Kriterium"),
-                score: typeof c.score === "number" ? c.score : parseFloat(c.score || 0) || 0,
-                max_score: typeof c.max_score === "number" ? c.max_score : 5,
-                feedback: String(c.feedback || ""),
-              }))
+            ? parsed.criteria.map((c) => {
+                const rawName = String(c.name || "Criterion").trim();
+                const normalizedName = nameMapping[rawName.toLowerCase()] || rawName;
+                return {
+                  name: normalizedName,
+                  score: typeof c.score === "number" ? c.score : parseFloat(c.score || 0) || 0,
+                  max_score: typeof c.max_score === "number" ? c.max_score : 5,
+                  feedback: String(c.feedback || ""),
+                };
+              })
             : [
-                { name: "Aufgabenerfüllung", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Aufgabe bewertet." },
-                { name: "Kohärenz & Aufbau", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Textaufbau bewertet." },
-                { name: "Wortschatz", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Wortschatz bewertet." },
-                { name: "Grammatik & Form", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Grammatik bewertet." },
+                { name: "Task Fulfillment", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Task fulfillment evaluated against required points." },
+                { name: "Coherence & Structure", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Coherence, greeting, and structure evaluated." },
+                { name: "Vocabulary", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Vocabulary range evaluated." },
+                { name: "Grammar & Form", score: Math.round(scorePercent / 20), max_score: 5, feedback: "Grammar and spelling evaluated." },
               ];
 
           const mistakes = Array.isArray(parsed.mistakes)
@@ -1395,15 +1515,15 @@ You MUST respond ONLY with a valid JSON object strictly matching this schema:
               })).filter((m) => m.original || m.correction)
             : [];
 
-          const feedback = String(parsed.feedback || "Deine Schreibaufgabe wurde erfolgreich ausgewertet.");
+          const feedback = String(parsed.feedback || "Your writing submission was evaluated against the examination task.");
 
           evaluationResult = {
             score_percent: scorePercent,
             cefr_level_met: scorePercent >= 60,
+            word_count: wordCount,
             criteria,
             mistakes,
             feedback,
-            word_count: wordCount,
           };
         } catch (evalErr) {
           console.error("Evaluation parsing error:", evalErr);
