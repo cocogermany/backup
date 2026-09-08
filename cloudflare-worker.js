@@ -1137,12 +1137,91 @@ export default {
           );
         }
 
-        // 4. Validate input payload
+        // 4. Validate input payload and obtain authoritative exam task
         let body = {};
         try {
           body = await request.json();
         } catch (e) {
           body = {};
+        }
+
+        // Helper: retrieve authoritative task details from Supabase & R2
+        async function fetchAuthoritativeTask(matId) {
+          if (!matId || matId === "schreiben-fallback") return null;
+          try {
+            const matRes = await fetch(`${supabaseUrl}/rest/v1/materials?id=eq.${encodeURIComponent(matId)}&select=*`, {
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+              },
+            });
+            if (!matRes.ok) return null;
+            const matData = await matRes.json();
+            const dbMat = matData && matData.length > 0 ? matData[0] : null;
+            if (!dbMat) return null;
+
+            let contentData = null;
+            const contentPath = String(dbMat.content_path || "").trim();
+            if (contentPath) {
+              if (env.R2_BUCKET) {
+                const cleanKey = contentPath.replace(/^https?:\/\/[^\/]+\//, "").replace(/^\/+/, "");
+                try {
+                  const r2Obj = await env.R2_BUCKET.get(cleanKey);
+                  if (r2Obj) {
+                    contentData = await r2Obj.json();
+                  }
+                } catch (r2Err) {
+                  console.warn("R2 direct read failed for key:", cleanKey, r2Err);
+                }
+              }
+              if (!contentData) {
+                try {
+                  const cdnOrigin = (env.PUBLIC_CDN_DOMAIN || url.origin).replace(/\/$/, "");
+                  const fetchUrl = contentPath.startsWith("http")
+                    ? contentPath
+                    : `${cdnOrigin}/${contentPath.replace(/^\/+/, "")}`;
+                  const cRes = await fetch(fetchUrl);
+                  if (cRes.ok) {
+                    contentData = await cRes.json();
+                  }
+                } catch (fetchErr) {
+                  console.warn("HTTP fetch for content failed:", fetchErr);
+                }
+              }
+            }
+
+            const exam = String(contentData?.exam || dbMat.exam || "").toLowerCase().trim();
+            const level = String(contentData?.level || dbMat.level || "").toUpperCase().trim();
+            const teil = String(contentData?.teil || dbMat.teil || "").trim();
+            const situation = String(contentData?.situation || contentData?.context || contentData?.passage || dbMat.description || "").trim();
+            const task = String(contentData?.task || contentData?.prompt || contentData?.instructions || contentData?.question || "").trim();
+
+            let points = [];
+            const rawPoints = contentData?.points || contentData?.bullet_points || contentData?.guidelines || contentData?.cues || (Array.isArray(contentData?.questions) && contentData?.questions[0]?.points);
+            if (Array.isArray(rawPoints)) {
+              points = rawPoints.map(p => typeof p === "string" ? p.trim() : String(p?.text || p?.point || "").trim()).filter(Boolean);
+            } else if (typeof rawPoints === "string" && rawPoints.trim()) {
+              points = [rawPoints.trim()];
+            }
+
+            const wordLimit = typeof contentData?.word_limit === "number" ? contentData.word_limit : (dbMat.word_limit || 200);
+
+            return {
+              materialId: dbMat.id,
+              exam,
+              level,
+              teil,
+              situation,
+              task,
+              points,
+              wordLimit,
+              title: contentData?.title || dbMat.title || "",
+              isAuthoritative: true,
+            };
+          } catch (err) {
+            console.error("fetchAuthoritativeTask error:", err);
+            return null;
+          }
         }
 
         // Helper: validate and resolve exam, level, and teil explicitly — never silently default to Teil 2
@@ -1268,11 +1347,60 @@ export default {
           };
         }
 
-        const materialId = String(body.material_id || "schreiben-1");
-        const rawExam = String(body.exam || body.format || "").trim();
-        const rawLevel = String(body.level || "").trim();
-        const studentAnswer = String(body.answer || body.student_answer || "").trim();
-        const rawTeil = String(body.teil || body.part || "").trim();
+        const materialId = String(body.material_id || "").trim();
+        const authoritativeTask = await fetchAuthoritativeTask(materialId);
+
+        let rawExam = authoritativeTask?.exam || String(body.exam || body.format || "").trim();
+        let rawLevel = authoritativeTask?.level || String(body.level || "").trim();
+        let rawTeil = authoritativeTask?.teil || String(body.teil || body.part || "").trim();
+        let situationText = authoritativeTask?.situation || String(body.situation || body.context || body.passage || "").trim();
+        let instructionText = authoritativeTask?.task || "";
+        let pointsList = (authoritativeTask?.points && authoritativeTask.points.length > 0)
+          ? authoritativeTask.points
+          : (Array.isArray(body.points) ? body.points.map(p => typeof p === "string" ? p.trim() : String(p?.text || p?.point || "").trim()).filter(Boolean) : []);
+        const wordLimit = authoritativeTask?.wordLimit || (typeof body.word_limit === "number" ? body.word_limit : 200);
+
+        // Fallback: parse client task string if instructionText or situationText still missing
+        const rawTask = String(body.task || body.prompt || body.question || "").trim();
+        if (rawTask) {
+          const situationMatch = rawTask.match(/(?:Situation\s*\/?\s*Kontext|Kontext|Situation)\s*:\s*([\s\S]*?)(?=(?:Aufgabe|Punkte|Leitpunkte)\s*:|$)/i);
+          const instructionMatch = rawTask.match(/Aufgabe\s*:\s*([\s\S]*?)(?=(?:Punkte|Leitpunkte)\s*:|$)/i);
+          const pointsMatch = rawTask.match(/(?:Punkte|Leitpunkte)\s*:\s*([\s\S]*)$/i);
+
+          if (situationMatch && !situationText) {
+            situationText = situationMatch[1].trim();
+          }
+          if (instructionMatch && !instructionText) {
+            instructionText = instructionMatch[1].trim();
+          }
+          if (pointsMatch && pointsList.length === 0) {
+            pointsList = pointsMatch[1]
+              .split(/\r?\n/)
+              .map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
+              .filter(Boolean);
+          }
+        }
+
+        if (!instructionText) {
+          instructionText = rawTask;
+        }
+
+        // Reject if task is missing or a generic placeholder
+        const isGenericPlaceholder = (instructionText || rawTask).toLowerCase() === "schreibaufgabe";
+        if (
+          (!rawTask && !instructionText && !situationText && pointsList.length === 0) ||
+          (isGenericPlaceholder && !situationText && pointsList.length === 0)
+        ) {
+          return responseJSON(
+            {
+              success: false,
+              error: "missing_task",
+              message: "Authoritative exam task could not be resolved or task details are missing. Cannot evaluate without a valid examination task.",
+            },
+            400,
+            request
+          );
+        }
 
         // Validate and resolve exam, level, and teil strictly — never silently default
         const teilResolution = resolveExamLevelTeil(rawExam, rawLevel, rawTeil);
@@ -1289,7 +1417,7 @@ export default {
         const teilText = teilResolution.teil;
         const teilNum = teilResolution.teilNum;
 
-
+        const studentAnswer = String(body.answer || body.student_answer || "").trim();
         if (!studentAnswer) {
           return responseJSON(
             { success: false, error: "empty_answer", message: "Answer cannot be empty." },
@@ -1298,63 +1426,15 @@ export default {
           );
         }
 
-        // Count words in student answer only (FIX 6)
+        // Count words in student answer
         const wordCount = studentAnswer.split(/\s+/).filter(Boolean).length;
-        if (wordCount > 200) {
+        const allowedWordCap = Math.max(200, wordLimit);
+        if (wordCount > allowedWordCap) {
           return responseJSON(
             {
               success: false,
               error: "word_limit_exceeded",
-              message: `Your answer exceeds the maximum allowed 200 words (current: ${wordCount} words).`,
-            },
-            400,
-            request
-          );
-        }
-
-        // Validate and decompose the task (FIX 1, FIX 2, FIX 9)
-        const rawTask = String(body.task || body.prompt || body.question || "").trim();
-        let situationText = String(body.situation || body.context || body.passage || "").trim();
-        let instructionText = "";
-        let pointsList = Array.isArray(body.points)
-          ? body.points.map((p) => (typeof p === "string" ? p.trim() : String(p?.text || p?.point || "").trim())).filter(Boolean)
-          : (typeof body.points === "string" && body.points.trim() ? [body.points.trim()] : []);
-
-        if (rawTask) {
-          // Check for structured sections: "Situation / Kontext:", "Aufgabe:", "Punkte:" / "Leitpunkte:"
-          const situationMatch = rawTask.match(/(?:Situation\s*\/?\s*Kontext|Kontext|Situation)\s*:\s*([\s\S]*?)(?=(?:Aufgabe|Punkte|Leitpunkte)\s*:|$)/i);
-          const instructionMatch = rawTask.match(/Aufgabe\s*:\s*([\s\S]*?)(?=(?:Punkte|Leitpunkte)\s*:|$)/i);
-          const pointsMatch = rawTask.match(/(?:Punkte|Leitpunkte)\s*:\s*([\s\S]*)$/i);
-
-          if (situationMatch && !situationText) {
-            situationText = situationMatch[1].trim();
-          }
-          if (instructionMatch) {
-            instructionText = instructionMatch[1].trim();
-          }
-          if (pointsMatch && pointsList.length === 0) {
-            pointsList = pointsMatch[1]
-              .split(/\r?\n/)
-              .map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
-              .filter(Boolean);
-          }
-        }
-
-        if (!instructionText) {
-          instructionText = rawTask;
-        }
-
-        // Return error if task is missing or empty or a generic dummy placeholder (FIX 1, FIX 9)
-        const isGenericPlaceholder = rawTask.toLowerCase() === "schreibaufgabe" || instructionText.toLowerCase() === "schreibaufgabe";
-        if (
-          (!rawTask && !instructionText && !situationText && pointsList.length === 0) ||
-          (isGenericPlaceholder && !situationText && pointsList.length === 0)
-        ) {
-          return responseJSON(
-            {
-              success: false,
-              error: "missing_task",
-              message: "Exam task is missing. Cannot evaluate without a valid examination prompt.",
+              message: `Your answer exceeds the maximum allowed ${allowedWordCap} words (current: ${wordCount} words).`,
             },
             400,
             request
@@ -1362,7 +1442,7 @@ export default {
         }
 
         const pointsFormatted = pointsList.length > 0
-          ? pointsList.map((p, idx) => `Point ${idx + 1}: ${p}`).join("\n")
+          ? pointsList.map((p, idx) => `Leitpunkt ${idx + 1}: ${p}`).join("\n")
           : "Address all instructions and requirements specified in the EXAM TASK.";
 
         // 5. Check Gemini API Secret in Worker Environment
@@ -1503,10 +1583,13 @@ export default {
 
         const writingChecklist = getWritingChecklist(examFormat, level, teilNum);
 
-        // 6. Call Gemini Evaluation API with comprehensive dual-rubric prompt
+        // 6. Call Gemini Evaluation API with comprehensive 13-phase examination prompt
         const evaluationPrompt = `
 You are evaluating a specific ${examFormat.toUpperCase()} ${level} German examination writing task (${teilText}).
-Your role is to apply the task requirements, required Leitpunkte, and exam-format writing criteria below to assess the student's submission accurately and fairly — not as a generic German writing sample, but as a response to this specific exam task.
+Your role is to act as a serious, rigorous, and evidence-based examination evaluator (like an official Goethe/telc examiner).
+You are NOT an encouraging tutor. Do NOT inflate scores because the student made an effort, wrote understandable German, or used good grammar.
+At the same time, do NOT unfairly penalize simple, correct German appropriate for CEFR ${level}. Simple correct language that fulfills all task points MUST be awarded full or near-full marks.
+Do NOT invent mistakes. Do NOT rewrite the text. Evaluate strictly in 13 phases in the exact order below.
 
 EXAM SPECIFICATIONS:
 - Examination format: ${examFormat.toUpperCase()}
@@ -1526,155 +1609,128 @@ STUDENT SUBMISSION:
 ${studentAnswer}
 
 ================================================================================
-EXAM WRITING CRITERIA & CHECKLIST (reference guide) — ${examFormat.toUpperCase()} ${level} ${teilText.toUpperCase()}:
+EXAM-ALIGNED REFERENCE CRITERIA — ${examFormat.toUpperCase()} ${level} ${teilText.toUpperCase()}:
 ================================================================================
 ${writingChecklist}
 
-EVALUATION METHODOLOGY & MANDATORY CRITERIA:
-You MUST evaluate the student's submission against BOTH:
-(1) The exact task/question and all required Leitpunkte, AND
-(2) The ${examFormat.toUpperCase()} ${level} ${teilText} writing criteria and reference checklist above.
+MANDATORY EVALUATION PROCEDURE — YOU MUST EXECUTE ALL 13 PHASES IN ORDER:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 0 — LANGUAGE REQUIREMENT (HIGHEST PRIORITY — CHECK THIS FIRST):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This is a German language examination. The student is required to write in GERMAN.
-- If the student writes MOSTLY in English or another non-German language (more than ~30% of content words are non-German), assign:
-  * Task Fulfillment: 0 / 5
-  * Overall score_percent: 0 to 10 (automatic failure)
-  * Feedback MUST explicitly state: "The answer was written in [language] rather than German. This is a German-language examination task and requires a German-language response. A non-German answer cannot receive credit."
-  * Do NOT evaluate grammar or vocabulary of the wrong language.
-  * Do NOT give partial credit because the English/other-language text is grammatically correct or covers the topic.
-  * Grammar & Form and Vocabulary for a non-German answer: 1 / 5 each (no German = no language to assess).
+PHASE 1: Understand the exam scenario, context, and required communicative goal.
+PHASE 2: Analyze each required Leitpunkt independently. What exact information or action does it demand?
+PHASE 3: Read the complete student submission carefully.
+PHASE 4: Language Composition Check (FIRST GATE):
+  - Is the submission written in German?
+  - If mostly in English/non-German (>50% non-German or primary language is English):
+    * set severity = "mostly_non_german", language_problem = true, Task Fulfillment score = 0, recommended_score_percent = 0 to 10.
+    * Do NOT evaluate English grammar/vocabulary. Do NOT list mistakes (no German to correct).
+  - If substantial English (multiple sentences in English): severity = "substantial", language_problem = true.
+  - If one complete required Leitpunkt is written in English: classify that Leitpunkt as "missing" or "partial" (severity = "partial_leitpunkt"). English cannot fulfill a German requirement.
+  - If only incidental foreign words (e.g. proper names, brand names, single common words): severity = "minor_incidental" or "none", language_problem = false. Do NOT penalize.
+PHASE 5: Individual Leitpunkt Assessment:
+  - For EVERY required Leitpunkt, classify it as EXACTLY one of: "fulfilled", "partial", "missing".
+  - "fulfilled": Clearly, comprehensibly, and adequately communicated in German.
+  - "partial": Incomplete, vague, or heavily obscured by errors. "Implicit" coverage may ONLY receive "partial" if the information is genuinely inferable.
+  - "missing": Completely omitted, ignored, or written in non-German.
+  - Concrete textual evidence from the student's submission is REQUIRED for each Leitpunkt.
+  - Generic statements do NOT satisfy personal experience requirements (e.g., "Public transport is useful" does NOT satisfy "Report your personal experience").
+  - Describing a problem does NOT satisfy "Make a proposal".
+PHASE 6: Overall Relevance:
+  - Is the answer on-topic, partially relevant, or off-topic?
+  - If completely off-topic: overall_relevance = "off_topic", all Leitpunkte = "missing", Task Fulfillment score = 0, recommended_score_percent = 0 to 20.
+PHASE 7: Length & Development:
+  - Student answer word count: ${wordCount} words.
+  - Judge whether the text is sufficiently developed for ${examFormat.toUpperCase()} ${level} (${teilText}).
+  - A very short B1/B2 text that merely lists points without development has a development problem.
+  - An A1/A2 text that is concise but covers all points is completely acceptable.
+PHASE 8: Format & Register:
+  - Appropriate greeting and closing for the format (e.g., email, letter, note, forum post)?
+  - Register consistency: 'du/ihr' vs 'Sie/Ihnen'.
+PHASE 9: Task Fulfillment Criterion (0 to 5, increments of 0.5):
+  - Driven strictly by Leitpunkt fulfillment and scenario relevance.
+PHASE 10: Coherence & Structure Criterion (0 to 5, increments of 0.5):
+  - Paragraphing, connectors, text layout, logical flow appropriate for CEFR ${level}.
+PHASE 11: Vocabulary & Grammar Criteria (0 to 5 each, increments of 0.5):
+  - Vocabulary: Lexical range and naturalness calibrated to CEFR ${level}. Do not demand B2 words from A1.
+  - Grammar & Form: Accurate verb position, conjugation, cases, prepositions, capitalization.
+PHASE 12: Conservative Error Identification:
+  - Flag ONLY genuine grammatical, orthographical, or structural errors.
+  - Do NOT flag stylistic preferences, colloquialisms, or valid alternative formulations.
+  - For each mistake: provide "original", "correction", "type" ("grammar"|"vocabulary"|"spelling"|"punctuation"), and concise "explanation" in English.
+PHASE 13: Recommended Score (0 to 95):
+  - Provide recommended_score_percent (integer 0 to 95, never exceed 95).
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 1 — TASK & LEITPUNKTE FULFILLMENT (PRIMARY SCORING DRIVER):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Check every individual Leitpunkt. Determine whether each was:
-* FULLY ADDRESSED: Clearly, comprehensibly, and adequately communicated in German.
-* PARTIALLY ADDRESSED: Incomplete, vague, or heavily obscured by errors.
-* NOT ADDRESSED: Omitted, ignored, or completely missing.
-Task fulfillment is the PRIMARY driver of the score:
-- All Leitpunkte fully addressed → Task Fulfillment up to 5.0 / 5.
-- 1 required Leitpunkt missing → Task Fulfillment MUST NOT exceed 3.0 / 5, and overall score_percent MUST NOT exceed 65%.
-- 2 or more required Leitpunkte missing → Task Fulfillment MUST NOT exceed 1.5 / 5, and overall score_percent MUST NOT exceed 40%.
-- All 3+ Leitpunkte missing or an off-topic answer → Task Fulfillment 0 / 5, overall score_percent MUST be 0 to 20%.
-- A grammatically flawless answer that ignores required Leitpunkte must NOT receive a passing score.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 2 — RELEVANCE & COMPLETENESS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Does the answer stay strictly relevant to the scenario described?
-- Does it avoid off-topic content, unrelated preamble, or filler sentences?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 3 — TEXT STRUCTURE & APPROPRIATE CONNECTORS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Check text layout: Is there an appropriate opening salutation, coherent body, suitable closing formula, and sender name?
-- Check cohesive devices and connectors are appropriate for CEFR ${level} (see reference checklist above).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 4 — LEVEL-APPROPRIATE VOCABULARY:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Assess whether vocabulary is suitable, accurate, and natural for CEFR ${level}.
-- CRITICAL: Do NOT reward unnecessarily advanced German. Judge whether the language is appropriate and effective for the target level.
-- CRITICAL: A simple, correct A1/A2 German answer that fulfills all Leitpunkte MUST receive a high Vocabulary score. Simple ≠ poor.
-- Do NOT penalize a student for using simple, natural constructions at A1/A2.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 5 — GRAMMAR & SENTENCE STRUCTURE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Check verb position (V2 main clauses, verb-final subordinate clauses), verb conjugation, noun cases, prepositions, spelling, and noun capitalization.
-- CRITICAL: Do NOT invent mistakes. Only flag genuine errors. Do not treat natural colloquial phrasing as a grammar error.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 6 — REGISTER, FORMALITY & FORMAT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Is the informal/formal register ('du/ihr' vs 'Sie/Ihnen') correctly and consistently maintained?
-- Is the format (e.g. email, note, forum post, formal letter) appropriate for the task type and exam part?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 7 — COMMUNICATIVE EFFECTIVENESS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Would a native German speaker clearly understand the message at the expected ${level} standard?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 8 — WORD COUNT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Student answer word count: ${wordCount} words.
-Verify the submission satisfies the expected length for this exam part. Very short answers may not fully address all Leitpunkte.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXAM-GRADE SCORE CALIBRATION — USE THESE BENCHMARKS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Apply the score_percent that reflects actual performance on THIS exam:
-
-score_percent 90–95%: All Leitpunkte fully and clearly addressed in correct, natural German. Excellent structure, appropriate vocabulary, and virtually error-free grammar for the level. Near-perfect performance. (95% is the absolute maximum — never exceed 95.)
-score_percent 75–89%: All Leitpunkte addressed, mostly correct language, minor errors that do not impede communication. Strong overall performance.
-score_percent 60–74%: Most Leitpunkte addressed, adequate language for the level, some grammatical/vocabulary errors. Passes the CEFR standard.
-score_percent 40–59%: One or more Leitpunkte clearly missing or only partially addressed, or significant language problems. Does not pass.
-score_percent 20–39%: Most Leitpunkte missing or answer largely off-topic, with major language issues.
-score_percent 0–19%: Answer in wrong language, completely off-task, blank, or meaningful German text absent.
-
-MAXIMUM POSSIBLE SCORE: 95. Never assign score_percent above 95 under any circumstances.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LANGUAGE & FORMAT OF EVALUATION OUTPUT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- All evaluator feedback, criteria explanations, and overall summaries MUST be in ENGLISH.
-- Criteria names must be EXACTLY:
-  "Task Fulfillment"
-  "Coherence & Structure"
-  "Vocabulary"
-  "Grammar & Form"
-- In "mistakes":
-  * "original": Exact German phrase from the student text with the error.
-  * "correction": Corrected German phrasing.
-  * "explanation": Concise English explanation of the grammatical/orthographic rule.
-  * Do NOT translate the student's German text into English.
-  * Do NOT rewrite the student's entire answer.
-  * Do NOT populate "mistakes" if the submission is in a wrong language — there is no German to correct.
-- "score_percent": Integer from 0 to 95. NEVER exceed 95.
-- "cefr_level_met": true ONLY if score_percent >= 60.
-
+OUTPUT FORMAT:
 Respond ONLY with a valid JSON object matching this exact schema (no markdown fences, no explanatory text outside JSON):
 {
-  "score_percent": <integer between 0 and 95>,
-  "cefr_level_met": <boolean, true if score_percent >= 60>,
+  "language": {
+    "primary_language": "German",
+    "german_percentage_estimate": <number 0-100>,
+    "non_german_percentage_estimate": <number 0-100>,
+    "language_problem": <boolean>,
+    "severity": "<none | minor_incidental | partial_leitpunkt | substantial | mostly_non_german>"
+  },
+  "task_analysis": {
+    "overall_relevance": "<on_topic | partially_relevant | off_topic>",
+    "task_fulfillment_level": "<complete | mostly_complete | partial | minimal | none>",
+    "missing_count": <integer>,
+    "partial_count": <integer>,
+    "leitpunkte": [
+      {
+        "index": 1,
+        "status": "<fulfilled | partial | missing>",
+        "evidence": "<exact quote from student text or 'None'>",
+        "explanation": "<concise English explanation of fulfillment decision>"
+      }
+    ]
+  },
+  "length": {
+    "word_count": ${wordCount},
+    "too_short": <boolean>,
+    "too_long": <boolean>,
+    "development_problem": <boolean>
+  },
+  "format": {
+    "type": "<email | letter | forum_post | note | other>",
+    "appropriate": <boolean>,
+    "register": "<informal | formal | neutral>",
+    "register_appropriate": <boolean>
+  },
   "criteria": [
     {
       "name": "Task Fulfillment",
-      "score": <number between 0 and 5, can use 0.5 increments>,
+      "score": <number 0-5, increments of 0.5>,
       "max_score": 5,
-      "feedback": "<concise English feedback listing the fulfillment status of every required Leitpunkt>"
+      "reason": "<concise English feedback on Leitpunkte fulfillment>"
     },
     {
       "name": "Coherence & Structure",
-      "score": <number between 0 and 5>,
+      "score": <number 0-5, increments of 0.5>,
       "max_score": 5,
-      "feedback": "<concise English feedback on greeting, sign-off, text structure, connectors, and register>"
+      "reason": "<concise English feedback on text flow, layout, and connectors>"
     },
     {
       "name": "Vocabulary",
-      "score": <number between 0 and 5>,
+      "score": <number 0-5, increments of 0.5>,
       "max_score": 5,
-      "feedback": "<concise English feedback on vocabulary range, appropriateness for the target level, and register>"
+      "reason": "<concise English feedback on vocabulary range and level-appropriateness>"
     },
     {
       "name": "Grammar & Form",
-      "score": <number between 0 and 5>,
+      "score": <number 0-5, increments of 0.5>,
       "max_score": 5,
-      "feedback": "<concise English feedback on grammar, sentence structure, spelling, and verb placement>"
+      "reason": "<concise English feedback on grammatical accuracy, syntax, and spelling>"
     }
   ],
   "mistakes": [
     {
-      "original": "<exact German phrase from student text with mistake>",
+      "original": "<exact German phrase with error>",
       "correction": "<corrected German phrasing>",
-      "explanation": "<grammatical explanation in English>"
+      "type": "<grammar | vocabulary | spelling | punctuation>",
+      "explanation": "<concise English grammatical explanation>"
     }
   ],
-  "feedback": "<overall qualitative evaluation summary in English: communicative effectiveness, strengths, missed requirements, and score rationale>"
+  "feedback": "<overall qualitative evaluation summary in English>",
+  "recommended_score_percent": <integer 0-95>
 }
 `.trim();
 
@@ -1731,6 +1787,199 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
           "gemini-2.0-flash-lite",
           "gemini-2.0-flash"
         ];
+
+        // Central deterministic rule engine: enforces hard exam caps and boundaries
+        function applySchreibenScoreRules(geminiAnalysis, taskData, actualWordCount) {
+          const appliedRules = [];
+
+          // 1. Sanitize criteria
+          const nameMapping = {
+            "aufgabenerfüllung": "Task Fulfillment",
+            "task fulfillment": "Task Fulfillment",
+            "task fulfilment": "Task Fulfillment",
+            "kohärenz & textaufbau": "Coherence & Structure",
+            "kohärenz & aufbau": "Coherence & Structure",
+            "coherence & structure": "Coherence & Structure",
+            "coherence and structure": "Coherence & Structure",
+            "wortschatz": "Vocabulary",
+            "vocabulary": "Vocabulary",
+            "grammatik & form": "Grammar & Form",
+            "grammatik": "Grammar & Form",
+            "grammar & form": "Grammar & Form",
+            "grammar and form": "Grammar & Form",
+          };
+
+          const REQUIRED_CRITERIA = ["Task Fulfillment", "Coherence & Structure", "Vocabulary", "Grammar & Form"];
+          const criteriaIn = Array.isArray(geminiAnalysis?.criteria) ? geminiAnalysis.criteria : [];
+          const criteriaMap = {};
+
+          for (const c of criteriaIn) {
+            const rawName = String(c.name || "").trim();
+            const normalizedName = nameMapping[rawName.toLowerCase()] || rawName;
+            const rawScore = typeof c.score === "number" ? c.score : parseFloat(String(c.score || "0"));
+            if (isNaN(rawScore) || rawScore < 0 || rawScore > 10) {
+              throw new Error(`Invalid score for criterion "${rawName}": ${JSON.stringify(c.score)}`);
+            }
+            const clampedScore = Math.max(0.0, Math.min(5.0, Math.round(rawScore * 2) / 2));
+            const reasonText = String(c.reason || c.feedback || "");
+            criteriaMap[normalizedName] = {
+              name: normalizedName,
+              score: clampedScore,
+              max_score: 5,
+              reason: reasonText,
+              feedback: reasonText,
+            };
+          }
+
+          for (const req of REQUIRED_CRITERIA) {
+            if (!criteriaMap[req]) {
+              throw new Error(`Missing required criterion: ${req}`);
+            }
+          }
+
+          let tfScore = criteriaMap["Task Fulfillment"].score;
+          let csScore = criteriaMap["Coherence & Structure"].score;
+          let vocabScore = criteriaMap["Vocabulary"].score;
+          let gramScore = criteriaMap["Grammar & Form"].score;
+
+          let scoreCap = 95;
+          let tfCap = 5.0;
+          let csCap = 5.0;
+
+          // 2. Leitpunkte decisions
+          const taskAnalysis = geminiAnalysis?.task_analysis || {};
+          const leitpunkte = Array.isArray(taskAnalysis.leitpunkte) ? taskAnalysis.leitpunkte : [];
+          const totalLeitpunkte = leitpunkte.length > 0
+            ? leitpunkte.length
+            : (Array.isArray(taskData?.points) && taskData.points.length > 0 ? taskData.points.length : 0);
+
+          let missingCount = 0;
+          let partialCount = 0;
+          for (const lp of leitpunkte) {
+            const st = String(lp.status || "").toLowerCase();
+            if (st === "missing") missingCount++;
+            else if (st === "partial") partialCount++;
+          }
+
+          if (typeof taskAnalysis.missing_count === "number") {
+            missingCount = Math.max(missingCount, taskAnalysis.missing_count);
+          }
+          if (typeof taskAnalysis.partial_count === "number") {
+            partialCount = Math.max(partialCount, taskAnalysis.partial_count);
+          }
+
+          // 3. Language evaluation
+          const lang = geminiAnalysis?.language || {};
+          const primaryLang = String(lang.primary_language || "German").toLowerCase();
+          const nonGermanPct = typeof lang.non_german_percentage_estimate === "number"
+            ? lang.non_german_percentage_estimate
+            : parseFloat(String(lang.non_german_percentage_estimate || "0"));
+          const langSeverity = String(lang.severity || "none").toLowerCase();
+
+          if (nonGermanPct > 50 || langSeverity === "mostly_non_german" || primaryLang.includes("english")) {
+            tfCap = Math.min(tfCap, 0.0);
+            scoreCap = Math.min(scoreCap, 10);
+            appliedRules.push("language_mostly_non_german_cap_10");
+          } else if (langSeverity === "substantial" || nonGermanPct >= 30) {
+            tfCap = Math.min(tfCap, 1.5);
+            scoreCap = Math.min(scoreCap, 40);
+            appliedRules.push("language_substantial_english_cap_40");
+          } else if (langSeverity === "partial_leitpunkt") {
+            tfCap = Math.min(tfCap, 3.0);
+            scoreCap = Math.min(scoreCap, 65);
+            appliedRules.push("language_english_leitpunkt_cap_65");
+          }
+
+          // 4. Off-topic check
+          const overallRel = String(taskAnalysis.overall_relevance || "on_topic").toLowerCase();
+          if (overallRel === "off_topic") {
+            tfCap = Math.min(tfCap, 0.0);
+            scoreCap = Math.min(scoreCap, 20);
+            appliedRules.push("off_topic_cap_20");
+          }
+
+          // 5. Leitpunkte caps
+          if (totalLeitpunkte > 0) {
+            if (missingCount >= totalLeitpunkte || overallRel === "off_topic") {
+              tfCap = Math.min(tfCap, 0.0);
+              scoreCap = Math.min(scoreCap, 20);
+              appliedRules.push("all_leitpunkte_missing_cap_20");
+            } else if (missingCount >= 2) {
+              tfCap = Math.min(tfCap, 1.5);
+              scoreCap = Math.min(scoreCap, 40);
+              appliedRules.push("two_or_more_missing_leitpunkte_cap_40");
+            } else if (missingCount === 1) {
+              if (partialCount >= 1) {
+                tfCap = Math.min(tfCap, 2.5);
+                scoreCap = Math.min(scoreCap, 55);
+                appliedRules.push("one_missing_plus_partial_leitpunkt_cap_55");
+              } else {
+                tfCap = Math.min(tfCap, 3.0);
+                scoreCap = Math.min(scoreCap, 65);
+                appliedRules.push("one_missing_leitpunkt_cap_65");
+              }
+            } else if (missingCount === 0) {
+              if (partialCount >= 2) {
+                tfCap = Math.min(tfCap, 3.5);
+                scoreCap = Math.min(scoreCap, 70);
+                appliedRules.push("multiple_partial_leitpunkte_cap_70");
+              } else if (partialCount === 1) {
+                tfCap = Math.min(tfCap, 4.0);
+                scoreCap = Math.min(scoreCap, 80);
+                appliedRules.push("one_partial_leitpunkt_cap_80");
+              }
+            }
+          }
+
+          // 6. Length and development
+          const level = String(taskData?.level || "A1").toUpperCase();
+          const lengthInfo = geminiAnalysis?.length || {};
+          const devProblem = Boolean(lengthInfo.development_problem || lengthInfo.too_short);
+
+          if (level === "B1" && actualWordCount < 40 && devProblem) {
+            csCap = Math.min(csCap, 3.0);
+            scoreCap = Math.min(scoreCap, 60);
+            appliedRules.push("b1_severely_underdeveloped_cap_60");
+          } else if (level === "B2" && actualWordCount < 75 && devProblem) {
+            csCap = Math.min(csCap, 2.5);
+            scoreCap = Math.min(scoreCap, 50);
+            appliedRules.push("b2_severely_underdeveloped_cap_50");
+          }
+
+          // 7. Finalize criteria scores
+          const finalTf = Math.min(tfScore, tfCap);
+          const finalCs = Math.min(csScore, csCap);
+          const finalVocab = Math.min(vocabScore, 5.0);
+          const finalGram = Math.min(gramScore, 5.0);
+
+          const criteriaSum = finalTf + finalCs + finalVocab + finalGram;
+          const criteriaPercent = Math.round((criteriaSum / 20.0) * 100);
+
+          const recScore = geminiAnalysis?.recommended_score_percent;
+          let initialScore = (typeof recScore === "number" && !isNaN(recScore))
+            ? Math.round(recScore)
+            : criteriaPercent;
+
+          // Gemini cannot award more than criteria sum + 5%
+          initialScore = Math.min(initialScore, criteriaPercent + 5);
+
+          let finalScore = Math.min(initialScore, scoreCap);
+          finalScore = Math.max(0, Math.min(95, finalScore));
+
+          criteriaMap["Task Fulfillment"].score = finalTf;
+          criteriaMap["Coherence & Structure"].score = finalCs;
+          criteriaMap["Vocabulary"].score = finalVocab;
+          criteriaMap["Grammar & Form"].score = finalGram;
+
+          const finalCriteria = REQUIRED_CRITERIA.map(name => criteriaMap[name]);
+
+          return {
+            score_percent: finalScore,
+            cefr_level_met: finalScore >= 60,
+            criteria: finalCriteria,
+            applied_rules: appliedRules
+          };
+        }
 
         const flashModels = await getAvailableFlashModels(geminiApiKey);
         const modelCandidates = flashModels && flashModels.length > 0
@@ -1813,95 +2062,54 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
 
           const parsed = JSON.parse(cleanCandidateText);
 
-          // 1. Validate score_percent — never invent a score; fail the evaluation if missing/invalid
-          const rawScorePct = typeof parsed.score_percent === "number"
-            ? parsed.score_percent
-            : (parsed.score_percent !== undefined && parsed.score_percent !== null
-                ? parseFloat(String(parsed.score_percent))
-                : NaN);
-          if (isNaN(rawScorePct) || rawScorePct < 0 || rawScorePct > 100) {
-            throw new Error(`Gemini returned missing or invalid score_percent: ${JSON.stringify(parsed.score_percent)}`);
+          if (!parsed || typeof parsed !== "object") {
+            throw new Error("Gemini evaluation response is not a valid JSON object.");
           }
-          // Hard-cap at 0–95 (never 100%)
-          const scorePercent = Math.max(0, Math.min(95, Math.round(rawScorePct)));
-
-          // 2. Criterion name normalization to English
-          const nameMapping = {
-            "aufgabenerfüllung": "Task Fulfillment",
-            "task fulfillment": "Task Fulfillment",
-            "task fulfilment": "Task Fulfillment",
-            "kohärenz & textaufbau": "Coherence & Structure",
-            "kohärenz & aufbau": "Coherence & Structure",
-            "coherence & structure": "Coherence & Structure",
-            "coherence and structure": "Coherence & Structure",
-            "wortschatz": "Vocabulary",
-            "vocabulary": "Vocabulary",
-            "grammatik & form": "Grammar & Form",
-            "grammatik": "Grammar & Form",
-            "grammar & form": "Grammar & Form",
-            "grammar and form": "Grammar & Form",
-          };
-
-          const REQUIRED_CRITERIA = ["Task Fulfillment", "Coherence & Structure", "Vocabulary", "Grammar & Form"];
-
-          // 3. Validate criteria — must be an array of 4; do NOT generate fallback scores
           if (!Array.isArray(parsed.criteria) || parsed.criteria.length === 0) {
-            throw new Error("Gemini response did not include criteria array.");
+            throw new Error("Gemini evaluation response did not include criteria array.");
           }
 
-          const criteria = parsed.criteria.map((c, idx) => {
-            const rawName = String(c.name || "").trim();
-            const normalizedName = nameMapping[rawName.toLowerCase()] || rawName;
-
-            // Reject missing or non-numeric criterion score
-            const rawScore = typeof c.score === "number"
-              ? c.score
-              : (c.score !== undefined && c.score !== null ? parseFloat(String(c.score)) : NaN);
-            if (isNaN(rawScore) || rawScore < 0 || rawScore > 10) {
-              throw new Error(`Criterion "${rawName}" (index ${idx}) has missing or invalid score: ${JSON.stringify(c.score)}`);
-            }
-
-            return {
-              name: normalizedName,
-              // Clamp to 0–5, round to nearest 0.5
-              score: Math.max(0, Math.min(5, Math.round(rawScore * 2) / 2)),
-              max_score: typeof c.max_score === "number" ? c.max_score : 5,
-              feedback: String(c.feedback || ""),
-            };
-          });
-
-          // Build finalCriteria ensuring all 4 required criteria are present exactly once in standard order
-          const criteriaMap = new Map();
-          for (const c of criteria) {
-            if (REQUIRED_CRITERIA.includes(c.name) && !criteriaMap.has(c.name)) {
-              criteriaMap.set(c.name, c);
-            }
-          }
-
-          const missingCriteria = REQUIRED_CRITERIA.filter((r) => !criteriaMap.has(r));
-          if (missingCriteria.length > 0) {
-            throw new Error(`Gemini response is missing required criteria: ${missingCriteria.join(", ")}`);
-          }
-
-          const finalCriteria = REQUIRED_CRITERIA.map((name) => criteriaMap.get(name));
+          // Apply authoritative deterministic exam rules and caps
+          const taskInfo = {
+            exam: examFormat,
+            level: level,
+            teil: teilText,
+            points: pointsList,
+            situation: situationText,
+            task: instructionText,
+          };
+          const ruleResult = applySchreibenScoreRules(parsed, taskInfo, wordCount);
 
           const mistakes = Array.isArray(parsed.mistakes)
             ? parsed.mistakes.map((m) => ({
-                original: String(m.original || ""),
-                correction: String(m.correction || ""),
-                explanation: String(m.explanation || ""),
+                original: String(m.original || "").trim(),
+                correction: String(m.correction || "").trim(),
+                type: String(m.type || "grammar").trim(),
+                explanation: String(m.explanation || "").trim(),
               })).filter((m) => m.original || m.correction)
             : [];
 
-          const feedback = String(parsed.feedback || "Your writing submission was evaluated against the examination task.");
+          let feedback = String(parsed.feedback || "Your writing submission was evaluated against the examination task.").trim();
+
+          // Harmonize feedback with score: eliminate contradictory praise when failed
+          if (ruleResult.score_percent < 60) {
+            if (/^(excellent|great job|well done|congratulations|sehr gut|hervorragend)/i.test(feedback)) {
+              feedback = `The submission does not meet the passing standard (${ruleResult.score_percent}% / minimum 60% required). While some language elements were attempted, required exam constraints were not satisfied. ${feedback}`;
+            }
+          }
 
           evaluationResult = {
-            score_percent: scorePercent,
-            cefr_level_met: scorePercent >= 60,
+            score_percent: ruleResult.score_percent,
+            cefr_level_met: ruleResult.cefr_level_met,
             word_count: wordCount,
-            criteria: finalCriteria,
+            criteria: ruleResult.criteria,
             mistakes,
             feedback,
+            applied_rules: ruleResult.applied_rules,
+            task_analysis: parsed.task_analysis || null,
+            language_analysis: parsed.language || null,
+            length_analysis: parsed.length || null,
+            format_analysis: parsed.format || null,
           };
         } catch (evalErr) {
           console.error("Evaluation parsing error:", evalErr);

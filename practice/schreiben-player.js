@@ -575,10 +575,19 @@ window.SchreibenPlayerComponent = {
       }
     }
 
+    // Validate evaluationResult.score_percent before saving
+    if (!this.evaluationResult || typeof this.evaluationResult.score_percent !== "number" || isNaN(this.evaluationResult.score_percent)) {
+      console.error("SchreibenPlayer: Received invalid evaluation score from server:", this.evaluationResult);
+      this.isEvaluating = false;
+      this.renderWritingWorkspace();
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast("Ungültiges Bewertungsergebnis erhalten. Es wurde kein Credit abgezogen.", "error", 4500);
+      }
+      return;
+    }
+
     // Save attempt record to practice_attempts with integer marks
-    const scorePercent = typeof this.evaluationResult.score_percent === "number"
-      ? Math.round(this.evaluationResult.score_percent)
-      : 70;
+    const scorePercent = Math.round(this.evaluationResult.score_percent);
     const correctCount = Math.round(scorePercent / 10);
     const totalCount = 10;
 
@@ -741,7 +750,7 @@ window.SchreibenPlayerComponent = {
           </h3>
           <div class="schreiben-criteria-grid">
             ${criteria.map(c => {
-              const score = typeof c.score === "number" ? c.score : 3;
+              const score = typeof c.score === "number" ? c.score : 0;
               const max = typeof c.max_score === "number" ? c.max_score : 5;
               const pct = Math.round((score / max) * 100);
               return `
