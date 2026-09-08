@@ -1797,9 +1797,11 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
 
         // Direct prioritized Flash model candidates (no runtime API discovery roundtrip)
         const modelCandidates = [
-          "gemini-2.5-flash",
+          "gemini-1.5-flash",
+          "gemini-1.5-flash-latest",
           "gemini-2.0-flash",
-          "gemini-1.5-flash"
+          "gemini-2.0-flash-lite",
+          "gemini-1.5-pro"
         ];
 
         let evaluationResult = null;
@@ -1821,6 +1823,12 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                     temperature: 0.2,
                     responseMimeType: "application/json",
                   },
+                  safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+                  ],
                 }),
               });
             } catch (fetchErr) {
@@ -1844,9 +1852,15 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
               continue;
             }
 
-            const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const parts = geminiData?.candidates?.[0]?.content?.parts;
+            const text = Array.isArray(parts)
+              ? parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("").trim()
+              : "";
+
             if (!text) {
-              console.error(`Empty evaluation response from model ${modelId}`);
+              const finishReason = geminiData?.candidates?.[0]?.finishReason;
+              console.error(`Empty evaluation response from model ${modelId}. FinishReason:`, finishReason);
+              lastErrBody = `Empty response from ${modelId} (finishReason: ${finishReason || "unknown"})`;
               continue;
             }
 
@@ -1862,6 +1876,11 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                 success: false,
                 error: "evaluation_service_error",
                 message: "Writing evaluation service temporarily unavailable. No credit was deducted. Please try again.",
+                details: {
+                  last_status: lastErrStatus,
+                  last_error: lastErrBody,
+                  models_tried: modelCandidates,
+                },
               },
               502,
               request

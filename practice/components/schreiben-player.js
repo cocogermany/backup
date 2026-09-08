@@ -649,6 +649,9 @@ window.SchreibenPlayerComponent = {
     }
 
     if (!evalRes || !evalRes.success || !evalRes.evaluation) {
+      if (evalRes?.details) {
+        console.warn("SchreibenPlayer: Evaluation service failure details:", evalRes.details);
+      }
       this.isEvaluating = false;
       this.renderWritingWorkspace();
       const msg = evalRes?.message || "Auswertung fehlgeschlagen. Es wurde kein Credit abgezogen.";
