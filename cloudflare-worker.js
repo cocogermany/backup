@@ -1795,13 +1795,26 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
         }
 
 
-        // Direct prioritized Flash model candidates (no runtime API discovery roundtrip)
+        // Helper: safely sanitize Gemini error messages to never leak secrets
+        function sanitizeGeminiError(errorText, keyToRedact) {
+          if (!errorText) return "";
+          let clean = String(errorText);
+          if (keyToRedact && typeof keyToRedact === "string" && keyToRedact.length > 5) {
+            clean = clean.split(keyToRedact).join("[REDACTED_API_KEY]");
+          }
+          clean = clean.replace(/key=[a-zA-Z0-9_\-]+/gi, "key=[REDACTED_API_KEY]");
+          clean = clean.replace(/apikey:[^,\s}]+/gi, "apikey:[REDACTED_API_KEY]");
+          return clean;
+        }
+
+        // Direct prioritized Gemini 3.x model candidates
         const modelCandidates = [
-          "gemini-1.5-flash",
-          "gemini-1.5-flash-latest",
-          "gemini-2.0-flash",
-          "gemini-2.0-flash-lite",
-          "gemini-1.5-pro"
+          "gemini-3.5-flash",
+          "gemini-3.8-flash",
+          "gemini-3.5-pro",
+          "gemini-3-flash",
+          "gemini-3.0-flash",
+          "gemini-3-pro"
         ];
 
         let evaluationResult = null;
@@ -1809,6 +1822,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           let candidateText = null;
           let lastErrStatus = null;
           let lastErrBody = null;
+          const attempts = [];
 
           for (const modelId of modelCandidates) {
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
@@ -1818,7 +1832,12 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: evaluationPrompt }] }],
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [{ text: evaluationPrompt }]
+                    }
+                  ],
                   generationConfig: {
                     temperature: 0.2,
                     responseMimeType: "application/json",
@@ -1832,15 +1851,19 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                 }),
               });
             } catch (fetchErr) {
-              console.error(`Gemini fetch error for model ${modelId}:`, fetchErr);
-              lastErrBody = String(fetchErr);
+              const sanitizedErr = sanitizeGeminiError(String(fetchErr), geminiApiKey);
+              console.error(`Gemini fetch error for model ${modelId}:`, sanitizedErr);
+              lastErrBody = sanitizedErr;
+              attempts.push({ model: modelId, error: sanitizedErr });
               continue;
             }
 
             if (!geminiRes.ok) {
               lastErrStatus = geminiRes.status;
-              lastErrBody = await geminiRes.text();
+              const rawBody = await geminiRes.text();
+              lastErrBody = sanitizeGeminiError(rawBody, geminiApiKey);
               console.error(`Gemini API Error (${modelId}):`, lastErrStatus, lastErrBody);
+              attempts.push({ model: modelId, status: lastErrStatus, error: lastErrBody });
               continue; // try next model
             }
 
@@ -1848,7 +1871,9 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             try {
               geminiData = await geminiRes.json();
             } catch (jsonErr) {
-              console.error(`Gemini JSON parse error for model ${modelId}:`, jsonErr);
+              const sanitizedJsonErr = sanitizeGeminiError(String(jsonErr), geminiApiKey);
+              console.error(`Gemini JSON parse error for model ${modelId}:`, sanitizedJsonErr);
+              attempts.push({ model: modelId, error: `JSON parse error: ${sanitizedJsonErr}` });
               continue;
             }
 
@@ -1858,9 +1883,10 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
               : "";
 
             if (!text) {
-              const finishReason = geminiData?.candidates?.[0]?.finishReason;
+              const finishReason = geminiData?.candidates?.[0]?.finishReason || "unknown";
               console.error(`Empty evaluation response from model ${modelId}. FinishReason:`, finishReason);
-              lastErrBody = `Empty response from ${modelId} (finishReason: ${finishReason || "unknown"})`;
+              lastErrBody = `Empty response from ${modelId} (finishReason: ${finishReason})`;
+              attempts.push({ model: modelId, error: lastErrBody });
               continue;
             }
 
@@ -1879,7 +1905,8 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                 details: {
                   last_status: lastErrStatus,
                   last_error: lastErrBody,
-                  models_tried: modelCandidates,
+                  models_attempted: modelCandidates,
+                  attempts: attempts,
                 },
               },
               502,
