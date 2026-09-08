@@ -1,7 +1,10 @@
 {
+  "id": "GoB2WR001",
+  "title": "Homeoffice – Chance oder Risiko?",
+  "module": "Schreiben",
   "exam": "goethe",
   "level": "B2",
-  "teil": "Schreiben",
+  "teil": "Teil 1",
   "task": {
     "situation": "Sie haben in einer Online-Zeitung einen Artikel zum Thema „Homeoffice – Chance oder Risiko?“ gelesen. Im Artikel wird darüber diskutiert, ob Unternehmen ihren Mitarbeitenden grundsätzlich die Möglichkeit geben sollten, von zu Hause aus zu arbeiten.",
     "aufgabe": "Nehmen Sie Stellung zu dieser Frage. Schreiben Sie einen Forumsbeitrag, in dem Sie Ihre Meinung begründen.",
@@ -15,5 +18,48 @@
       "minimum": 150,
       "maximum": 200
     }
+  },
+  "evaluation": {
+    "task_type": "forum_post",
+    "required_points": [
+      {
+        "id": 1,
+        "requirement": "Äußern Sie Ihre Meinung zum Thema Homeoffice.",
+        "fulfilled_when": "Eine klare eigene Meinung zum Thema Homeoffice wird eindeutig geäußert und nachvollziehbar begründet.",
+        "partial_when": "Die Meinung ist unklar, widersprüchlich oder nur beiläufig ohne Begründung formuliert.",
+        "not_fulfilled_when": "Keine eigene Meinung zum Thema Homeoffice geäußert."
+      },
+      {
+        "id": 2,
+        "requirement": "Nennen Sie Vorteile und Nachteile des Homeoffice.",
+        "fulfilled_when": "Mindestens ein konkreter Vorteil UND mindestens ein konkreter Nachteil werden verständlich und differenziert angeführt.",
+        "partial_when": "Nur Vorteile ODER nur Nachteile werden genannt, oder die Argumente sind extrem vage.",
+        "not_fulfilled_when": "Weder Vor- noch Nachteile des Homeoffice werden genannt."
+      },
+      {
+        "id": 3,
+        "requirement": "Erläutern Sie, unter welchen Bedingungen Homeoffice sinnvoll ist.",
+        "fulfilled_when": "Konkrete Voraussetzungen oder Rahmenbedingungen (z.B. Arbeitsbereich, Selbstdisziplin, technische Ausstattung) werden erläutert.",
+        "partial_when": "Bedingungen werden nur oberflächlich angerissen ohne nachvollziehbare Erläuterung.",
+        "not_fulfilled_when": "Keine Bedingungen oder Voraussetzungen angeführt."
+      },
+      {
+        "id": 4,
+        "requirement": "Machen Sie einen Vorschlag, wie Unternehmen mit dem Thema Homeoffice umgehen sollten.",
+        "fulfilled_when": "Ein konkreter, handlungsorientierter Vorschlag für Unternehmen (z.B. hybrides Modell, flexible Vereinbarungen) wird unterbreitet.",
+        "partial_when": "Ein Vorschlag ist unklar oder beschreibt lediglich ein Problem statt einer Lösung.",
+        "not_fulfilled_when": "Kein konstruktiver Vorschlag für Unternehmen formuliert."
+      }
+    ],
+    "development": {
+      "required": true,
+      "description": "B2-Niveau erfordert argumentative Verknüpfung und thematische Ausarbeitung (mindestens 150 Wörter), nicht nur stichpunktartiges Aufzählen."
+    },
+    "language": {
+      "expected": "German"
+    },
+    "register": "neutral, sachlich, forumsangemessen",
+    "level_expectations": "B2: Differenzierte Argumentation, treffender Wortschatz, komplexe Satzstrukturen (Konnektoren, Passiv/Konjunktiv, Nebensätze).",
+    "scoring_notes": "Vollständigkeit aller 4 Leitpunkte ist primäre Voraussetzung für eine Bewertung >= 80%."
   }
 }

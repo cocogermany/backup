@@ -1,0 +1,57 @@
+{
+  "id": "schreiben-template",
+  "title": "Beispiel Schreibaufgabe",
+  "module": "Schreiben",
+  "exam": "goethe",
+  "level": "B1",
+  "teil": "Teil 1",
+  "task": {
+    "situation": "Sie haben vor einer Woche Ihren Geburtstag gefeiert. Ein Freund / eine Freundin konnte nicht kommen.",
+    "aufgabe": "Schreiben Sie eine E-Mail an Ihren Freund / Ihre Freundin:",
+    "leitpunkte": [
+      "Beschreiben Sie: Wie war die Feier?",
+      "Begründen Sie: Warum schreiben Sie erst jetzt?",
+      "Machen Sie einen Vorschlag für ein Treffen."
+    ],
+    "word_count": {
+      "minimum": 80,
+      "maximum": 120
+    }
+  },
+  "evaluation": {
+    "task_type": "personal_email",
+    "required_points": [
+      {
+        "id": 1,
+        "requirement": "Beschreiben Sie: Wie war die Feier?",
+        "fulfilled_when": "Die Feier wird mit mindestens zwei konkreten Details (z.B. Gäste, Stimmung, Essen, Geschenke) im Perfekt/Präteritum beschrieben.",
+        "partial_when": "Die Feier wird nur mit einem einzigen kurzen Satz ohne Details erwähnt.",
+        "not_fulfilled_when": "Keine Beschreibung der Feier vorhanden."
+      },
+      {
+        "id": 2,
+        "requirement": "Begründen Sie: Warum schreiben Sie erst jetzt?",
+        "fulfilled_when": "Ein nachvollziehbarer Grund für die verspätete Kontaktaufnahme (z.B. viel Arbeit, Krankheit, Prüfungen) wird mit Konnektor (z.B. weil, da) genannt.",
+        "partial_when": "Ein Grund wird nur angedeutet oder ist unlogisch.",
+        "not_fulfilled_when": "Keine Begründung für die Verspätung."
+      },
+      {
+        "id": 3,
+        "requirement": "Machen Sie einen Vorschlag für ein Treffen.",
+        "fulfilled_when": "Ein konkreter Vorschlag für ein persönliches Wiedersehen (z.B. Zeit, Ort oder Aktivität) wird unterbreitet.",
+        "partial_when": "Ein Treffen wird nur ganz vage erwähnt ohne konkreten Vorschlag.",
+        "not_fulfilled_when": "Kein Vorschlag für ein Treffen vorhanden."
+      }
+    ],
+    "development": {
+      "required": true,
+      "description": "Ausführliche persönliche E-Mail mit thematischer Entfaltung (ca. 80 Wörter), nicht nur minimale Stichworte."
+    },
+    "language": {
+      "expected": "German"
+    },
+    "register": "informell (du/ihr)",
+    "level_expectations": "B1: Perfekt, Konjunktiv II für Vorschläge, Konnektoren (weil, dass, wenn, deshalb).",
+    "scoring_notes": "Ein Leitpunkt ganz auf Englisch führt zu Task Fulfillment <= 3/5 und Gesamtpunktzahl <= 65%."
+  }
+}

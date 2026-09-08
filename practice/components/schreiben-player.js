@@ -691,6 +691,12 @@ window.SchreibenPlayerComponent = {
     const criteria = Array.isArray(evaluation.criteria) ? evaluation.criteria : [];
     const mistakes = Array.isArray(evaluation.mistakes) ? evaluation.mistakes : [];
     const feedback = evaluation.feedback || "";
+    const feedbackDetails = evaluation.feedback_details || {};
+    const strengths = Array.isArray(feedbackDetails.strengths) ? feedbackDetails.strengths : [];
+    const improvements = Array.isArray(feedbackDetails.improvements) ? feedbackDetails.improvements : [];
+    const tfPoints = evaluation.task_fulfillment && Array.isArray(evaluation.task_fulfillment.points)
+      ? evaluation.task_fulfillment.points
+      : [];
     const material = this.currentMaterial || {};
     const wordCount = evaluation.word_count || (this.studentAnswer ? this.studentAnswer.trim().split(/\s+/).filter(Boolean).length : 0);
     const creditsRemaining = (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number")
@@ -739,6 +745,62 @@ window.SchreibenPlayerComponent = {
               <span>Gesamteinschätzung (General Feedback)</span>
             </div>
             <p class="schreiben-feedback-text">${this.escapeHtml(feedback)}</p>
+          </div>
+        ` : ''}
+
+        <!-- Strengths and Improvements -->
+        ${(strengths.length > 0 || improvements.length > 0) ? `
+          <div class="schreiben-section-block" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+            ${strengths.length > 0 ? `
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:16px;">
+                <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#166534; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="thumbs-up" style="width:16px;height:16px;"></i>
+                  <span>Stärken (Strengths)</span>
+                </h4>
+                <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#14532d; line-height:1.6;">
+                  ${strengths.map(s => `<li>${this.escapeHtml(s)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+            ${improvements.length > 0 ? `
+              <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px;">
+                <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#92400e; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="arrow-up-right" style="width:16px;height:16px;"></i>
+                  <span>Tipps zur Verbesserung (Improvements)</span>
+                </h4>
+                <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#78350f; line-height:1.6;">
+                  ${improvements.map(i => `<li>${this.escapeHtml(i)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- Leitpunkte Evidence Checklist -->
+        ${tfPoints.length > 0 ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="check-square" style="width:18px;height:18px; color:#10b981;"></i>
+              <span>Aufgabenerfüllung nach Leitpunkten (Task Fulfillment Evidence)</span>
+            </h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${tfPoints.map(p => {
+                const st = String(p.status || "").toLowerCase();
+                const badgeStyle = st === "fulfilled"
+                  ? "background:#dcfce7; color:#15803d; border:1px solid #86efac;"
+                  : (st === "partial" ? "background:#fef9c3; color:#a16207; border:1px solid #fde047;" : "background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;");
+                const badgeLabel = st === "fulfilled" ? "✓ Erfüllt" : (st === "partial" ? "⚠ Teilweise" : "✗ Fehlt");
+                return `
+                  <div style="background:#ffffff; border:1px solid var(--schreiben-border); border-radius:8px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span style="font-weight:600; font-size:0.9rem; color:var(--schreiben-ink);">Leitpunkt #${p.id || 1}</span>
+                      <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; ${badgeStyle}">${badgeLabel}</span>
+                    </div>
+                    ${p.evidence ? `<p style="margin:8px 0 0 0; font-size:0.88rem; color:#334155; font-style:italic;">„${this.escapeHtml(p.evidence)}“</p>` : `<p style="margin:8px 0 0 0; font-size:0.85rem; color:#94a3b8;">Keine Textbelege gefunden.</p>`}
+                  </div>
+                `;
+              }).join("")}
+            </div>
           </div>
         ` : ''}
 
