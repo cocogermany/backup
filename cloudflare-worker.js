@@ -1578,19 +1578,23 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
   "criteria": {
     "task_fulfillment": {
       "score": 0,
-      "max_score": 5
+      "max_score": 5,
+      "feedback": "One sentence explaining this criterion score."
     },
     "coherence": {
       "score": 0,
-      "max_score": 5
+      "max_score": 5,
+      "feedback": "One sentence explaining this criterion score."
     },
     "vocabulary": {
       "score": 0,
-      "max_score": 5
+      "max_score": 5,
+      "feedback": "One sentence explaining this criterion score."
     },
     "grammar_form": {
       "score": 0,
-      "max_score": 5
+      "max_score": 5,
+      "feedback": "One sentence explaining this criterion score."
     }
   },
   "mistakes": [
@@ -1614,7 +1618,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
         function applyUniversalSafetyRules(parsed, taskData, actualWordCount) {
           const appliedRules = [];
 
-          // 1. Sanitize criteria (force max_score = 5)
+          // 1. Sanitize criteria (force max_score = 5, clamp 0–5)
           const rawCriteria = parsed?.criteria || {};
           const getCritScore = (crit) => {
             const raw = typeof crit?.score === "number" ? crit.score : parseFloat(String(crit?.score || "0"));
@@ -1629,11 +1633,25 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           let vocabScore = getCritScore(rawCriteria.vocabulary);
           let gramScore = getCritScore(rawCriteria.grammar_form);
 
+          // Per-criterion feedback from Gemini (may be empty string if not returned)
+          const tfFeedback = String(rawCriteria.task_fulfillment?.feedback || "").trim();
+          const csFeedback = String(rawCriteria.coherence?.feedback || "").trim();
+          const vocabFeedback = String(rawCriteria.vocabulary?.feedback || "").trim();
+          const gramFeedback = String(rawCriteria.grammar_form?.feedback || "").trim();
+
+          // 2. Read scoring caps from material JSON (evaluation.scoring.caps), or use hardcoded defaults
+          const materialCaps = taskData?.evaluation?.scoring?.caps || {};
+          const CAP_OFF_TOPIC   = typeof materialCaps.off_topic    === "number" ? materialCaps.off_topic    : 20;
+          const CAP_TWO_MISSING = typeof materialCaps.two_missing   === "number" ? materialCaps.two_missing   : 40;
+          const CAP_ONE_MISSING = typeof materialCaps.one_missing   === "number" ? materialCaps.one_missing   : 65;
+          const HIGH_THRESHOLD  = typeof taskData?.evaluation?.scoring?.high_score_threshold === "number"
+            ? taskData.evaluation.scoring.high_score_threshold : 80;
+
           let scoreCap = 95;
           let tfCap = 5.0;
           let csCap = 5.0;
 
-          // 2. Language check (mostly wrong language -> max 10%, Task Fulfillment = 0)
+          // 3. Language check (mostly wrong language → max 10%, Task Fulfillment = 0)
           const lang = parsed?.language || {};
           const detectedLang = String(lang.detected || "German").toLowerCase();
           const isGerman = detectedLang.includes("german") || detectedLang === "de";
@@ -1644,7 +1662,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             appliedRules.push("language_not_german_cap_10");
           }
 
-          // 3. Task fulfillment & Leitpunkte check
+          // 4. Task fulfillment & Leitpunkte check
           const tfAnalysis = parsed?.task_fulfillment || {};
           const points = Array.isArray(tfAnalysis.points) ? tfAnalysis.points : [];
           const totalPoints = points.length > 0
@@ -1670,35 +1688,37 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           const isOffTopic = (totalPoints > 0 && missingCount >= totalPoints) || tfScore === 0;
           if (isOffTopic && appliedRules.length === 0) {
             tfCap = Math.min(tfCap, 0.0);
-            scoreCap = Math.min(scoreCap, 20);
-            appliedRules.push("off_topic_cap_20");
+            scoreCap = Math.min(scoreCap, CAP_OFF_TOPIC);
+            appliedRules.push(`off_topic_cap_${CAP_OFF_TOPIC}`);
           } else if (missingCount >= 2) {
             tfCap = Math.min(tfCap, 1.5);
-            scoreCap = Math.min(scoreCap, 40);
-            appliedRules.push("two_or_more_missing_leitpunkte_cap_40");
+            scoreCap = Math.min(scoreCap, CAP_TWO_MISSING);
+            appliedRules.push(`two_or_more_missing_leitpunkte_cap_${CAP_TWO_MISSING}`);
           } else if (missingCount === 1) {
             if (partialCount >= 1) {
+              const oneMissingPlusCap = Math.round((CAP_ONE_MISSING + CAP_TWO_MISSING) / 2);
               tfCap = Math.min(tfCap, 2.5);
-              scoreCap = Math.min(scoreCap, 55);
-              appliedRules.push("one_missing_plus_partial_cap_55");
+              scoreCap = Math.min(scoreCap, oneMissingPlusCap);
+              appliedRules.push(`one_missing_plus_partial_cap_${oneMissingPlusCap}`);
             } else {
               tfCap = Math.min(tfCap, 3.0);
-              scoreCap = Math.min(scoreCap, 65);
-              appliedRules.push("one_missing_leitpunkt_cap_65");
+              scoreCap = Math.min(scoreCap, CAP_ONE_MISSING);
+              appliedRules.push(`one_missing_leitpunkt_cap_${CAP_ONE_MISSING}`);
             }
           } else if (missingCount === 0) {
             if (partialCount >= 2) {
+              const multiPartialCap = Math.max(CAP_ONE_MISSING + 5, HIGH_THRESHOLD - 10);
               tfCap = Math.min(tfCap, 3.5);
-              scoreCap = Math.min(scoreCap, 70);
-              appliedRules.push("multiple_partial_leitpunkte_cap_70");
+              scoreCap = Math.min(scoreCap, multiPartialCap);
+              appliedRules.push(`multiple_partial_leitpunkte_cap_${multiPartialCap}`);
             } else if (partialCount === 1) {
               tfCap = Math.min(tfCap, 4.0);
-              scoreCap = Math.min(scoreCap, 80);
-              appliedRules.push("one_partial_leitpunkt_cap_80");
+              scoreCap = Math.min(scoreCap, HIGH_THRESHOLD);
+              appliedRules.push(`one_partial_leitpunkt_cap_${HIGH_THRESHOLD}`);
             }
           }
 
-          // 4. Development check
+          // 5. Development check
           const dev = parsed?.development || {};
           const isUnderdeveloped = dev.adequate === false || String(dev.quality || "").toLowerCase() === "severely_underdeveloped";
           const level = String(taskData?.level || "A1").toUpperCase();
@@ -1712,7 +1732,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             appliedRules.push("b2_severely_underdeveloped_cap_50");
           }
 
-          // 5. Finalize criteria scores
+          // 6. Finalize criteria scores
           const finalTf = Math.min(tfScore, tfCap);
           const finalCs = Math.min(csScore, csCap);
           const finalVocab = Math.min(vocabScore, 5.0);
@@ -1731,11 +1751,33 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           let finalScore = Math.min(initialScore, scoreCap);
           finalScore = Math.max(0, Math.min(95, finalScore));
 
+          const fulfilledCount = totalPoints - missingCount - partialCount;
+
           const criteriaList = [
-            { name: "Task Fulfillment", score: finalTf, max_score: 5, feedback: `Task Fulfillment: ${finalTf}/5 (${totalPoints - missingCount - partialCount} fulfilled, ${partialCount} partial, ${missingCount} missing).` },
-            { name: "Coherence & Structure", score: finalCs, max_score: 5, feedback: `Coherence & Structure: ${finalCs}/5.` },
-            { name: "Vocabulary", score: finalVocab, max_score: 5, feedback: `Vocabulary: ${finalVocab}/5.` },
-            { name: "Grammar & Form", score: finalGram, max_score: 5, feedback: `Grammar & Form: ${finalGram}/5.` }
+            {
+              name: "Task Fulfillment",
+              score: finalTf,
+              max_score: 5,
+              feedback: tfFeedback || `${fulfilledCount} of ${totalPoints} Leitpunkte fulfilled, ${partialCount} partial, ${missingCount} missing.`
+            },
+            {
+              name: "Coherence & Structure",
+              score: finalCs,
+              max_score: 5,
+              feedback: csFeedback || `Coherence & Structure: ${finalCs}/5.`
+            },
+            {
+              name: "Vocabulary",
+              score: finalVocab,
+              max_score: 5,
+              feedback: vocabFeedback || `Vocabulary: ${finalVocab}/5.`
+            },
+            {
+              name: "Grammar & Form",
+              score: finalGram,
+              max_score: 5,
+              feedback: gramFeedback || `Grammar & Form: ${finalGram}/5.`
+            }
           ];
 
           return {
@@ -1751,6 +1793,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             applied_rules: appliedRules
           };
         }
+
 
         // Direct prioritized Flash model candidates (no runtime API discovery roundtrip)
         const modelCandidates = [
@@ -1850,6 +1893,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             points: pointsList,
             situation: situationText,
             task: instructionText,
+            evaluation: evaluationConfig, // pass material caps through to safety rules
           };
           const ruleResult = applyUniversalSafetyRules(parsed, taskInfo, wordCount);
 

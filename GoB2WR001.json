@@ -60,6 +60,15 @@
     },
     "register": "neutral, sachlich, forumsangemessen",
     "level_expectations": "B2: Differenzierte Argumentation, treffender Wortschatz, komplexe Satzstrukturen (Konnektoren, Passiv/Konjunktiv, Nebensätze).",
-    "scoring_notes": "Vollständigkeit aller 4 Leitpunkte ist primäre Voraussetzung für eine Bewertung >= 80%."
+    "scoring_notes": "Vollständigkeit aller 4 Leitpunkte ist primäre Voraussetzung für eine Bewertung >= 80%.",
+    "scoring": {
+      "high_score_requires_all_points": true,
+      "high_score_threshold": 80,
+      "caps": {
+        "off_topic": 20,
+        "two_missing": 40,
+        "one_missing": 65
+      }
+    }
   }
 }

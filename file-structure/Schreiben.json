@@ -52,6 +52,15 @@
     },
     "register": "informell (du/ihr)",
     "level_expectations": "B1: Perfekt, Konjunktiv II für Vorschläge, Konnektoren (weil, dass, wenn, deshalb).",
-    "scoring_notes": "Ein Leitpunkt ganz auf Englisch führt zu Task Fulfillment <= 3/5 und Gesamtpunktzahl <= 65%."
+    "scoring_notes": "Ein Leitpunkt ganz auf Englisch führt zu Task Fulfillment <= 3/5 und Gesamtpunktzahl <= 65%.",
+    "scoring": {
+      "high_score_requires_all_points": true,
+      "high_score_threshold": 80,
+      "caps": {
+        "off_topic": 20,
+        "two_missing": 40,
+        "one_missing": 65
+      }
+    }
   }
 }
