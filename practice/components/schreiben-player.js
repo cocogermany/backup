@@ -5,7 +5,7 @@
  * Dedicated, independent language examination writing player:
  * - Pure standalone component decoupled from InteractivePlayerComponent
  * - Full CEFR Task & Prompt Rendering from Material JSON
- * - Real-time word counter enforcing 200 words maximum limit
+ * - Real-time word counter enforcing task-specific word limits
  * - Real loading state during server evaluation (no fake timeouts)
  * - True atomic weekly credit deduction via Cloudflare Worker
  * - Comprehensive CEFR evaluation result display with criteria breakdown, mistakes table & corrections
@@ -63,67 +63,136 @@ window.SchreibenPlayerComponent = {
     return template.innerHTML;
   },
 
+  getWordLimits: function (material) {
+    if (!material) return { minimum: null, maximum: 200 };
+
+    const taskObj = (material.task && typeof material.task === "object") ? material.task : null;
+    const wordCountObj = (taskObj?.word_count && typeof taskObj.word_count === "object")
+      ? taskObj.word_count
+      : ((material.word_count && typeof material.word_count === "object") ? material.word_count : null);
+
+    const minVal = wordCountObj?.minimum ?? material.min_words ?? material.minimum_words ?? null;
+    const maxVal = wordCountObj?.maximum ?? material.word_limit ?? material.max_words ?? material.maximum_words ?? 200;
+
+    const minimum = (typeof minVal === "number" && minVal > 0) ? minVal : null;
+    const maximum = (typeof maxVal === "number" && maxVal > 0) ? maxVal : 200;
+
+    return { minimum, maximum };
+  },
+
   extractTaskDetails: function (material) {
     if (!material) {
       return {
+        situation: "",
+        aufgabe: "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.",
+        points: [],
+        minWords: null,
+        maxWords: 200,
         taskText: "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.",
         taskHtml: "<p>Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.</p>"
       };
     }
 
+    const taskObj = (material.task && typeof material.task === "object") ? material.task : null;
+
+    // 1. Situation / Context / Passage (reads from material.task.situation or flat fallbacks)
+    const situation = String(
+      taskObj?.situation ||
+      material.situation ||
+      material.context ||
+      material.passage ||
+      ""
+    ).trim();
+
+    // 2. Main Task / Prompt / Instruction / Aufgabe (reads from material.task.aufgabe or flat fallbacks)
+    // Never treat material.task object as a display string
+    const aufgabe = String(
+      taskObj?.aufgabe ||
+      taskObj?.task ||
+      (typeof material.task === "string" ? material.task : "") ||
+      material.prompt ||
+      material.instructions ||
+      material.question ||
+      (Array.isArray(material.questions) && material.questions[0] && (material.questions[0].question || material.questions[0].prompt || material.questions[0].task)) ||
+      ""
+    ).trim();
+
+    // 3. Leitpunkte / Guidelines / Cues (reads from material.task.leitpunkte or flat fallbacks)
+    const rawPoints = (taskObj && (taskObj.leitpunkte || taskObj.points)) ||
+      material.leitpunkte ||
+      material.points ||
+      material.bullet_points ||
+      material.guidelines ||
+      material.cues ||
+      (Array.isArray(material.questions) && material.questions[0] && (material.questions[0].leitpunkte || material.questions[0].points)) ||
+      [];
+
+    let points = [];
+    if (Array.isArray(rawPoints)) {
+      points = rawPoints
+        .map((p) => {
+          if (typeof p === "string") return p.trim();
+          if (p && typeof p === "object") return String(p.requirement || p.text || p.point || p.title || "").trim();
+          return "";
+        })
+        .filter(Boolean);
+    } else if (typeof rawPoints === "string" && rawPoints.trim()) {
+      points = rawPoints
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
+        .filter(Boolean);
+    }
+
+    const wordLimits = this.getWordLimits(material);
+    const minWords = wordLimits.minimum;
+    const maxWords = wordLimits.maximum;
+
     const partsHtml = [];
     const partsText = [];
 
-    // 1. Situation / Context / Passage (e.g. background scenario or letter/notice received)
-    const situation = material.situation || material.context || material.passage;
-    if (situation && typeof situation === "string" && situation.trim()) {
+    // 1. Situation HTML & Text
+    if (situation) {
       partsHtml.push(`<div class="schreiben-task-situation" style="margin-bottom:12px; font-style:italic; color:#334155; line-height:1.65;">${this.sanitizeRichText(situation)}</div>`);
       partsText.push(`Situation / Kontext:\n${this.stripHtml(situation).trim()}`);
     }
 
-    // 2. Main Task / Prompt / Instruction / Question
-    const mainTask = material.task || material.prompt || material.instructions || material.question ||
-      (Array.isArray(material.questions) && material.questions[0] && (material.questions[0].question || material.questions[0].prompt || material.questions[0].task)) || "";
-    if (mainTask && typeof mainTask === "string" && mainTask.trim()) {
-      partsHtml.push(`<div class="schreiben-task-instruction" style="font-weight:600; margin-bottom:12px; line-height:1.65;">${this.sanitizeRichText(mainTask)}</div>`);
-      partsText.push(`Aufgabe:\n${this.stripHtml(mainTask).trim()}`);
+    // 2. Aufgabe HTML & Text
+    if (aufgabe) {
+      partsHtml.push(`<div class="schreiben-task-instruction" style="font-weight:600; margin-bottom:12px; line-height:1.65;">${this.sanitizeRichText(aufgabe)}</div>`);
+      partsText.push(`Aufgabe:\n${this.stripHtml(aufgabe).trim()}`);
     }
 
-    // 3. Leitpunkte / Guidelines / Cues (critical in Goethe/telc Schreiben)
-    const points = material.points || material.bullet_points || material.guidelines || material.cues ||
-      (Array.isArray(material.questions) && material.questions[0] && material.questions[0].points);
-    if (Array.isArray(points) && points.length > 0) {
+    // 3. Leitpunkte HTML & Text
+    if (points.length > 0) {
       const pointItems = points
-        .map((p) => {
-          const text = typeof p === "string" ? p : (p.text || p.point || JSON.stringify(p));
-          return `<li style="margin-bottom:4px;">${this.escapeHtml(text)}</li>`;
-        })
+        .map((p) => `<li style="margin-bottom:6px;">${this.escapeHtml(p)}</li>`)
         .join("");
       partsHtml.push(`
         <div class="schreiben-task-points-block" style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
-          <div style="font-weight:700; font-size:0.82rem; color:#475569; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">Leitpunkte:</div>
+          <div style="font-weight:700; font-size:0.82rem; color:#475569; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em;">Leitpunkte:</div>
           <ul class="schreiben-task-points" style="margin:0; padding-left:20px; line-height:1.65; color:#1e293b;">${pointItems}</ul>
         </div>
       `);
-      partsText.push("Punkte:\n" + points.map((p) => `- ${typeof p === "string" ? p : (p.text || p.point || JSON.stringify(p))}`).join("\n"));
-    } else if (typeof points === "string" && points.trim()) {
-      partsHtml.push(`
-        <div class="schreiben-task-points-block" style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
-          <div style="font-weight:700; font-size:0.82rem; color:#475569; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">Leitpunkte:</div>
-          <div class="schreiben-task-points" style="line-height:1.65; color:#1e293b;">${this.sanitizeRichText(points)}</div>
-        </div>
-      `);
-      partsText.push(`Punkte:\n${this.stripHtml(points).trim()}`);
+      partsText.push("Leitpunkte:\n" + points.map((p) => `- ${p}`).join("\n"));
     }
 
-    // Fallback if none of the specific fields matched
+    // Fallback if none of the specific fields matched (and avoid displaying generic 'Test material')
     if (partsHtml.length === 0) {
-      const fallback = material.description || "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.";
+      let fallback = String(material.description || "").trim();
+      const isGeneric = !fallback || /^(test|test\s*material|schreibaufgabe)$/i.test(fallback);
+      if (isGeneric) {
+        fallback = "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.";
+      }
       partsHtml.push(`<p style="line-height:1.65;">${this.escapeHtml(fallback)}</p>`);
       partsText.push(fallback);
     }
 
     return {
+      situation,
+      aufgabe,
+      points,
+      minWords,
+      maxWords,
       taskHtml: partsHtml.join("\n"),
       taskText: partsText.join("\n\n")
     };
@@ -331,6 +400,9 @@ window.SchreibenPlayerComponent = {
     const level = (material.level || "A1").toUpperCase();
     const title = material.contentTitle || material.title || "Schreibaufgabe";
     const taskDetails = this.extractTaskDetails(material);
+    const wordLimits = this.getWordLimits(material);
+    const maxWords = wordLimits.maximum;
+    const minWords = wordLimits.minimum;
 
     contentArea.innerHTML = `
       <div class="schreiben-workspace-card">
@@ -359,14 +431,14 @@ window.SchreibenPlayerComponent = {
               Deine schriftliche Ausarbeitung (Your German Text):
             </label>
             <div id="schreiben-word-count-pill" class="schreiben-word-pill">
-              0 / 200 Wörter
+              0 / ${maxWords} Wörter
             </div>
           </div>
 
           <textarea
             id="schreiben-textarea"
             class="schreiben-textarea"
-            placeholder="Schreibe deinen Text hier auf Deutsch... (Maximal 200 Wörter)"
+            placeholder="Schreibe deinen Text hier auf Deutsch... (${minWords ? `Mindestens ${minWords}, maximal ${maxWords} Wörter` : `Maximal ${maxWords} Wörter`})"
             rows="12"
             oninput="window.SchreibenPlayerComponent.onTextInput(this)"
           >${this.escapeHtml(this.studentAnswer || "")}</textarea>
@@ -388,7 +460,7 @@ window.SchreibenPlayerComponent = {
           </button>
           <div class="schreiben-footnote">
             <i data-lucide="info" style="width:14px;height:14px; color:#64748b;"></i>
-            <span>Maximal 200 Wörter · 1 wöchentlicher Credit nach erfolgreicher Bewertung</span>
+            <span>${minWords ? `Richtwert: ${minWords}–${maxWords} Wörter` : `Maximal ${maxWords} Wörter`} · 1 wöchentlicher Credit nach erfolgreicher Bewertung</span>
           </div>
         </div>
       </div>
@@ -408,28 +480,39 @@ window.SchreibenPlayerComponent = {
     const words = text ? text.split(/\s+/).filter(Boolean) : [];
     const count = words.length;
 
+    const wordLimits = this.getWordLimits(this.currentMaterial);
+    const maxWords = wordLimits.maximum;
+    const minWords = wordLimits.minimum;
+    const warnThreshold = Math.floor(maxWords * 0.9);
+
     const pill = document.getElementById("schreiben-word-count-pill");
     const errorBanner = document.getElementById("schreiben-error-banner");
     const submitBtn = document.getElementById("schreiben-submit-btn");
 
     if (pill) {
-      if (count > 200) {
-        pill.innerHTML = `<span class="schreiben-text-danger">${count} / 200 Wörter (Limit überschritten!)</span>`;
+      if (count > maxWords) {
+        pill.innerHTML = `<span class="schreiben-text-danger">${count} / ${maxWords} Wörter (Limit überschritten!)</span>`;
         pill.classList.add("schreiben-pill-error");
+        pill.classList.remove("schreiben-pill-warn");
       } else {
-        pill.textContent = `${count} / 200 Wörter`;
         pill.classList.remove("schreiben-pill-error");
-        if (count > 180) {
+        if (count >= warnThreshold) {
           pill.classList.add("schreiben-pill-warn");
         } else {
           pill.classList.remove("schreiben-pill-warn");
         }
+
+        if (minWords && count > 0 && count < minWords) {
+          pill.textContent = `${count} / ${maxWords} Wörter (Empfohlen: mind. ${minWords})`;
+        } else {
+          pill.textContent = `${count} / ${maxWords} Wörter`;
+        }
       }
     }
 
-    if (count > 200) {
+    if (count > maxWords) {
       if (errorBanner) {
-        errorBanner.textContent = `Die maximale Wortanzahl beträgt 200 Wörter. Bitte kürze deinen Text um ${count - 200} Wörter.`;
+        errorBanner.textContent = `Die maximale Wortanzahl beträgt ${maxWords} Wörter. Bitte kürze deinen Text um ${count - maxWords} Wörter.`;
         errorBanner.style.display = "block";
       }
       if (submitBtn) {
@@ -472,13 +555,17 @@ window.SchreibenPlayerComponent = {
       return;
     }
 
-    if (wordCount > 200) {
+    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe", teil: "Teil 2" };
+    const wordLimits = this.getWordLimits(material);
+    const maxWords = wordLimits.maximum;
+
+    if (wordCount > maxWords) {
       if (errorBanner) {
-        errorBanner.textContent = `Die maximal erlaubte Wortanzahl ist 200 Wörter (aktuell: ${wordCount}).`;
+        errorBanner.textContent = `Die maximal erlaubte Wortanzahl ist ${maxWords} Wörter (aktuell: ${wordCount}).`;
         errorBanner.style.display = "block";
       }
       if (window.PracticeApp?.showToast) {
-        window.PracticeApp.showToast(`Maximal 200 Wörter erlaubt (${wordCount} Wörter).`, "error", 3500);
+        window.PracticeApp.showToast(`Maximal ${maxWords} Wörter erlaubt (${wordCount} Wörter).`, "error", 3500);
       }
       return;
     }
@@ -497,15 +584,13 @@ window.SchreibenPlayerComponent = {
             Deine Einreichung wird nach den offiziellen Prüfungsrichtlinien auf Aufgabenerfüllung, Textaufbau, Wortschatz und Grammatik geprüft.
           </p>
           <div class="schreiben-eval-meta">
-            <span>Umfang: ${wordCount} Wörter</span> · <span>1 wöchentlicher Credit wird nach erfolgreicher Auswertung verbucht</span>
+            <span>Umfang: ${wordCount} / ${maxWords} Wörter</span> · <span>1 wöchentlicher Credit wird nach erfolgreicher Auswertung verbucht</span>
           </div>
         </div>
       `;
     }
 
-    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe", teil: "Teil 2" };
     const taskDetails = this.extractTaskDetails(material);
-    const taskText = taskDetails.taskText;
 
     // Resolve teil explicitly so the Worker can apply the correct rubric
     let teil = String(material.teil || material.part || "").trim();
@@ -531,17 +616,28 @@ window.SchreibenPlayerComponent = {
         throw new Error("Der Bewertungsdienst ist derzeit nicht verfügbar.");
       }
 
-      evalRes = await window.SupabaseService.evaluateSchreiben(
-        {
-          material_id: material.id,
-          exam: material.exam || "goethe",
-          level: material.level || "A1",
-          teil: teil,
-          task: taskText,
-          answer: answerText
+      const payload = {
+        material_id: material.id,
+        exam: material.exam || "goethe",
+        level: material.level || "A1",
+        teil: teil,
+        situation: taskDetails.situation || "",
+        task: taskDetails.aufgabe || taskDetails.taskText,
+        points: taskDetails.points || [],
+        word_limit: maxWords,
+        word_count: {
+          minimum: wordLimits.minimum,
+          maximum: maxWords
         },
-        idToken
-      );
+        answer: answerText
+      };
+
+      // Preserve material.evaluation so the Worker/Gemini can use task-specific evaluation rules
+      if (material.evaluation && typeof material.evaluation === "object") {
+        payload.evaluation = material.evaluation;
+      }
+
+      evalRes = await window.SupabaseService.evaluateSchreiben(payload, idToken);
     } catch (err) {
       console.error("SchreibenPlayer: Evaluation request error:", err);
       this.isEvaluating = false;
@@ -698,6 +794,8 @@ window.SchreibenPlayerComponent = {
       ? evaluation.task_fulfillment.points
       : [];
     const material = this.currentMaterial || {};
+    const wordLimits = this.getWordLimits(material);
+    const maxWords = wordLimits.maximum;
     const wordCount = evaluation.word_count || (this.studentAnswer ? this.studentAnswer.trim().split(/\s+/).filter(Boolean).length : 0);
     const creditsRemaining = (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number")
       ? window.AppState.schreibenCreditsRemaining
@@ -732,7 +830,7 @@ window.SchreibenPlayerComponent = {
               ${isPassed ? 'CEFR-Anforderung für dieses Niveau erfüllt' : 'Mindestpunktzahl: 60% erforderlich'}
             </div>
             <div class="schreiben-score-sub">
-              Eingereichter Umfang: ${wordCount} Wörter · Max. 200 Wörter
+              Eingereichter Umfang: ${wordCount} Wörter · Max. ${maxWords} Wörter
             </div>
           </div>
         </div>
