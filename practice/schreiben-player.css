@@ -538,6 +538,75 @@ body.exam-mode:has(.schreiben-player-root) .app-viewport {
   color: var(--schreiben-ink-muted);
 }
 
+/* Qualitative Examination Overview Box */
+.schreiben-eval-overview-box {
+  background: #f8fafc;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.schreiben-eval-overview-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.schreiben-eval-overview-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.schreiben-eval-overview-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--schreiben-ink);
+  margin-bottom: 4px;
+}
+
+.schreiben-eval-overview-sub {
+  font-size: 0.88rem;
+  color: var(--schreiben-ink-muted);
+}
+
+.schreiben-eval-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--schreiben-border);
+}
+
+.schreiben-eval-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.schreiben-criteria-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
 /* Qualitative Feedback Callout */
 .schreiben-feedback-callout {
   margin-bottom: 28px;

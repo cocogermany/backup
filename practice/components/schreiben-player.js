@@ -674,9 +674,9 @@ window.SchreibenPlayerComponent = {
       }
     }
 
-    // Validate evaluationResult.score_percent before saving
-    if (!this.evaluationResult || typeof this.evaluationResult.score_percent !== "number" || isNaN(this.evaluationResult.score_percent)) {
-      console.error("SchreibenPlayer: Received invalid evaluation score from server:", this.evaluationResult);
+    // Validate evaluationResult before proceeding
+    if (!this.evaluationResult || typeof this.evaluationResult !== "object") {
+      console.error("SchreibenPlayer: Received invalid evaluation result from server:", this.evaluationResult);
       this.isEvaluating = false;
       this.renderWritingWorkspace();
       if (window.PracticeApp?.showToast) {
@@ -685,9 +685,9 @@ window.SchreibenPlayerComponent = {
       return;
     }
 
-    // Save attempt record to practice_attempts with integer marks
-    const scorePercent = Math.round(this.evaluationResult.score_percent);
-    const correctCount = Math.round(scorePercent / 10);
+    // Save attempt record to practice_attempts (record module completion)
+    const scorePercent = typeof this.evaluationResult.score_percent === "number" ? Math.round(this.evaluationResult.score_percent) : 100;
+    const correctCount = 10;
     const totalCount = 10;
 
     await this.savePracticeAttempt(material, correctCount, totalCount, scorePercent, evalRes.uid);
@@ -785,8 +785,6 @@ window.SchreibenPlayerComponent = {
     if (root) root.scrollTop = 0;
 
     const evaluation = this.evaluationResult || {};
-    const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 0;
-    const isPassed = scorePercent >= 60;
     const criteria = Array.isArray(evaluation.criteria) ? evaluation.criteria : [];
     const mistakes = Array.isArray(evaluation.mistakes) ? evaluation.mistakes : [];
     const feedback = evaluation.feedback || "";
@@ -799,10 +797,53 @@ window.SchreibenPlayerComponent = {
     const material = this.currentMaterial || {};
     const wordLimits = this.getWordLimits(material);
     const maxWords = wordLimits.maximum;
+    const minWords = wordLimits.minimum;
     const wordCount = evaluation.word_count || (this.studentAnswer ? this.studentAnswer.trim().split(/\s+/).filter(Boolean).length : 0);
     const creditsRemaining = (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number")
       ? window.AppState.schreibenCreditsRemaining
       : null;
+
+    // Derived qualitative indicators from actual evaluation data
+    const fulfilledCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "fulfilled").length;
+    const partialCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "partial").length;
+    const missingCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "missing").length;
+    const isNonGerman = evaluation.language && evaluation.language.appropriate === false;
+    const level = (material.level || "A1").toUpperCase();
+    const exam = (material.exam || "Goethe").toUpperCase();
+
+    // Qualitative assessment status badge
+    let statusBadgeHtml = "";
+    if (isNonGerman) {
+      statusBadgeHtml = `
+        <span class="schreiben-status-badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
+          <i data-lucide="alert-triangle" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+          Sprachhinweis (Nicht auf Deutsch)
+        </span>`;
+    } else if (tfPoints.length > 0 && missingCount === 0 && partialCount === 0) {
+      statusBadgeHtml = `
+        <span class="schreiben-status-badge schreiben-status-pass">
+          <i data-lucide="check-check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+          Alle Leitpunkte erfüllt
+        </span>`;
+    } else if (tfPoints.length > 0 && missingCount === 0) {
+      statusBadgeHtml = `
+        <span class="schreiben-status-badge" style="background:#f0fdf4; color:#15803d; border:1px solid #86efac;">
+          <i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+          Aufgabe vollständig bearbeitet
+        </span>`;
+    } else if (tfPoints.length > 0 && fulfilledCount > 0) {
+      statusBadgeHtml = `
+        <span class="schreiben-status-badge" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">
+          <i data-lucide="file-text" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+          Leitpunkte teilweise erfüllt
+        </span>`;
+    } else {
+      statusBadgeHtml = `
+        <span class="schreiben-status-badge" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1;">
+          <i data-lucide="file-check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+          Qualitative Fachauswertung
+        </span>`;
+    }
 
     contentArea.innerHTML = `
       <div class="schreiben-results-card">
@@ -810,30 +851,55 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-results-topbar">
           <div>
             <div class="schreiben-meta-row" style="margin-bottom:8px;">
-              <span class="schreiben-badge-pill schreiben-badge-level">${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml((material.level || "A1").toUpperCase())}</span>
-              <span class="schreiben-badge-pill schreiben-badge-module">Schreiben Auswertung</span>
+              <span class="schreiben-badge-pill schreiben-badge-level">${this.escapeHtml(exam)} ${this.escapeHtml(level)}</span>
+              <span class="schreiben-badge-pill schreiben-badge-module">Schreiben Gutachten</span>
+              ${material.teil ? `<span class="schreiben-badge-pill schreiben-badge-sub">${this.escapeHtml(material.teil)}</span>` : ''}
               ${creditsRemaining !== null ? `<span class="schreiben-badge-pill schreiben-badge-credits">${creditsRemaining} Credits übrig</span>` : ''}
             </div>
-            <h1 class="schreiben-results-heading">Offizielles Bewertungsergebnis</h1>
+            <h1 class="schreiben-results-heading">Prüfungsauswertung (Gutachten)</h1>
           </div>
           <div>
-            <span class="schreiben-status-badge ${isPassed ? 'schreiben-status-pass' : 'schreiben-status-fail'}">
-              ${isPassed ? '✓ Bestanden (Passed)' : '✗ Nicht bestanden (Needs Practice)'}
-            </span>
+            ${statusBadgeHtml}
           </div>
         </div>
 
-        <!-- Overall Score Box -->
-        <div class="schreiben-score-summary-box">
-          <div class="schreiben-score-figure ${isPassed ? 'schreiben-score-pass' : 'schreiben-score-fail'}">
-            ${scorePercent}%
-          </div>
-          <div class="schreiben-score-details">
-            <div class="schreiben-score-title">
-              ${isPassed ? 'CEFR-Anforderung für dieses Niveau erfüllt' : 'Mindestpunktzahl: 60% erforderlich'}
+        <!-- Qualitative Examination Overview Card -->
+        <div class="schreiben-eval-overview-box">
+          <div class="schreiben-eval-overview-header">
+            <div class="schreiben-eval-overview-icon">
+              <i data-lucide="award" style="width:24px;height:24px; color:#0284c7;"></i>
             </div>
-            <div class="schreiben-score-sub">
-              Eingereichter Umfang: ${wordCount} Wörter · Max. ${maxWords} Wörter
+            <div>
+              <div class="schreiben-eval-overview-title">
+                Qualitatives ${this.escapeHtml(exam)}-Prüfungsgutachten (${this.escapeHtml(level)})
+              </div>
+              <div class="schreiben-eval-overview-sub">
+                Eingereichter Textumfang: <strong>${wordCount} Wörter</strong> ${minWords ? `· Richtwert: ${minWords}–${maxWords} Wörter` : `· Maximal: ${maxWords} Wörter`}
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnostic Metrics Row based on actual evaluation -->
+          <div class="schreiben-eval-pills-row">
+            ${tfPoints.length > 0 ? `
+              <div class="schreiben-eval-pill">
+                <i data-lucide="list-checks" style="width:14px;height:14px; color:#10b981;"></i>
+                <span>Aufgabenerfüllung: <strong>${fulfilledCount}/${tfPoints.length}</strong> Leitpunkte erfüllt</span>
+              </div>
+            ` : ''}
+            <div class="schreiben-eval-pill">
+              <i data-lucide="languages" style="width:14px;height:14px; color:#0284c7;"></i>
+              <span>Sprache: <strong>${this.escapeHtml(evaluation.language?.detected || "Deutsch")}</strong></span>
+            </div>
+            ${evaluation.development?.quality ? `
+              <div class="schreiben-eval-pill">
+                <i data-lucide="sparkles" style="width:14px;height:14px; color:#8b5cf6;"></i>
+                <span>Textentwicklung: <strong>${this.escapeHtml(evaluation.development.quality)}</strong></span>
+              </div>
+            ` : ''}
+            <div class="schreiben-eval-pill">
+              <i data-lucide="spell-check" style="width:14px;height:14px; color:#f59e0b;"></i>
+              <span>Sprachkorrekturen: <strong>${mistakes.length}</strong> ${mistakes.length === 1 ? 'Hinweis' : 'Hinweise'}</span>
             </div>
           </div>
         </div>
@@ -843,7 +909,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-feedback-callout">
             <div class="schreiben-feedback-label">
               <i data-lucide="message-square" style="width:15px;height:15px;"></i>
-              <span>Gesamteinschätzung (General Feedback)</span>
+              <span>Gesamteinschätzung (Examiner Feedback)</span>
             </div>
             <p class="schreiben-feedback-text">${this.escapeHtml(feedback)}</p>
           </div>
@@ -905,27 +971,31 @@ window.SchreibenPlayerComponent = {
           </div>
         ` : ''}
 
-        <!-- Criteria Grid -->
+        <!-- Criteria Grid (Qualitative Assessment without numeric marks) -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
-            <i data-lucide="bar-chart-2" style="width:18px;height:18px; color:#0284c7;"></i>
-            <span>Bewertungskriterien (Evaluation Criteria)</span>
+            <i data-lucide="file-check-2" style="width:18px;height:18px; color:#0284c7;"></i>
+            <span>Bewertungskriterien & Gutachten (Evaluation Criteria)</span>
           </h3>
           <div class="schreiben-criteria-grid">
             ${criteria.map(c => {
-              const score = typeof c.score === "number" ? c.score : 0;
-              const max = typeof c.max_score === "number" ? c.max_score : 5;
-              const pct = Math.round((score / max) * 100);
+              const critName = String(c.name || "").trim();
+              let critIcon = "check-circle";
+              if (/fulfillment|aufgabe/i.test(critName)) critIcon = "list-checks";
+              else if (/coherence|struktur|aufbau/i.test(critName)) critIcon = "align-left";
+              else if (/vocab|wortschatz/i.test(critName)) critIcon = "book-open";
+              else if (/grammar|grammatik|form/i.test(critName)) critIcon = "spell-check";
+
               return `
                 <div class="schreiben-criteria-item">
                   <div class="schreiben-criteria-row">
-                    <span class="schreiben-criteria-name">${this.escapeHtml(c.name)}</span>
-                    <span class="schreiben-criteria-score">${score} / ${max}</span>
+                    <span class="schreiben-criteria-name" style="display:flex; align-items:center; gap:6px;">
+                      <i data-lucide="${critIcon}" style="width:16px;height:16px; color:#0284c7;"></i>
+                      <span>${this.escapeHtml(c.name)}</span>
+                    </span>
+                    <span class="schreiben-criteria-badge">Qualitativ</span>
                   </div>
-                  <div class="schreiben-progress-track">
-                    <div class="schreiben-progress-fill ${pct >= 60 ? 'schreiben-fill-pass' : 'schreiben-fill-warn'}" style="width:${pct}%;"></div>
-                  </div>
-                  ${c.feedback ? `<p class="schreiben-criteria-sub">${this.escapeHtml(c.feedback)}</p>` : ''}
+                  ${c.feedback ? `<p class="schreiben-criteria-sub" style="margin-top:6px; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(c.feedback)}</p>` : ''}
                 </div>
               `;
             }).join("")}
@@ -988,7 +1058,6 @@ window.SchreibenPlayerComponent = {
     if (root) root.scrollTop = 0;
 
     const evaluation = this.evaluationResult || {};
-    const scorePercent = typeof evaluation.score_percent === "number" ? Math.round(evaluation.score_percent) : 0;
     const material = this.currentMaterial || {};
     const taskDetails = this.extractTaskDetails(material);
     const studentText = this.studentAnswer || "";
@@ -1001,7 +1070,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-review-banner-left">
             <i data-lucide="eye" style="width:16px;height:16px; color:#38bdf8;"></i>
             <span>Review Mode · Schreiben</span>
-            <span class="schreiben-review-score">Ergebnis: ${scorePercent}% (${wordCount} Wörter)</span>
+            <span class="schreiben-review-score">Eingereichter Text (${wordCount} Wörter)</span>
           </div>
           <button type="button" class="schreiben-review-back-btn" onclick="window.SchreibenPlayerComponent.renderResultsScreen()">
             Zurück zur Auswertung

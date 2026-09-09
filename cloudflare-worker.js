@@ -1510,7 +1510,62 @@ Point #${pt.id}: ${pt.requirement}
         const lvlReq = evaluationConfig?.level_expectations || `Appropriate for CEFR ${level}.`;
         const notesReq = evaluationConfig?.scoring_notes || "";
 
-        // 6. Build focused dynamic prompt from material evaluation configuration
+        // 6. Build focused dynamic prompt with validated plan-based qualitative depth
+        // Validate database plan against exactly: Free, Basic, Pro, Advanced, Personal
+        // Rule 1 & 4: Only the five database plan names are valid; missing or invalid -> "Free"
+        const VALID_PLANS = ["Free", "Basic", "Pro", "Advanced", "Personal"];
+        const rawPlanCode = String((plan && (plan.name || plan.code)) || membershipCode || "").trim();
+        const matchedPlan = VALID_PLANS.find((p) => p.toLowerCase() === rawPlanCode.toLowerCase());
+        const validatedPlan = matchedPlan || "Free";
+
+        // Plan-based qualitative report depth instructions
+        const PLAN_DEPTH_PROMPTS = {
+          Free: `
+PLAN-BASED REPORT DEPTH: Free Tier
+- Significant but concise summary covering all essential areas.
+- Task Fulfillment: Analyze fulfillment of each required Leitpunkt with direct textual evidence.
+- Grammar & Mistakes: Highlight key grammar mistakes with succinct corrections and brief explanations.
+- Vocabulary & Style: Concise commentary on lexical appropriateness and tone for CEFR ${level}.
+- Feedback: Clear key strengths and essential, high-priority improvements.
+`.trim(),
+          Basic: `
+PLAN-BASED REPORT DEPTH: Basic Tier
+- Everything in Free, but more detailed with deeper pedagogical explanations.
+- Task Fulfillment: Thoroughly assess how each Leitpunkt is addressed, noting completeness and communicative depth.
+- Grammar & Mistakes: Detailed grammar explanations, step-by-step corrections, and rules for recurring errors.
+- Vocabulary & Style: Detailed observations on range, register, sentence connectors, and vocabulary choice.
+- Feedback: In-depth feedback with stronger, actionable writing-improvement suggestions and clear next steps.
+`.trim(),
+          Pro: `
+PLAN-BASED REPORT DEPTH: Pro Tier
+- Detailed teacher-style analysis covering all dimensions of writing proficiency.
+- Task Fulfillment: Rigorous examiner-level analysis of task fulfillment, communicative intent, and depth of development.
+- Grammar & Mistakes: Comprehensive grammatical breakdown covering syntax, word order, morphology, and case government with teacher-level explanations.
+- Structure & Coherence: Detailed assessment of text flow, paragraph structuring, and transition words.
+- Natural German & Vocabulary: Deep analysis of natural German phrasing, idiomatic expressions, and register appropriateness.
+- Corrections & Suggestions: Specific sentence re-writes, professional corrections, and practical writing suggestions.
+`.trim(),
+          Advanced: `
+PLAN-BASED REPORT DEPTH: Advanced Tier
+- Very detailed analysis with deeper explanations, mistake patterns, and better formulations.
+- Task Fulfillment & Rhetoric: In-depth critique of argumentation, development, and sophisticated fulfillment of all Leitpunkte.
+- Mistake Patterns & Explanations: Deep grammatical and syntactical explanations identifying underlying error patterns and systematic weaknesses.
+- Better Formulations: Provide elevated, native-level alternative phrasings (gehobene/authentische Formulierungen) demonstrating how to express the student's ideas more eloquently.
+- Targeted Learning Suggestions: Highly targeted, pedagogical study recommendations focused on mastering CEFR ${level} nuances and eliminating habitual errors.
+`.trim(),
+          Personal: `
+PLAN-BASED REPORT DEPTH: Personal Tier
+- Maximum-detail personalized analysis adapted to the student's weaknesses, writing level, and recurring problems.
+- Individualized Diagnostic: Deep, personalized evaluation closely adapted to the student's demonstrated weaknesses, current writing level, and recurring problem areas.
+- Task Fulfillment & Voice: Thorough examination of communicative nuance, personal voice, and comprehensive Leitpunkte development.
+- In-Depth Grammar & Style Pathology: Deep-dive diagnostic on recurring grammatical traps, word choice tendencies, and sentence rhythm.
+- Customized Reformulations: Step-by-step personalized rewrites comparing the student's original sentences with optimized, natural German alternatives.
+- Tailored Action Plan: Concrete, personalized learning advice and tailored practice drills to overcome the student's specific writing hurdles.
+`.trim(),
+        };
+
+        const planDepthInstruction = PLAN_DEPTH_PROMPTS[validatedPlan] || PLAN_DEPTH_PROMPTS.Free;
+
         const evaluationPrompt = `
 You are an expert, objective Goethe/telc-style German examination writing examiner evaluating a ${examFormat.toUpperCase()} ${level} (${teilText}) submission.
 
@@ -1537,19 +1592,16 @@ ${notesReq ? `- Task-Specific Scoring Notes: ${notesReq}` : ""}
 STUDENT SUBMISSION (${wordCount} words):
 ${studentAnswer}
 
-EXAMINER INSTRUCTIONS & MANDATORY SCORING RULES:
-1. EVIDENCE IS MANDATORY: For every Leitpunkt, classify status as "fulfilled", "partial", or "missing". For "fulfilled" or "partial", cite the exact German phrase from the student's text in "evidence". If a point is missing, evidence must be "". Generic statements do NOT satisfy specific requirements (e.g. general opinions do NOT count as personal experience or concrete examples).
-2. LANGUAGE REQUIREMENT: If the text is mostly non-German (English/other), set language.detected = detected language, language.appropriate = false, criteria.task_fulfillment.score = 0, and recommended_score <= 10.
-3. DEVELOPMENT MATTERS: Merely mentioning points in isolated, extremely short sentences without development cannot receive a high score at B1/B2. Evaluate communicative depth for ${level}.
-4. LEVEL CALIBRATION: Simple, correct German appropriate for ${level} can score highly (up to 95%). Do NOT reward unnecessarily complex or artificial language. Do NOT invent mistakes.
-5. STRICT CALIBRATION BENCHMARKS:
-   - 90–95%: Excellent (all requirements fulfilled, strong development, appropriate CEFR language, clear organization)
-   - 80–89%: Very good (all important requirements fulfilled, sufficiently developed, good language, minor weaknesses)
-   - 70–79%: Good/passable (generally completed, noticeable weaknesses in language, development, or organization)
-   - 60–69%: Adequate but limited (noticeable weaknesses or partial fulfillment)
-   - 40–59%: Weak (important omissions, weak development, or significant language problems)
-   - 1–39%: Very weak (major task failure, multiple missing requirements, or severe language problems)
-   - 0%: Off-topic, wrong language, or unusable
+${planDepthInstruction}
+
+EXAMINER INSTRUCTIONS & MANDATORY QUALITATIVE RULES:
+1. STRICTLY QUALITATIVE EVALUATION: Remove all scoring and mark calculation. You must NOT calculate, recommend, determine, or return any score, grade, mark, or percentage. All evaluation must be delivered purely as a qualitative report. No score or percentage should be displayed or used to determine the report. In the JSON schema, keep numeric score fields strictly at 0 without calculating any score.
+2. EVIDENCE IS MANDATORY: For every Leitpunkt, classify status as "fulfilled", "partial", or "missing". For "fulfilled" or "partial", cite the exact German phrase from the student's text in "evidence". If a point is missing, evidence must be "". Never invent fulfilled Leitpunkte.
+3. DO NOT INVENT MISTAKES: Only identify authentic grammatical, lexical, orthographic, or structural mistakes present in the student's text. Do not invent mistakes or mark correct German as incorrect.
+4. CEFR LEVEL CALIBRATION: Calibrate all feedback, expectations, and suggestions strictly to CEFR ${level}.
+5. INTERNAL LOGIC CONFIDENTIALITY: Never expose internal plan names, tier details, AI model selection, or system architecture in the feedback or report.
+6. OBJECTIVE PEDAGOGICAL TONE: Begin the feedback summary with an objective qualitative overview of the submission. Avoid generic empty praise (such as "Excellent", "Great job", "Well done", "Congratulations", "Sehr gut", "Hervorragend").
+7. LANGUAGE REQUIREMENT: If the text is mostly non-German (English/other), set language.detected to the detected language, language.appropriate = false, and provide qualitative guidance explaining the requirement to write in German.
 
 Return ONLY a valid JSON object matching this exact schema (no markdown fences, no text outside JSON):
 {
@@ -1579,22 +1631,22 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
     "task_fulfillment": {
       "score": 0,
       "max_score": 5,
-      "feedback": "One sentence explaining this criterion score."
+      "feedback": "Qualitative assessment of task fulfillment and Leitpunkte addressing."
     },
     "coherence": {
       "score": 0,
       "max_score": 5,
-      "feedback": "One sentence explaining this criterion score."
+      "feedback": "Qualitative assessment of coherence, structure, and connective flow."
     },
     "vocabulary": {
       "score": 0,
       "max_score": 5,
-      "feedback": "One sentence explaining this criterion score."
+      "feedback": "Qualitative assessment of vocabulary range, accuracy, and register."
     },
     "grammar_form": {
       "score": 0,
       "max_score": 5,
-      "feedback": "One sentence explaining this criterion score."
+      "feedback": "Qualitative assessment of grammatical correctness, syntax, and form."
     }
   },
   "mistakes": [
@@ -1606,7 +1658,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
     }
   ],
   "feedback": {
-    "summary": "...",
+    "summary": "Objective qualitative overview of the submission...",
     "strengths": [],
     "improvements": []
   },
@@ -1652,31 +1704,31 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
               name: "Task Fulfillment",
               score: tfScore,
               max_score: 5,
-              feedback: tfFeedback || `Task Fulfillment: ${tfScore}/5.`
+              feedback: tfFeedback || "Aufgabenerfüllung und Leitpunkte wurden qualitativ geprüft."
             },
             {
               name: "Coherence & Structure",
               score: csScore,
               max_score: 5,
-              feedback: csFeedback || `Coherence & Structure: ${csScore}/5.`
+              feedback: csFeedback || "Textaufbau, Struktur und Kohärenz wurden qualitativ geprüft."
             },
             {
               name: "Vocabulary",
               score: vocabScore,
               max_score: 5,
-              feedback: vocabFeedback || `Vocabulary: ${vocabScore}/5.`
+              feedback: vocabFeedback || "Wortschatzspektrum und Ausdrucksvermögen wurden qualitativ geprüft."
             },
             {
               name: "Grammar & Form",
               score: gramScore,
               max_score: 5,
-              feedback: gramFeedback || `Grammar & Form: ${gramScore}/5.`
+              feedback: gramFeedback || "Grammatische Korrektheit und Form wurden qualitativ geprüft."
             }
           ];
 
           return {
             score_percent: finalScore,
-            cefr_level_met: finalScore >= 60,
+            cefr_level_met: true,
             criteria: criteriaList,
             criteria_map: {
               task_fulfillment: { score: tfScore, max_score: 5 },
@@ -1684,7 +1736,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
               vocabulary: { score: vocabScore, max_score: 5 },
               grammar_form: { score: gramScore, max_score: 5 }
             },
-            applied_rules: ["gemini_direct_score"]
+            applied_rules: ["qualitative_evaluation"]
           };
         }
 
@@ -1701,15 +1753,39 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           return clean;
         }
 
-        // Direct prioritized Gemini 3.x model candidates
+        // Minimum model-selection configuration required for plan-based AI selection
+        // Current available evaluator model
+        const AVAILABLE_EVALUATOR_MODEL = "gemini-3.5-flash-lite";
+
+        // AI selection mapping per plan tier:
+        // Free -> Gemini 3.5 Flash-Lite
+        // Basic -> Gemini 3.5 Flash-Lite
+        // Pro -> [PRO_AI_PLACEHOLDER]
+        // Advanced -> [ADVANCED_AI_PLACEHOLDER]
+        // Personal -> [PERSONAL_AI_PLACEHOLDER]
+        const PLAN_AI_MODEL_MAP = {
+          Free: AVAILABLE_EVALUATOR_MODEL,
+          Basic: AVAILABLE_EVALUATOR_MODEL,
+          Pro: "[PRO_AI_PLACEHOLDER]",
+          Advanced: "[ADVANCED_AI_PLACEHOLDER]",
+          Personal: "[PERSONAL_AI_PLACEHOLDER]",
+        };
+
+        // Determine configured model; higher-tier placeholders are not currently available
+        // If placeholder model is unavailable, automatically fall back to Gemini 3.5 Flash-Lite
+        const targetModelConfig = PLAN_AI_MODEL_MAP[validatedPlan];
+        const isPlaceholderUnavailable = !targetModelConfig || targetModelConfig.includes("PLACEHOLDER");
+        const selectedModel = isPlaceholderUnavailable ? AVAILABLE_EVALUATOR_MODEL : targetModelConfig;
+
+        // Model candidates priority: selectedModel (or fallback evaluator) followed by available evaluator and resilient backups
         const modelCandidates = [
+          selectedModel,
+          AVAILABLE_EVALUATOR_MODEL,
           "gemini-3.5-flash",
           "gemini-3.8-flash",
-          "gemini-3.5-pro",
-          "gemini-3-flash",
-          "gemini-3.0-flash",
-          "gemini-3-pro"
-        ];
+          "gemini-2.5-flash-lite",
+          "gemini-2.0-flash-lite"
+        ].filter((m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx);
 
         let evaluationResult = null;
         try {
@@ -1851,13 +1927,6 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             : String(parsed.feedback || "").trim();
 
           let feedbackText = feedbackSummary || "Your writing submission was evaluated against the examination task.";
-
-          // Harmonize feedback with score: eliminate contradictory praise when failed
-          if (ruleResult.score_percent < 60) {
-            if (/^(excellent|great job|well done|congratulations|sehr gut|hervorragend)/i.test(feedbackText)) {
-              feedbackText = `The submission does not meet the passing standard (${ruleResult.score_percent}% / minimum 60% required). While some language elements were attempted, required exam constraints were not satisfied. ${feedbackText}`;
-            }
-          }
 
           evaluationResult = {
             score_percent: ruleResult.score_percent,
