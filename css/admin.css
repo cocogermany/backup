@@ -1,0 +1,147 @@
+/* ==========================================================================
+   COCO GERMANY — ADMIN DASHBOARD & CMS (admin.css)
+   Sub-navigation pills, metrics cards, order tables & exam material tools.
+   ========================================================================== */
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-header h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   ADMIN SUB-NAVIGATION
+   -------------------------------------------------------------------------- */
+.admin-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 28px;
+}
+
+.admin-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: all var(--transition-fast);
+}
+
+.admin-nav a:hover {
+  color: var(--brand);
+  background: var(--soft);
+}
+
+.admin-nav a.active {
+  background: var(--brand);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(97, 88, 223, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   METRICS & STATS GRID
+   -------------------------------------------------------------------------- */
+.admin-stats,
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.admin-stat-card,
+.stat-card {
+  padding: 22px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-stat-card small,
+.stat-card small {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.admin-stat-card strong,
+.stat-card strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   ADMIN PANELS & SECTIONS
+   -------------------------------------------------------------------------- */
+.admin-section {
+  padding: 32px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 32px;
+}
+
+.admin-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* Order Filters */
+.order-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* Worker Settings */
+.worker-url-settings {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .admin-section {
+    padding: 22px 18px;
+  }
+
+  .admin-nav {
+    border-radius: var(--radius-lg);
+    width: 100%;
+  }
+
+  .worker-url-settings {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

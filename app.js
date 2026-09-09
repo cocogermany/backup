@@ -978,6 +978,13 @@ function attachCategoryTabs() {
   });
 }
 
+const trustItems = [
+  ["shield-check", "A1–B2 Level Coverage", "Structured materials across CEFR levels"],
+  ["award", "Goethe & telc Focus", "Official exam formats and guidelines"],
+  ["book-open", "Editorial Standards", "Carefully verified German learning materials"],
+  ["sparkles", "Calm & Structured", "Zero clutter, distraction-free study"],
+];
+
 function renderTrustStrip() {
   return html`
     <section class="trust-strip" aria-label="Trust signals">

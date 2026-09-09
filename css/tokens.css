@@ -1,0 +1,70 @@
+/* ==========================================================================
+   COCO GERMANY — DESIGN SYSTEM TOKENS (tokens.css)
+   Single source of truth for colors, typography, spacing, shadows & layout.
+   ========================================================================== */
+
+:root {
+  /* Brand Palette (Modern 2026 Purple / Indigo Theme) */
+  --brand: #6158df;
+  --brand-light: #7067eb;
+  --brand-dark: #282253;
+  --brand-gradient: linear-gradient(135deg, #7067eb, #4c46ca);
+  --brand-gradient-hover: linear-gradient(135deg, #7c74f0, #5650d8);
+  --brand-glow: rgba(97, 88, 223, 0.25);
+
+  /* Semantic Aliases & Backward Compatibility */
+  --primary: var(--brand);
+  --brown: #6158df;            /* Backward-compatible alias for existing components */
+  --brown-dark: #282253;       /* Backward-compatible alias for existing components */
+
+  /* Accents */
+  --accent-teal: #159a98;
+  --sky-strong: #159a98;       /* Backward-compatible alias */
+  --sky: #e7fbfa;              /* Soft teal background tint */
+  --gold: #f4ad58;             /* Warm accent */
+  --emerald: #10b981;          /* Fixed previously undefined variable */
+  --red: #ef4444;              /* Error alert red */
+  --red-dark: #b91c1c;
+
+  /* Neutrals & Surfaces */
+  --paper: #f6f8ff;            /* Main background tinted paper */
+  --white: #ffffff;
+  --surface: #ffffff;          /* Card & panel surface */
+  --surface-muted: #f8f9fc;
+  --ink: #151a38;              /* Primary text heading/body */
+  --muted: #69718f;            /* Secondary / supporting text */
+  --muted-light: #949ab1;
+  --line: #e2e6f4;             /* Dividers and borders */
+  --line-light: rgba(37, 43, 91, 0.08);
+  --soft: #eef1ff;             /* Soft purple/indigo container tint */
+
+  /* Typography */
+  --font-body: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: Montserrat, Inter, system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 12px rgba(27, 34, 77, 0.05);
+  --shadow-md: 0 10px 28px rgba(27, 34, 77, 0.08);
+  --shadow-lg: 0 22px 56px rgba(39, 39, 104, 0.12);
+  --shadow-glow: 0 12px 26px rgba(85, 76, 204, 0.25);
+  --shadow-glow-hover: 0 18px 34px rgba(85, 76, 204, 0.32);
+  --shadow: var(--shadow-lg);  /* Backward-compatible alias */
+
+  /* Border Radiuses */
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --transition-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout Dimensions */
+  --max-width: 1200px;
+  --sidebar-width: 250px;
+  --header-height-mobile: 62px;
+  --bottom-nav-height: 64px;
+}

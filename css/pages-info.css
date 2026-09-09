@@ -1,0 +1,238 @@
+/* ==========================================================================
+   COCO GERMANY — INFORMATIONAL PAGES (pages-info.css)
+   About, Contact, AI Writing, Speaking & 404 Error views.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   ABOUT PAGE
+   -------------------------------------------------------------------------- */
+.about-hero {
+  margin-bottom: 36px;
+}
+
+.about-hero h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
+  margin-bottom: 12px;
+}
+
+.about-hero p {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 620px;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 40px;
+  margin-bottom: 48px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  position: relative;
+  padding-left: 28px;
+  margin: 32px 0;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--line);
+}
+
+.timeline-step {
+  position: relative;
+}
+
+.timeline-step::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 4px var(--soft);
+}
+
+.timeline-step h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.timeline-step p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.founder-note {
+  padding: 32px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+  margin-top: 32px;
+}
+
+.founder-note blockquote {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink);
+  font-style: italic;
+  margin: 0 0 16px;
+.trust-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.trust-strip div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.trust-strip div:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.trust-strip svg {
+  color: var(--brand);
+  width: 24px;
+  height: 24px;
+}
+
+.trust-strip strong {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trust-strip span {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .trust-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .trust-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   CONTACT PAGE
+   -------------------------------------------------------------------------- */
+.contact-hero {
+  margin-bottom: 36px;
+}
+
+.contact-hero h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
+  margin-bottom: 12px;
+}
+
+.contact-hero p {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 620px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.contact-card {
+  padding: 32px 28px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contact-card h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.contact-actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.contact-actions-row .button {
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   404 NOT FOUND VIEW
+   -------------------------------------------------------------------------- */
+.not-found-card {
+  text-align: center;
+  max-width: 480px;
+  margin: 60px auto;
+  padding: 48px 32px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-md);
+}
+
+.not-found-card h1 {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--brand);
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.not-found-card h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.not-found-card p {
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+@media (max-width: 860px) {
+  .about-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}

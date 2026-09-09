@@ -1,0 +1,497 @@
+/* ==========================================================================
+   COCO GERMANY — HOME PAGE STYLES (home.css)
+   Hero card, trust bar, feature blocks, Why CocoGermany & CTA section.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. HERO SECTION
+   -------------------------------------------------------------------------- */
+.home-hero {
+  padding: 12px 0 20px;
+  position: relative;
+}
+
+.home-hero-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(145deg, #1b1c3a 0%, #252458 45%, #181938 100%);
+  box-shadow: 0 28px 70px rgba(18, 20, 52, 0.28);
+  padding: 68px 56px;
+  color: #ffffff;
+}
+
+/* Subtle architectural grid pattern */
+.home-hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+}
+
+/* Radial ambient light glow */
+.home-hero-card::after {
+  content: "";
+  position: absolute;
+  top: -15%;
+  right: -8%;
+  width: 540px;
+  height: 540px;
+  background: radial-gradient(circle, rgba(97, 88, 223, 0.38) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+.home-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 660px;
+}
+
+.home-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  margin-bottom: 22px;
+  backdrop-filter: blur(8px);
+}
+
+.home-hero-logo {
+  display: none;
+}
+
+.home-hero-brand {
+  color: #ffffff;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.hero-edition-pill {
+  display: none;
+}
+
+.home-hero-floating-grid {
+  display: none;
+}
+
+.home-hero-title {
+  font-size: clamp(38px, 5.5vw, 68px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.home-hero-subtitle {
+  font-size: clamp(15px, 1.8vw, 17.5px);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.84);
+  margin-bottom: 32px;
+  max-width: 560px;
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.home-hero-actions .button-primary {
+  background: #ffffff;
+  color: var(--brand-dark);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.home-hero-actions .button-primary:hover {
+  background: #f8fafc;
+  color: var(--brand);
+  transform: translateY(-2px);
+}
+
+.home-hero-actions .button-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.home-hero-actions .button-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .home-hero-card {
+    padding: 44px 28px;
+    border-radius: var(--radius-lg);
+  }
+
+  .home-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-hero-actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-hero-card {
+    padding: 36px 20px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. TRUST BAR
+   -------------------------------------------------------------------------- */
+.home-trust-bar {
+  margin-top: 18px;
+  margin-bottom: 60px;
+}
+
+.home-trust-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 32px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+
+.trust-item svg {
+  width: 17px;
+  height: 17px;
+  color: var(--brand);
+}
+
+.trust-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+@media (max-width: 640px) {
+  .home-trust-bar {
+    display: none; /* Clean mobile minimalism */
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. FOUR LARGE FEATURE BLOCKS
+   -------------------------------------------------------------------------- */
+.home-feature-block {
+  margin-bottom: 56px;
+  padding: 44px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.home-feature-title {
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 10px;
+}
+
+.home-feature-desc {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.home-feature-subcards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.home-feature-subcard {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  border: 1px solid var(--line-light);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  cursor: pointer;
+}
+
+.home-feature-subcard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(97, 88, 223, 0.25);
+  background: #ffffff;
+}
+
+.subcard-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--soft);
+  color: var(--brand);
+  margin-bottom: 16px;
+}
+
+.subcard-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.subcard-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.subcard-desc {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 768px) {
+  .home-feature-block {
+    padding: 28px 20px;
+    margin-bottom: 40px;
+    border-radius: var(--radius-lg);
+  }
+
+  .home-feature-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* Practice block mobile 2-column compact grid */
+@media (max-width: 600px) {
+  #practice .home-block-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  #practice .home-feature-subcard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 10px;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(30, 36, 85, 0.06);
+  }
+
+  #practice .home-subcard-icon {
+    width: auto;
+    height: auto;
+    margin: 0;
+    background: transparent;
+    color: var(--brand);
+  }
+
+  #practice .home-feature-subcard h3 {
+    margin: 0;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #practice .home-feature-subcard p,
+  #practice .home-subcard-btn {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. WHY COCOGERMANY SECTION
+   -------------------------------------------------------------------------- */
+.home-why-section {
+  margin-bottom: 64px;
+}
+
+.home-why-header {
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto 36px;
+}
+
+.home-why-header h2 {
+  font-size: clamp(26px, 3.5vw, 36px);
+  margin-bottom: 12px;
+}
+
+.home-why-header p {
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.home-why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.home-why-card {
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.home-why-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.home-why-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: var(--soft);
+  color: var(--brand);
+  margin-bottom: 18px;
+}
+
+.home-why-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.home-why-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+
+.home-why-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   5. FINAL CTA SECTION
+   -------------------------------------------------------------------------- */
+.home-cta-section {
+  margin-bottom: 48px;
+}
+
+.home-cta-card {
+  position: relative;
+  overflow: hidden;
+  padding: 56px 44px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #282253 0%, #463ea7 50%, #282253 100%);
+  color: #ffffff;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.home-cta-content {
+  max-width: 620px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.home-cta-title {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  margin-bottom: 14px;
+}
+
+.home-cta-desc {
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.86);
+  margin-bottom: 28px;
+}
+
+.home-cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.home-cta-actions .button {
+  background: #ffffff;
+  color: var(--brand-dark);
+}
+
+.home-cta-actions .button:hover {
+  background: #f8fafc;
+  color: var(--brand);
+}
+
+@media (max-width: 600px) {
+  .home-cta-card {
+    padding: 40px 22px;
+  }
+
+  .home-cta-actions {
+    flex-direction: column;
+  }
+
+  .home-cta-actions .button {
+    width: 100%;
+  }
+}
