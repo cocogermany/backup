@@ -1,107 +1,94 @@
-/* ==========================================================================
-   COCO GERMANY — HOME PAGE STYLES (home.css)
-   Hero card, trust bar, feature blocks, Why CocoGermany & CTA section.
+﻿/* ==========================================================================
+   COCO GERMANY — HOME PAGE (home.css)
    ========================================================================== */
 
-/* --------------------------------------------------------------------------
-   1. HERO SECTION
-   -------------------------------------------------------------------------- */
-.home-hero {
-  padding: 12px 0 20px;
-  position: relative;
-}
+/* =================================================================
+   1. HERO
+   ================================================================= */
+.home-hero { padding: 12px 0 28px; }
 
 .home-hero-card {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  background: linear-gradient(145deg, #1b1c3a 0%, #252458 45%, #181938 100%);
-  box-shadow: 0 28px 70px rgba(18, 20, 52, 0.28);
-  padding: 68px 56px;
-  color: #ffffff;
+  background: linear-gradient(150deg, #18193a 0%, #23245a 44%, #171836 100%);
+  box-shadow: 0 32px 80px rgba(18,20,52,0.30), 0 8px 24px rgba(18,20,52,0.12);
+  padding: 76px 64px;
+  color: #fff;
 }
 
-/* Subtle architectural grid pattern */
+/* Grid overlay */
 .home-hero-card::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
 }
 
-/* Radial ambient light glow */
+/* Ambient glow */
 .home-hero-card::after {
   content: "";
   position: absolute;
-  top: -15%;
-  right: -8%;
-  width: 540px;
-  height: 540px;
-  background: radial-gradient(circle, rgba(97, 88, 223, 0.38) 0%, transparent 68%);
+  top: -25%; right: -8%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(97,88,223,0.38) 0%, transparent 65%);
   pointer-events: none;
 }
 
 .home-hero-content {
   position: relative;
   z-index: 2;
-  max-width: 660px;
+  max-width: 700px;
 }
 
 .home-hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 7px;
+  padding: 6px 16px;
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  margin-bottom: 22px;
-  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.96);
+  border: 1px solid rgba(255,255,255,0.18);
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
 }
 
-.home-hero-logo {
-  display: none;
-}
+/* Suppress legacy elements */
+.home-hero-logo,
+.hero-edition-pill,
+.home-hero-floating-grid { display: none; }
 
 .home-hero-brand {
-  color: #ffffff;
+  color: #fff;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 800;
-}
-
-.hero-edition-pill {
-  display: none;
-}
-
-.home-hero-floating-grid {
-  display: none;
 }
 
 .home-hero-title {
-  font-size: clamp(38px, 5.5vw, 68px);
+  font-size: clamp(34px, 5.5vw, 66px);
   font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.05em;
-  color: #ffffff;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+  color: #fff;
   margin-bottom: 20px;
 }
 
 .home-hero-subtitle {
   font-size: clamp(15px, 1.8vw, 17.5px);
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.84);
-  margin-bottom: 32px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.82);
+  margin-bottom: 36px;
   max-width: 560px;
 }
 
@@ -113,56 +100,43 @@
 }
 
 .home-hero-actions .button-primary {
-  background: #ffffff;
+  background: #fff;
   color: var(--brand-dark);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.20);
 }
 
 .home-hero-actions .button-primary:hover {
-  background: #f8fafc;
+  background: #f4f6ff;
   color: var(--brand);
   transform: translateY(-2px);
 }
 
 .home-hero-actions .button-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.09);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(10px);
 }
 
 .home-hero-actions .button-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.35);
-  color: #ffffff;
+  background: rgba(255,255,255,0.17);
+  border-color: rgba(255,255,255,0.36);
   transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
-  .home-hero-card {
-    padding: 44px 28px;
-    border-radius: var(--radius-lg);
-  }
-
-  .home-hero-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .home-hero-actions .button {
-    width: 100%;
-  }
+  .home-hero-card { padding: 48px 28px; border-radius: var(--radius-lg); }
+  .home-hero-actions { flex-direction: column; align-items: stretch; }
+  .home-hero-actions .button { width: 100%; }
 }
 
 @media (max-width: 480px) {
-  .home-hero-card {
-    padding: 36px 20px;
-  }
+  .home-hero-card { padding: 38px 20px; }
 }
 
-/* --------------------------------------------------------------------------
+/* =================================================================
    2. TRUST BAR
-   -------------------------------------------------------------------------- */
+   ================================================================= */
 .home-trust-bar {
   margin-top: 18px;
   margin-bottom: 60px;
@@ -173,10 +147,10 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 16px 32px;
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
+  gap: 14px 26px;
+  padding: 14px 28px;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(14px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
@@ -185,34 +159,63 @@
 .trust-item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 7px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--brand-dark);
+  letter-spacing: -0.01em;
 }
 
-.trust-item svg {
-  width: 17px;
-  height: 17px;
-  color: var(--brand);
-}
+.trust-item svg { width: 15px; height: 15px; color: var(--brand); }
 
 .trust-dot {
-  width: 4px;
-  height: 4px;
+  width: 3px; height: 3px;
   border-radius: 50%;
   background: var(--line);
 }
 
-@media (max-width: 640px) {
-  .home-trust-bar {
-    display: none; /* Clean mobile minimalism */
-  }
+@media (max-width: 640px) { .home-trust-bar { display: none; } }
+
+/* =================================================================
+   3. HOME BLOCK HEADERS  (used by each feature section)
+   ================================================================= */
+.home-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
 }
 
-/* --------------------------------------------------------------------------
-   3. FOUR LARGE FEATURE BLOCKS
-   -------------------------------------------------------------------------- */
+.home-block-header-left { display: flex; flex-direction: column; gap: 4px; }
+
+.home-block-eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.home-block-title {
+  font-size: clamp(22px, 2.8vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.home-block-desc {
+  font-size: 14.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 540px;
+  margin-top: 4px;
+}
+
+/* =================================================================
+   4. FEATURE BLOCKS (Videos, Resources, Practice, Exams)
+   ================================================================= */
 .home-feature-block {
   margin-bottom: 56px;
   padding: 44px;
@@ -224,6 +227,16 @@
   overflow: hidden;
 }
 
+/* Subtle corner ambient glow */
+.home-feature-block::before {
+  content: "";
+  position: absolute;
+  top: -50px; left: -50px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(97,88,223,0.055) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 .home-feature-header {
   display: flex;
   justify-content: space-between;
@@ -233,23 +246,25 @@
 }
 
 .home-feature-title {
-  font-size: clamp(24px, 3.2vw, 34px);
+  font-size: clamp(22px, 3.2vw, 32px);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  margin-bottom: 10px;
+  letter-spacing: -0.045em;
+  margin-bottom: 8px;
+  color: var(--ink);
 }
 
 .home-feature-desc {
-  font-size: 15.5px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
   color: var(--muted);
-  max-width: 640px;
+  max-width: 600px;
 }
 
-.home-feature-subcards {
+.home-feature-subcards,
+.home-block-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
 }
 
 .home-feature-subcard {
@@ -259,127 +274,151 @@
   border-radius: var(--radius-md);
   background: var(--surface-muted);
   border: 1px solid var(--line-light);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
 }
 
 .home-feature-subcard:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  border-color: rgba(97, 88, 223, 0.25);
-  background: #ffffff;
+  border-color: rgba(97,88,223,0.2);
+  background: var(--white);
 }
 
-.subcard-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+.subcard-icon,
+.home-subcard-icon {
+  width: 42px; height: 42px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
   background: var(--soft);
   color: var(--brand);
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.subcard-icon svg {
-  width: 20px;
-  height: 20px;
+.home-feature-subcard:hover .subcard-icon,
+.home-feature-subcard:hover .home-subcard-icon {
+  background: var(--soft-hover);
+  transform: scale(1.06);
 }
+
+.subcard-icon svg,
+.home-subcard-icon svg { width: 19px; height: 19px; }
 
 .subcard-title {
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
 .subcard-desc {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.55;
 }
 
+/* Arrow link inside subcard */
+.subcard-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand);
+  margin-top: auto;
+  padding-top: 12px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.home-feature-subcard:hover .subcard-link {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .home-feature-block {
-    padding: 28px 20px;
+    padding: 30px 22px;
     margin-bottom: 40px;
     border-radius: var(--radius-lg);
   }
-
-  .home-feature-header {
-    flex-direction: column;
-    gap: 12px;
-  }
+  .home-feature-header { flex-direction: column; gap: 12px; }
 }
 
-/* Practice block mobile 2-column compact grid */
+/* Mobile 2-col compact practice grid */
 @media (max-width: 600px) {
   #practice .home-block-grid {
-    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
   }
 
   #practice .home-feature-subcard {
-    display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     padding: 12px 10px;
     border-radius: 13px;
-    background: #ffffff;
-    box-shadow: 0 4px 12px rgba(30, 36, 85, 0.06);
+    background: var(--white);
+    box-shadow: 0 3px 10px rgba(30,36,85,0.05);
   }
 
   #practice .home-subcard-icon {
-    width: auto;
-    height: auto;
+    width: auto; height: auto;
     margin: 0;
     background: transparent;
-    color: var(--brand);
   }
 
   #practice .home-feature-subcard h3 {
     margin: 0;
-    font-size: 13px;
+    font-size: 12.5px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   #practice .home-feature-subcard p,
-  #practice .home-subcard-btn {
-    display: none;
-  }
+  #practice .home-subcard-btn,
+  #practice .subcard-link { display: none; }
 }
 
-/* --------------------------------------------------------------------------
-   4. WHY COCOGERMANY SECTION
-   -------------------------------------------------------------------------- */
-.home-why-section {
-  margin-bottom: 64px;
-}
+/* =================================================================
+   5. WHY COCOGERMANY
+   ================================================================= */
+.home-why-section { margin-bottom: 64px; }
 
 .home-why-header {
   text-align: center;
-  max-width: 620px;
-  margin: 0 auto 36px;
+  max-width: 600px;
+  margin: 0 auto 40px;
 }
 
 .home-why-header h2 {
-  font-size: clamp(26px, 3.5vw, 36px);
+  font-size: clamp(24px, 3.5vw, 34px);
   margin-bottom: 12px;
+  letter-spacing: -0.04em;
 }
 
 .home-why-header p {
   color: var(--muted);
   font-size: 16px;
+  line-height: 1.65;
 }
 
 .home-why-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
 }
 
 .home-why-card {
@@ -388,81 +427,91 @@
   background: var(--surface);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .home-why-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: var(--line-medium);
 }
 
 .home-why-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 13px;
+  width: 46px; height: 46px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   background: var(--soft);
   color: var(--brand);
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
-.home-why-icon svg {
-  width: 22px;
-  height: 22px;
-}
+.home-why-icon svg { width: 21px; height: 21px; }
 
 .home-why-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
 .home-why-desc {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-/* --------------------------------------------------------------------------
-   5. FINAL CTA SECTION
-   -------------------------------------------------------------------------- */
-.home-cta-section {
-  margin-bottom: 48px;
-}
+/* =================================================================
+   6. FINAL CTA
+   ================================================================= */
+.home-cta-section { margin-bottom: 52px; }
 
 .home-cta-card {
   position: relative;
   overflow: hidden;
-  padding: 56px 44px;
+  padding: 64px 52px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, #282253 0%, #463ea7 50%, #282253 100%);
-  color: #ffffff;
+  background: linear-gradient(140deg, #1d1a48 0%, #403aa3 52%, #1e1b46 100%);
+  color: #fff;
   text-align: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 28px 72px rgba(28,22,70,0.28), 0 8px 22px rgba(28,22,70,0.14);
+}
+
+.home-cta-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 18% 78%, rgba(255,255,255,0.04) 1px, transparent 1px),
+    radial-gradient(circle at 82% 22%, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
 }
 
 .home-cta-content {
-  max-width: 620px;
+  max-width: 600px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
 }
 
 .home-cta-title {
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: clamp(26px, 4vw, 44px);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #ffffff;
+  letter-spacing: -0.05em;
+  color: #fff;
   margin-bottom: 14px;
 }
 
 .home-cta-desc {
-  font-size: 16px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.86);
-  margin-bottom: 28px;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.84);
+  margin-bottom: 34px;
 }
 
 .home-cta-actions {
@@ -473,25 +522,19 @@
 }
 
 .home-cta-actions .button {
-  background: #ffffff;
+  background: #fff;
   color: var(--brand-dark);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.16);
 }
 
 .home-cta-actions .button:hover {
-  background: #f8fafc;
+  background: #f4f6ff;
   color: var(--brand);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 600px) {
-  .home-cta-card {
-    padding: 40px 22px;
-  }
-
-  .home-cta-actions {
-    flex-direction: column;
-  }
-
-  .home-cta-actions .button {
-    width: 100%;
-  }
+  .home-cta-card { padding: 44px 24px; }
+  .home-cta-actions { flex-direction: column; }
+  .home-cta-actions .button { width: 100%; }
 }

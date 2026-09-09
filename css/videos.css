@@ -1,14 +1,15 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    COCO GERMANY — VIDEO LIBRARY (videos.css)
-   Responsive 16:9 video embeds, level filter pills & lesson meta.
+   CEFR level filter tabs, video cards, 16:9 responsive embeds.
    ========================================================================== */
 
+/* ─── Hero ───────────────────────────────────────────────────────────────── */
 .videos-hero {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
 }
 
 .videos-hero h1 {
-  font-size: clamp(32px, 4.5vw, 48px);
+  font-size: clamp(30px, 4.5vw, 48px);
   margin-bottom: 12px;
 }
 
@@ -16,47 +17,58 @@
   font-size: 16px;
   color: var(--muted);
   max-width: 620px;
+  line-height: 1.65;
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    CEFR LEVEL FILTER TABS
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
 .category-browser,
 [data-video-browser] {
   margin-top: 24px;
 }
 
+/* Tab grid container */
 .category-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  border: 1px solid var(--line-light);
   background: var(--surface);
+  border: 1px solid var(--line-light);
   padding: 8px;
   border-radius: var(--radius-lg);
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-xs);
 }
 
+/* Individual tab button */
 .category-tabs button,
 .video-level-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60px;
-  padding: 8px 16px;
-  border: 1px solid var(--line-light);
+  min-height: 66px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line-light);
   background: var(--paper);
-  color: var(--brand-dark);
+  color: var(--ink-secondary);
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  gap: 3px;
 }
 
 .category-tabs button:hover,
 .video-level-tab:hover {
   border-color: var(--brand);
   background: var(--soft);
+  color: var(--brand);
   transform: translateY(-1px);
 }
 
@@ -64,36 +76,52 @@
 .video-level-tab.active {
   background: var(--brand);
   border-color: var(--brand);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(97, 88, 223, 0.26);
+  color: var(--white);
+  box-shadow: 0 4px 16px rgba(97, 88, 223, 0.28);
+  transform: translateY(-1px);
 }
 
+/* Tab label (CEFR level code) */
 .category-tabs button span,
 .video-level-tab strong {
-  font-family: Montserrat, Inter, sans-serif;
-  font-size: 18px;
+  font-family: var(--font-heading);
+  font-size: 19px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
+/* Tab sublabel */
 .category-tabs button small,
 .video-level-tab small {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
   text-transform: uppercase;
   font-weight: 700;
-  margin-top: 2px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  transition: color var(--transition-fast);
 }
 
 .category-tabs button.active small,
 .video-level-tab.active small {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
 }
 
-/* --------------------------------------------------------------------------
+@media (max-width: 600px) {
+  .category-tabs {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .category-tabs button,
+  .video-level-tab {
+    min-height: 56px;
+  }
+}
+
+/* ==========================================================================
    VIDEOS GRID & CARDS
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
 .videos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -108,21 +136,25 @@
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal),
+    border-color var(--transition-normal);
 }
 
 .video-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: var(--line-medium);
 }
 
-/* Responsive 16:9 aspect ratio iframe wrapper */
+/* Responsive 16:9 video wrapper */
 .video-embed-container,
 .video-frame {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #0f1224;
+  background: #0d1022;
   overflow: hidden;
 }
 
@@ -164,12 +196,13 @@
   color: var(--ink);
   margin-bottom: 8px;
   line-height: 1.35;
+  letter-spacing: -0.025em;
 }
 
 .video-card p {
   font-size: 14px;
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 16px;
 }
 
@@ -194,6 +227,6 @@
   }
 
   .video-card-body {
-    padding: 18px;
+    padding: 20px;
   }
 }

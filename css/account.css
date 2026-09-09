@@ -1,58 +1,73 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    COCO GERMANY — ACCOUNT & AUTH (account.css)
-   Login, Register, Password Reset, Profile Setup, and Account Dashboard.
+   Login, Register, Password Reset, Profile Setup, Account Dashboard.
    ========================================================================== */
 
-/* --------------------------------------------------------------------------
-   AUTHENTICATION WRAPPER & CARD
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   AUTH SHELL
+   ========================================================================== */
 .auth-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 220px);
-  padding: 40px 0 60px;
+  min-height: calc(100dvh - 220px);
+  padding: 44px 0 64px;
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
-  padding: 44px 36px;
+  padding: 48px 40px;
   border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-lg);
   text-align: center;
+  position: relative;
+}
+
+/* Subtle top gradient accent */
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .auth-logo {
-  width: 60px;
-  height: 60px;
-  border-radius: 16px;
-  margin: 0 auto 16px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  margin: 0 auto 20px;
   object-fit: cover;
-  box-shadow: 0 8px 20px rgba(74, 69, 178, 0.2);
+  box-shadow: 0 8px 24px rgba(74, 69, 178, 0.22);
 }
 
 .auth-card h1 {
-  font-size: 28px;
+  font-size: 27px;
   font-weight: 800;
   margin-bottom: 8px;
   color: var(--ink);
+  letter-spacing: -0.04em;
 }
 
 .auth-card .intro {
   font-size: 14px;
   color: var(--muted);
-  margin-bottom: 24px;
-  line-height: 1.5;
+  margin-bottom: 28px;
+  line-height: 1.55;
 }
 
+/* Google Sign-In Button */
 .google-btn {
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   background: var(--white);
   color: var(--ink);
   font-family: var(--font-body);
@@ -63,21 +78,26 @@
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  margin-bottom: 20px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+  margin-bottom: 22px;
 }
 
 .google-btn:hover {
   background: var(--surface-muted);
-  border-color: rgba(31, 39, 89, 0.2);
+  border-color: rgba(31, 39, 89, 0.22);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
+/* Divider */
 .auth-divider {
   position: relative;
   text-align: center;
-  margin: 20px 0;
+  margin: 22px 0;
 }
 
 .auth-divider::before {
@@ -98,9 +118,10 @@
   font-weight: 700;
   color: var(--muted-light);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
 }
 
+/* Auth Links */
 .auth-links {
   display: flex;
   justify-content: center;
@@ -113,11 +134,12 @@
 
 .auth-links a:hover {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-/* --------------------------------------------------------------------------
-   PROFILE SETUP CARD
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   PROFILE SETUP
+   ========================================================================== */
 .profile-setup-card {
   max-width: 520px;
 }
@@ -126,23 +148,30 @@
   margin-top: 20px;
 }
 
-/* --------------------------------------------------------------------------
+/* ==========================================================================
    ACCOUNT DASHBOARD
-   -------------------------------------------------------------------------- */
+   ========================================================================== */
 .account-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 36px;
   flex-wrap: wrap;
 }
 
 .account-header h1 {
-  font-size: clamp(28px, 4vw, 42px);
-  margin-bottom: 8px;
+  font-size: clamp(26px, 4vw, 40px);
+  margin-bottom: 6px;
+  letter-spacing: -0.045em;
 }
 
+.account-header p {
+  color: var(--muted);
+  font-size: 14.5px;
+}
+
+/* Dashboard Grid */
 .account-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -151,35 +180,42 @@
 }
 
 .account-card {
-  padding: 28px;
+  padding: 30px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.account-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .account-card h2 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: -0.02em;
 }
 
 .account-card h2 svg {
   color: var(--brand);
 }
 
+/* Stats */
 .account-stats-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
   margin-top: 16px;
 }
 
 .account-stat-box {
-  padding: 16px;
+  padding: 18px;
   border-radius: var(--radius-md);
   background: var(--surface-muted);
   border: 1px solid var(--line);
@@ -187,25 +223,27 @@
 
 .account-stat-box small {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
   text-transform: uppercase;
   color: var(--muted);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .account-stat-box strong {
   display: block;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--brand);
   margin-top: 4px;
+  letter-spacing: -0.03em;
 }
 
+/* Order list */
 .account-orders-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin-top: 16px;
 }
 
@@ -213,13 +251,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-radius: var(--radius-md);
   background: var(--surface-muted);
   border: 1px solid var(--line);
   font-size: 13.5px;
+  transition: background var(--transition-fast);
 }
 
+.account-order-item:hover {
+  background: var(--soft);
+}
+
+/* Responsive */
 @media (max-width: 860px) {
   .account-grid {
     grid-template-columns: 1fr;
@@ -229,11 +273,11 @@
 
 @media (max-width: 600px) {
   .auth-card {
-    padding: 32px 20px;
+    padding: 36px 22px;
   }
 
   .account-card {
-    padding: 22px 18px;
+    padding: 24px 18px;
   }
 
   .account-order-item {

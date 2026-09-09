@@ -1,8 +1,14 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    COCO GERMANY — ADMIN DASHBOARD & CMS (admin.css)
-   Sub-navigation pills, metrics cards, order tables & exam material tools.
+   Dashboard, Navigation, Metrics, Charts, Activity Lists & Tables.
    ========================================================================== */
 
+/* ─── Admin Page Container ───────────────────────────────────────────────── */
+.admin-panel {
+  padding-bottom: 64px;
+}
+
+/* ─── Admin Page Header ──────────────────────────────────────────────────── */
 .admin-header {
   display: flex;
   justify-content: space-between;
@@ -13,13 +19,12 @@
 }
 
 .admin-header h1 {
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: clamp(26px, 4vw, 38px);
   margin: 0;
+  letter-spacing: -0.04em;
 }
 
-/* --------------------------------------------------------------------------
-   ADMIN SUB-NAVIGATION
-   -------------------------------------------------------------------------- */
+/* ─── Admin Sub-Navigation ───────────────────────────────────────────────── */
 .admin-nav {
   display: flex;
   gap: 6px;
@@ -31,7 +36,7 @@
   box-shadow: var(--shadow-sm);
   width: fit-content;
   max-width: 100%;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .admin-nav a {
@@ -43,7 +48,17 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+  text-decoration: none;
+}
+
+.admin-nav a svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
 }
 
 .admin-nav a:hover {
@@ -53,18 +68,17 @@
 
 .admin-nav a.active {
   background: var(--brand);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(97, 88, 223, 0.25);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(97, 88, 223, 0.26);
 }
 
-/* --------------------------------------------------------------------------
-   METRICS & STATS GRID
-   -------------------------------------------------------------------------- */
+/* ─── Metrics & Stats Grid ───────────────────────────────────────────────── */
 .admin-stats,
-.stats-grid {
+.stats-grid,
+.dashboard-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
   margin-bottom: 32px;
 }
 
@@ -75,32 +89,45 @@
   background: var(--surface);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
-.admin-stat-card small,
-.stat-card small {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: 0.05em;
+.admin-stat-card:hover,
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .admin-stat-card strong,
 .stat-card strong {
   display: block;
+  font-family: var(--font-heading);
   font-size: 28px;
   font-weight: 800;
   color: var(--ink);
-  margin-top: 6px;
+  margin-bottom: 4px;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
 }
 
-/* --------------------------------------------------------------------------
-   ADMIN PANELS & SECTIONS
-   -------------------------------------------------------------------------- */
+.admin-stat-card h3,
+.stat-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.admin-stat-card p,
+.stat-card p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ─── Admin Content Panels ───────────────────────────────────────────────── */
 .admin-section {
-  padding: 32px;
+  padding: 36px;
   border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--line-light);
@@ -112,9 +139,104 @@
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 20px;
+  letter-spacing: -0.03em;
 }
 
-/* Order Filters */
+.admin-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 860px) {
+  .admin-grid-two {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* ─── Mini Bar Chart ─────────────────────────────────────────────────────── */
+.mini-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.mini-chart-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.mini-chart-row > span {
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-chart-row > div {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--soft);
+  overflow: hidden;
+  position: relative;
+}
+
+.mini-chart-row > div > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--brand-gradient);
+  transition: width 0.6s var(--ease-spring);
+}
+
+.mini-chart-row > strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ─── Activity List ──────────────────────────────────────────────────────── */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.activity-list > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  transition: background var(--transition-fast);
+}
+
+.activity-list > div:hover {
+  background: var(--soft);
+}
+
+.activity-list strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.activity-list span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* ─── Order & Tool Filters ───────────────────────────────────────────────── */
 .order-filters {
   display: flex;
   gap: 8px;
@@ -122,7 +244,31 @@
   margin-bottom: 20px;
 }
 
-/* Worker Settings */
+.order-filters button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.order-filters button:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.order-filters button.active {
+  background: var(--brand);
+  color: var(--white);
+  border-color: var(--brand);
+}
+
+/* ─── Worker URL Settings ────────────────────────────────────────────────── */
 .worker-url-settings {
   display: flex;
   gap: 12px;
@@ -130,14 +276,17 @@
   max-width: 600px;
 }
 
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .admin-section {
-    padding: 22px 18px;
+    padding: 24px 18px;
+    border-radius: var(--radius-lg);
   }
 
   .admin-nav {
     border-radius: var(--radius-lg);
     width: 100%;
+    justify-content: flex-start;
   }
 
   .worker-url-settings {
