@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY - HOME PAGE (home.css)
    Hero section, trust strip, feature blocks, video showcase,
    why section, and final call to action.
@@ -408,9 +408,12 @@
   pointer-events: none;
 }
 
-.home-block-grid,
-.home-feature-subcards,
 .home-products {
+  display: block;
+}
+
+.home-block-grid,
+.home-feature-subcards {
   display: grid;
   gap: 14px;
 }
