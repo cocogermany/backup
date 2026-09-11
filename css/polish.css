@@ -329,6 +329,12 @@ textarea:focus {
   color: var(--accent-teal);
 }
 
+/* The current home markup places Practice Centre inside the Mock Exams block.
+   Keep a clear visual pause after the telc card without changing that markup. */
+#mock-exams #practice {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
 .home-feature-subcard {
   position: relative;
   overflow: hidden;
