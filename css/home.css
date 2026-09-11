@@ -318,12 +318,21 @@
    ========================================================================== */
 .home-block-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.home-block-header > div {
+.home-block-header:has(> div > .home-block-header) {
+  display: contents;
+}
+
+.home-block-header:has(> div > .home-block-header) > .home-block-icon {
+  display: none;
+}
+
+.home-block-header > div:not(.home-block-icon) {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -366,11 +375,13 @@
   width: 48px;
   height: 48px;
   min-width: 48px;
+  max-width: 48px;
   border-radius: 13px;
   display: grid;
   place-items: center;
   background: var(--soft);
   color: var(--brand);
+  flex: 0 0 48px;
   flex-shrink: 0;
 }
 
@@ -383,6 +394,10 @@
    4. FEATURE BLOCKS AND CONTENT GRIDS
    ========================================================================== */
 .home-feature-block {
+  display: block;
+  width: 100%;
+  flex: 0 0 100%;
+  box-sizing: border-box;
   margin-bottom: 32px;
   padding: 40px 44px;
   border-radius: var(--radius-xl);
