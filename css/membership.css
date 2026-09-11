@@ -1,6 +1,6 @@
 ﻿/* ==========================================================================
    COCO GERMANY — MEMBERSHIP & PLANS (membership.css)
-   Plan cards, pricing, features checklist, reassurance & FAQs.
+   Plan cards, pricing rows, features checklist, reassurance & FAQs.
    ========================================================================== */
 
 .membership-page {
@@ -248,7 +248,7 @@
 
 /* ==========================================================================
    3. REASSURANCE SECTION
-   ========================================================================= */
+   ========================================================================== */
 .membership-reassurance {
   margin: 72px auto;
   max-width: 1020px;
@@ -461,14 +461,14 @@
 .skeleton-line.price  { height: 40px; width: 42%; margin-bottom: 28px; }
 .skeleton-line.short  { width: 72%; }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .membership-reassurance-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .membership-reassurance-grid {
     grid-template-columns: 1fr;
     gap: 20px;

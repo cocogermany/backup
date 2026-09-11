@@ -1,10 +1,11 @@
 ﻿/* ==========================================================================
    COCO GERMANY — SHARED COMPONENTS (components.css)
-   Buttons, Badges, Cards, Grids, Forms, Tables, Galleries, FAQ & Signals.
+   Universal grid system, buttons, badges, cards, forms, tables,
+   galleries, accordions, and interactive feedback UI.
    ========================================================================== */
 
 /* ==========================================================================
-   BUTTONS & ACTIONS
+   1. BUTTONS & ACTION GROUPS
    ========================================================================== */
 .actions {
   display: flex;
@@ -16,7 +17,8 @@
 .button,
 .button-primary,
 .button-secondary,
-.button-light {
+.button-light,
+.danger-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -66,7 +68,7 @@
   box-shadow: var(--shadow-glow);
 }
 
-/* Shimmer sweep on hover */
+/* Shimmer Sweep Animation on Button Hover */
 .button::before,
 .button-primary::before {
   content: "";
@@ -107,7 +109,7 @@
   color: var(--brand);
 }
 
-/* Ghost Button */
+/* Ghost Outline Button */
 .button-ghost {
   background: transparent;
   color: var(--brand);
@@ -121,7 +123,7 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* WhatsApp Button */
+/* WhatsApp Brand Action */
 .whatsapp-button {
   background: #25d366 !important;
   color: #ffffff !important;
@@ -135,7 +137,22 @@
   box-shadow: 0 6px 20px rgba(37, 211, 102, 0.38) !important;
 }
 
-/* Sizes */
+/* Danger / Destructive Button */
+.danger-button {
+  background: #fef2f2 !important;
+  color: var(--red) !important;
+  border-color: #fecaca !important;
+  box-shadow: none !important;
+}
+
+.danger-button:hover {
+  background: #fee2e2 !important;
+  border-color: var(--red) !important;
+  color: var(--red-dark) !important;
+  transform: translateY(-1px);
+}
+
+/* Button Sizes */
 .button-sm,
 .button-small {
   min-height: 38px;
@@ -159,7 +176,7 @@
 }
 
 /* ==========================================================================
-   BADGES, TAGS & EYEBROWS
+   2. BADGES, TAGS & STATUS PILLS
    ========================================================================== */
 .eyebrow {
   display: inline-flex;
@@ -253,27 +270,7 @@
 }
 
 /* ==========================================================================
-   UNIVERSAL HEADERS & TYPOGRAPHY HELPERS
-   ========================================================================== */
-.intro {
-  font-size: clamp(15px, 1.4vw, 17px);
-  line-height: 1.65;
-  color: var(--muted);
-  max-width: 640px;
-  margin-top: 6px;
-  margin-bottom: 24px;
-}
-
-.price {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--brand);
-  letter-spacing: -0.03em;
-  margin: 10px 0;
-}
-
-/* ==========================================================================
-   GRID SYSTEM
+   3. UNIVERSAL GRID SYSTEM & SPLIT LAYOUT
    ========================================================================== */
 .grid {
   display: grid;
@@ -293,12 +290,13 @@
 }
 
 @media (max-width: 960px) {
-  .grid.three {
+  .grid.three,
+  .grid.four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 639px) {
   .grid.two,
   .grid.three,
   .grid.four {
@@ -323,7 +321,7 @@
 }
 
 /* ==========================================================================
-   CARDS & PANELS
+   4. CARDS, PANELS & CONTAINERS
    ========================================================================== */
 .card {
   background: var(--surface);
@@ -348,7 +346,9 @@
 }
 
 @media (max-width: 600px) {
-  .card-body { padding: 20px; }
+  .card-body {
+    padding: 20px;
+  }
 }
 
 .panel {
@@ -360,7 +360,10 @@
 }
 
 @media (max-width: 768px) {
-  .panel { padding: 24px 18px; border-radius: var(--radius-lg); }
+  .panel {
+    padding: 24px 18px;
+    border-radius: var(--radius-lg);
+  }
 }
 
 .icon-card {
@@ -385,7 +388,7 @@
   margin: 0;
 }
 
-/* Coming Soon Card */
+/* Coming Soon Placeholder Card */
 .coming-soon-card {
   border-style: dashed;
   border-color: var(--line);
@@ -404,7 +407,7 @@
   line-height: 1.6;
 }
 
-/* Cover Image */
+/* Cover Image Preview */
 .detail-cover {
   width: 100%;
   max-height: 420px;
@@ -416,7 +419,7 @@
 }
 
 /* ==========================================================================
-   FORMS & INPUTS
+   5. FORM CONTROLS & FIELDS
    ========================================================================== */
 .form {
   display: flex;
@@ -432,7 +435,9 @@
 }
 
 @media (max-width: 640px) {
-  .form-grid { grid-template-columns: 1fr; }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .field {
@@ -450,6 +455,16 @@
   font-weight: 600;
   color: var(--ink-secondary);
   letter-spacing: -0.01em;
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 input[type="text"],
@@ -502,11 +517,17 @@ textarea::placeholder {
   color: var(--muted-light);
 }
 
-select { cursor: pointer; }
-textarea { min-height: 110px; resize: vertical; }
+select {
+  cursor: pointer;
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
 
 /* ==========================================================================
-   NOTICES & FEEDBACK
+   6. NOTICES & FEEDBACK
    ========================================================================== */
 .error {
   color: var(--red);
@@ -549,7 +570,7 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 /* ==========================================================================
-   DATA TABLES
+   7. DATA TABLES
    ========================================================================== */
 .table-wrapper {
   width: 100%;
@@ -589,11 +610,16 @@ textarea { min-height: 110px; resize: vertical; }
   vertical-align: middle;
 }
 
-.exam-materials-table tr:last-child td { border-bottom: none; }
-.exam-materials-table tr:hover td { background: rgba(97, 88, 223, 0.025); }
+.exam-materials-table tr:last-child td {
+  border-bottom: none;
+}
+
+.exam-materials-table tr:hover td {
+  background: rgba(97, 88, 223, 0.025);
+}
 
 /* ==========================================================================
-   PRODUCT GALLERY & CAROUSEL
+   8. PRODUCT GALLERY & CAROUSEL
    ========================================================================== */
 .product-gallery {
   position: relative;
@@ -611,7 +637,9 @@ textarea { min-height: 110px; resize: vertical; }
   scrollbar-width: none;
 }
 
-.product-gallery .gallery-track::-webkit-scrollbar { display: none; }
+.product-gallery .gallery-track::-webkit-scrollbar {
+  display: none;
+}
 
 .product-gallery .gallery-track img {
   flex: 0 0 100%;
@@ -646,8 +674,13 @@ textarea { min-height: 110px; resize: vertical; }
   transform: translateY(-50%) scale(1.08);
 }
 
-.gallery-prev { left: 12px; }
-.gallery-next { right: 12px; }
+.gallery-prev {
+  left: 12px;
+}
+
+.gallery-next {
+  right: 12px;
+}
 
 .gallery-dots {
   display: flex;
@@ -678,7 +711,7 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 /* ==========================================================================
-   TESTIMONIALS
+   9. TESTIMONIALS
    ========================================================================== */
 .testimonial {
   padding: 28px 24px;
@@ -723,7 +756,7 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 /* ==========================================================================
-   FAQ ACCORDIONS
+   10. FAQ ACCORDIONS
    ========================================================================== */
 .faq {
   display: flex;
@@ -789,7 +822,7 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 /* ==========================================================================
-   STATISTICS & DELIVERY TIMELINE
+   11. STATISTICS & DELIVERY TIMELINE
    ========================================================================== */
 .stats-grid {
   display: grid;

@@ -1,108 +1,121 @@
 ﻿/* ==========================================================================
    COCO GERMANY — DESIGN SYSTEM TOKENS (tokens.css)
-   Single source of truth for colors, typography, spacing, shadows & layout.
+   Single source of truth for colors, typography, spacing, shadows,
+   radii, transitions, z-index hierarchy, breakpoints & layout dimensions.
    ========================================================================== */
 
 :root {
-  /* Brand Palette */
-  --brand:           #6158df;
-  --brand-light:     #7b73f0;
-  --brand-dim:       #4d44c7;
-  --brand-dark:      #282253;
-  --brand-gradient:  linear-gradient(135deg, #7067eb 0%, #4c46ca 100%);
+  /* ─── Responsive Breakpoint References ────────────────────────────────
+     Standard 4-Tier Breakpoint System:
+     - Mobile:        < 640px       (max-width: 639px)
+     - Tablet:        640px–1023px  (min-width: 640px) and (max-width: 1023px)
+     - Desktop:       1024px–1439px (min-width: 1024px)  [sidebar layout]
+     - Large Desktop: >= 1440px     (min-width: 1440px)
+     ────────────────────────────────────────────────────────────────────── */
+  --bp-mobile:        640px;
+  --bp-tablet:        1024px;
+  --bp-desktop:       1440px;
+
+  /* ─── Brand Palette (Modern Purple / Indigo Theme) ───────────────────── */
+  --brand:            #6158df;
+  --brand-light:      #7b73f0;
+  --brand-dim:        #4d44c7;
+  --brand-dark:       #282253;
+  --brand-gradient:   linear-gradient(135deg, #7067eb 0%, #4c46ca 100%);
   --brand-gradient-hover: linear-gradient(135deg, #7c74f0 0%, #5650d8 100%);
-  --brand-glow:      rgba(97, 88, 223, 0.22);
-  --brand-glow-lg:   rgba(97, 88, 223, 0.32);
+  --brand-glow:       rgba(97, 88, 223, 0.22);
+  --brand-glow-lg:    rgba(97, 88, 223, 0.32);
 
-  /* Backward-compat aliases */
-  --primary:   var(--brand);
-  --brown:     #6158df;
-  --brown-dark:#282253;
+  /* Semantic Aliases & Backward Compatibility */
+  --primary:          var(--brand);
+  --brown:            #6158df;
+  --brown-dark:       #282253;
 
-  /* Accents */
-  --accent-teal:  #159a98;
-  --sky-strong:   #159a98;
-  --sky:          #e7fbfa;
-  --gold:         #f4ad58;
-  --emerald:      #10b981;
-  --red:          #ef4444;
-  --red-dark:     #b91c1c;
+  /* ─── Accents ────────────────────────────────────────────────────────── */
+  --accent-teal:      #159a98;
+  --sky-strong:       #159a98;
+  --sky:              #e7fbfa;
+  --gold:             #f4ad58;
+  --emerald:          #10b981;
+  --red:              #ef4444;
+  --red-dark:         #b91c1c;
 
-  /* Neutrals & Surfaces */
-  --paper:         #f6f8ff;
-  --white:         #ffffff;
-  --surface:       #ffffff;
-  --surface-muted: #f8f9fc;
-  --surface-raised: #ffffff;
-  --ink:           #141930;
-  --ink-secondary: #2d3258;
-  --muted:         #67708e;
-  --muted-light:   #9299b4;
-  --line:          #e2e6f0;
-  --line-light:    rgba(37, 43, 91, 0.07);
-  --line-medium:   rgba(37, 43, 91, 0.13);
-  --soft:          #eef1ff;
-  --soft-hover:    #e5e9ff;
+  /* ─── Neutrals & Surfaces ────────────────────────────────────────────── */
+  --paper:            #f6f8ff;
+  --white:            #ffffff;
+  --surface:          #ffffff;
+  --surface-muted:    #f8f9fc;
+  --surface-raised:   #ffffff;
+  --ink:              #141930;
+  --ink-secondary:    #2d3258;
+  --muted:            #67708e;
+  --muted-light:      #9299b4;
+  --line:             #e2e6f0;
+  --line-light:       rgba(37, 43, 91, 0.07);
+  --line-medium:      rgba(37, 43, 91, 0.13);
+  --soft:             #eef1ff;
+  --soft-hover:       #e5e9ff;
 
-  /* Typography */
-  --font-body:    Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: Montserrat, Inter, system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  /* ─── Typography ─────────────────────────────────────────────────────── */
+  --font-body:        Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading:     Montserrat, Inter, system-ui, sans-serif;
+  --font-mono:        "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
-  /* Shadows — layered, perceptually tuned */
-  --shadow-xs:   0 1px 2px rgba(27, 34, 77, 0.04);
-  --shadow-sm:   0 2px 8px rgba(27, 34, 77, 0.05), 0 1px 2px rgba(27, 34, 77, 0.04);
-  --shadow-md:   0 8px 24px rgba(27, 34, 77, 0.08), 0 2px 6px rgba(27, 34, 77, 0.05);
-  --shadow-lg:   0 20px 48px rgba(39, 39, 104, 0.11), 0 6px 16px rgba(39, 39, 104, 0.07);
-  --shadow-xl:   0 32px 72px rgba(39, 39, 104, 0.14), 0 12px 28px rgba(39, 39, 104, 0.09);
-  --shadow-glow: 0 8px 22px rgba(85, 76, 204, 0.26), 0 2px 6px rgba(85, 76, 204, 0.14);
+  /* ─── Shadows (Layered & Perceptually Consistent) ─────────────────────── */
+  --shadow-xs:        0 1px 2px rgba(27, 34, 77, 0.04);
+  --shadow-sm:        0 2px 8px rgba(27, 34, 77, 0.05), 0 1px 2px rgba(27, 34, 77, 0.04);
+  --shadow-md:        0 8px 24px rgba(27, 34, 77, 0.08), 0 2px 6px rgba(27, 34, 77, 0.05);
+  --shadow-lg:        0 20px 48px rgba(39, 39, 104, 0.11), 0 6px 16px rgba(39, 39, 104, 0.07);
+  --shadow-xl:        0 32px 72px rgba(39, 39, 104, 0.14), 0 12px 28px rgba(39, 39, 104, 0.09);
+  --shadow-glow:      0 8px 22px rgba(85, 76, 204, 0.26), 0 2px 6px rgba(85, 76, 204, 0.14);
   --shadow-glow-hover: 0 14px 32px rgba(85, 76, 204, 0.34), 0 4px 10px rgba(85, 76, 204, 0.18);
-  --shadow:      var(--shadow-lg);
+  --shadow:           var(--shadow-lg);
 
-  /* Border Radii */
-  --radius-xs:   5px;
-  --radius-sm:   9px;
-  --radius-md:   13px;
-  --radius-lg:   18px;
-  --radius-xl:   24px;
-  --radius-2xl:  32px;
-  --radius-pill: 999px;
+  /* ─── Border Radii ───────────────────────────────────────────────────── */
+  --radius-xs:        5px;
+  --radius-sm:        9px;
+  --radius-md:        13px;
+  --radius-lg:        18px;
+  --radius-xl:        24px;
+  --radius-2xl:       32px;
+  --radius-pill:      999px;
 
-  /* Transitions */
-  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
-  --transition-fast:   160ms var(--ease-spring);
+  /* ─── Transitions & Easing ───────────────────────────────────────────── */
+  --ease-spring:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth:      cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:         cubic-bezier(0, 0, 0.2, 1);
+  --transition-fast:  160ms var(--ease-spring);
   --transition-normal: 240ms var(--ease-spring);
-  --transition-slow:   380ms var(--ease-spring);
+  --transition-slow:  380ms var(--ease-spring);
 
-  /* Z-Index Scale */
-  --z-below:   -1;
-  --z-base:     0;
-  --z-raised:  10;
-  --z-overlay: 40;
-  --z-nav:     50;
-  --z-sidebar: 100;
-  --z-modal:   200;
-  --z-toast:   300;
-  --z-top:    9999;
+  /* ─── Z-Index Hierarchy ──────────────────────────────────────────────── */
+  --z-below:          -1;
+  --z-base:           0;
+  --z-raised:         10;
+  --z-overlay:        40;
+  --z-nav:            50;
+  --z-sidebar:        100;
+  --z-modal:          200;
+  --z-toast:          300;
+  --z-top:            9999;
 
-  /* Spacing Scale (4px base) */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
+  /* ─── Spacing Scale (4px Base Grid) ──────────────────────────────────── */
+  --space-1:          4px;
+  --space-2:          8px;
+  --space-3:          12px;
+  --space-4:          16px;
+  --space-5:          20px;
+  --space-6:          24px;
+  --space-8:          32px;
+  --space-10:         40px;
+  --space-12:         48px;
+  --space-16:         64px;
+  --space-20:         80px;
 
-  /* Layout */
-  --max-width:            1200px;
-  --sidebar-width:        252px;
+  /* ─── Layout Dimensions ──────────────────────────────────────────────── */
+  --max-width:        1200px;
+  --max-width-wide:   1400px;
+  --sidebar-width:    252px;
   --header-height-mobile: 62px;
-  --bottom-nav-height:    64px;
+  --bottom-nav-height: 64px;
 }

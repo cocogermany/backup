@@ -1,40 +1,65 @@
 ﻿/* ==========================================================================
    COCO GERMANY — LAYOUT & NAVIGATION (layout.css)
+   Consistent 4-tier responsive shell:
+   - Mobile:        < 640px
+   - Tablet:        640px–1023px
+   - Desktop:       1024px–1439px  (Sidebar layout kicks in)
+   - Large Desktop: >= 1440px
    ========================================================================== */
 
-/* ─── Page Section ──────────────────────────────────────────── */
+/* ─── Universal Page Section ─────────────────────────────────────────────── */
 .section {
   width: min(var(--max-width), calc(100% - 64px));
   margin: 0 auto;
   padding: 72px 0;
 }
 
+@media (min-width: 1440px) {
+  .section {
+    width: min(var(--max-width-wide), calc(100% - 80px));
+    padding: 80px 0;
+  }
+}
+
 @media (max-width: 1023px) {
-  .section { width: min(var(--max-width), calc(100% - 44px)); padding: 48px 0; }
+  .section {
+    width: min(var(--max-width), calc(100% - 44px));
+    padding: 48px 0;
+  }
 }
 
-@media (max-width: 600px) {
-  .section { width: calc(100% - 32px); padding: 36px 0; }
+@media (max-width: 639px) {
+  .section {
+    width: calc(100% - 32px);
+    padding: 36px 0;
+  }
 }
 
+/* ─── Main Content Mount Landmark ────────────────────────────────────────── */
 #app {
   min-height: calc(100dvh - 120px);
 }
 
-/* ─── Top Progress Bar ──────────────────────────────────────── */
+/* ─── Top Progress Bar (AppLoader) ───────────────────────────────────────── */
 .top-progress-bar {
   position: fixed;
   top: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--brand) 0%, var(--brand-light) 35%, var(--gold) 70%, var(--emerald) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--brand) 0%,
+    var(--brand-light) 35%,
+    var(--gold) 70%,
+    var(--emerald) 100%
+  );
   z-index: var(--z-top);
-  transition: width 0.24s var(--ease-smooth), opacity 0.24s;
+  transition: width 0.24s var(--ease-smooth), opacity 0.24s ease;
   pointer-events: none;
   border-radius: 0 3px 3px 0;
 }
 
-/* ─── Logo ──────────────────────────────────────────────────── */
+/* ─── Brand Logo ─────────────────────────────────────────────────────────── */
 .logo {
   display: inline-flex;
   align-items: center;
@@ -43,7 +68,9 @@
   transition: opacity var(--transition-fast);
 }
 
-.logo:hover { opacity: 0.85; }
+.logo:hover {
+  opacity: 0.88;
+}
 
 .logo-mark {
   width: 38px;
@@ -54,7 +81,11 @@
   flex-shrink: 0;
 }
 
-.logo span { display: flex; flex-direction: column; gap: 1px; }
+.logo span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 
 .logo strong {
   font-family: var(--font-body);
@@ -73,20 +104,27 @@
   font-weight: 600;
 }
 
-/* =================================================================
-   DESKTOP SIDEBAR (>= 1024px)
-   ================================================================= */
+/* ==========================================================================
+   DESKTOP & LARGE DESKTOP SHELL (>= 1024px)
+   Linear/Arc-style fixed left sidebar navigation with blurred backdrop.
+   ========================================================================== */
 @media (min-width: 1024px) {
   .site-header {
     position: fixed;
-    top: 0; left: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
     width: var(--sidebar-width);
     height: 100dvh;
-    background: linear-gradient(180deg, rgba(245,243,255,0.94) 0%, rgba(236,249,249,0.94) 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(245, 243, 255, 0.94) 0%,
+      rgba(236, 249, 249, 0.94) 100%
+    );
     backdrop-filter: blur(24px) saturate(1.35);
     -webkit-backdrop-filter: blur(24px) saturate(1.35);
-    border-right: 1px solid rgba(50,48,117,0.07);
-    box-shadow: 12px 0 32px rgba(39,43,86,0.04);
+    border-right: 1px solid rgba(50, 48, 117, 0.08);
+    box-shadow: 12px 0 32px rgba(39, 43, 86, 0.04);
     z-index: var(--z-sidebar);
     display: flex;
     flex-direction: column;
@@ -105,7 +143,9 @@
     scrollbar-width: none;
   }
 
-  .nav::-webkit-scrollbar { display: none; }
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
 
   .desktop-nav {
     display: flex;
@@ -113,17 +153,6 @@
     width: 100%;
     gap: 2px;
     flex: 1;
-  }
-
-  /* Nav section label */
-  .nav-label {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-    color: var(--muted-light);
-    padding: 12px 10px 4px;
-    user-select: none;
   }
 
   .desktop-nav a {
@@ -137,7 +166,9 @@
     font-weight: 600;
     letter-spacing: -0.01em;
     text-decoration: none;
-    transition: background var(--transition-fast), color var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast);
     position: relative;
     white-space: nowrap;
     overflow: hidden;
@@ -157,7 +188,7 @@
     color: var(--brand);
   }
 
-  /* Active state: left accent bar */
+  /* Active indicator: left brand accent bar */
   .desktop-nav a.active {
     background: rgba(97, 88, 223, 0.09);
     color: var(--brand);
@@ -175,7 +206,7 @@
     border-radius: 0 3px 3px 0;
   }
 
-  /* Home accordion sub-links */
+  /* Home Accordion Navigation */
   .nav-home-group {
     display: flex;
     flex-direction: column;
@@ -195,6 +226,14 @@
     color: var(--muted-light);
     transition: transform var(--transition-fast);
     flex-shrink: 0;
+  }
+
+  .nav-home-group.is-collapsed .nav-chevron {
+    transform: rotate(-90deg);
+  }
+
+  .nav-home-group.is-collapsed .nav-home-sections {
+    display: none;
   }
 
   .nav-home-sections {
@@ -231,29 +270,22 @@
     place-items: center;
     margin: 2px auto 0;
     border-radius: var(--radius-sm);
-    background: rgba(255,255,255,0.5);
+    background: rgba(255, 255, 255, 0.5);
     color: var(--brand);
     cursor: pointer;
     transition: background var(--transition-fast);
   }
 
-  .nav-scroll-control:hover { background: rgba(255,255,255,0.85); }
-
-  .nav-scroll-control svg { width: 14px; height: 14px; }
-
-  /* Sidebar footer */
-  .nav-footer-tag {
-    padding: 12px 14px;
-    border-top: 1px solid var(--line-light);
-    font-size: 11px;
-    color: var(--muted-light);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
+  .nav-scroll-control:hover {
+    background: rgba(255, 255, 255, 0.85);
   }
 
-  /* Content offsets */
+  .nav-scroll-control svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Main & Footer Desktop Offsets */
   #app {
     margin-left: var(--sidebar-width);
     width: calc(100% - var(--sidebar-width));
@@ -264,12 +296,16 @@
     width: calc(100% - var(--sidebar-width));
   }
 
-  .bottom-nav { display: none !important; }
+  /* Hide Mobile Bottom Nav on Desktop */
+  .bottom-nav {
+    display: none !important;
+  }
 }
 
-/* =================================================================
-   MOBILE & TABLET (< 1024px)
-   ================================================================= */
+/* ==========================================================================
+   MOBILE & TABLET SHELL (< 1024px)
+   Sticky top brand bar, bottom navigation & safe-area clearance.
+   ========================================================================== */
 @media (max-width: 1023px) {
   .site-header {
     position: sticky;
@@ -277,7 +313,7 @@
     z-index: var(--z-nav);
     width: 100%;
     height: var(--header-height-mobile);
-    background: rgba(246, 248, 255, 0.9);
+    background: rgba(246, 248, 255, 0.90);
     backdrop-filter: blur(22px) saturate(1.35);
     -webkit-backdrop-filter: blur(22px) saturate(1.35);
     border-bottom: 1px solid rgba(50, 48, 117, 0.07);
@@ -295,21 +331,23 @@
   }
 
   .desktop-nav,
-  .nav-scroll-control,
-  .nav-label,
-  .nav-footer-tag { display: none !important; }
+  .nav-scroll-control {
+    display: none !important;
+  }
 
-  /* Bottom nav */
+  /* Fixed Bottom Navigation */
   .bottom-nav {
     position: fixed;
-    right: 0; bottom: 0; left: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: var(--z-nav);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(22px) saturate(1.2);
     -webkit-backdrop-filter: blur(22px) saturate(1.2);
-    border-top: 1px solid rgba(50, 48, 117, 0.07);
+    border-top: 1px solid rgba(50, 48, 117, 0.08);
     box-shadow: 0 -4px 20px rgba(34, 34, 60, 0.06);
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
   }
@@ -341,10 +379,15 @@
     transition: transform var(--transition-fast);
   }
 
-  .bottom-nav a.active { color: var(--brand); }
-  .bottom-nav a.active svg { transform: translateY(-1px); }
+  .bottom-nav a.active {
+    color: var(--brand);
+  }
 
-  /* Clear bottom nav overlap */
+  .bottom-nav a.active svg {
+    transform: translateY(-1px);
+  }
+
+  /* Prevent Bottom Nav from Covering Content */
   #app {
     margin-left: 0;
     width: 100%;
@@ -358,13 +401,14 @@
   }
 }
 
-/* =================================================================
-   FOOTER
-   ================================================================= */
+/* ==========================================================================
+   FOOTER COMPONENT
+   ========================================================================== */
 .footer {
   border-top: 1px solid var(--line);
   padding: 60px 0 48px;
   margin-top: 56px;
+  background: transparent;
 }
 
 .footer-inner {
@@ -376,7 +420,11 @@
   margin: 0 auto;
 }
 
-.footer-brand { display: flex; flex-direction: column; gap: 14px; }
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .footer-brand p {
   font-size: 13px;
@@ -402,7 +450,9 @@
   transition: color var(--transition-fast);
 }
 
-.footer-col a:hover { color: var(--brand); }
+.footer-col a:hover {
+  color: var(--brand);
+}
 
 .footer-copyright {
   grid-column: 1 / -1;
@@ -428,8 +478,22 @@
     width: calc(100% - 32px);
   }
 
-  .footer-brand { align-items: center; }
-  .footer-brand p { max-width: none; }
-  .footer-col { display: flex; flex-direction: column; align-items: center; }
-  .footer-copyright { justify-content: center; text-align: center; }
+  .footer-brand {
+    align-items: center;
+  }
+
+  .footer-brand p {
+    max-width: none;
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer-copyright {
+    justify-content: center;
+    text-align: center;
+  }
 }

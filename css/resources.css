@@ -105,6 +105,10 @@
 /* ==========================================================================
    2. STORE TOOLBAR & FILTER CONTROLS
    ========================================================================== */
+.resources-store-section {
+  padding-bottom: 64px;
+}
+
 .store-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -209,25 +213,29 @@
 }
 
 .store-empty {
-  padding: 24px;
+  padding: 28px 24px;
   text-align: center;
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line-light);
   color: var(--muted);
   grid-column: 1 / -1;
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 
 /* ==========================================================================
    3. STORE CATALOG GRID & PRODUCT CARDS
    ========================================================================== */
-.store-grid {
+.store-grid,
+.category-results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
-.store-product-card {
+.store-product-card,
+.resource-card {
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -241,7 +249,8 @@
     border-color var(--transition-normal);
 }
 
-.store-product-card:hover {
+.store-product-card:hover,
+.resource-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
   border-color: var(--line-medium);
@@ -264,18 +273,21 @@
   transition: transform 0.4s var(--ease-smooth);
 }
 
-.store-product-card:hover .store-product-image img {
+.store-product-card:hover .store-product-image img,
+.resource-card:hover .resource-image {
   transform: scale(1.04);
 }
 
-.store-product-card .card-body {
+.store-product-card .card-body,
+.resource-card .card-body {
   padding: 22px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.store-product-card h3 {
+.store-product-card h3,
+.resource-card h3 {
   font-size: 17px;
   font-weight: 700;
   margin-bottom: 8px;
@@ -284,7 +296,8 @@
   line-height: 1.35;
 }
 
-.store-product-card h3 a:hover {
+.store-product-card h3 a:hover,
+.resource-card h3 a:hover {
   color: var(--brand);
 }
 
@@ -338,7 +351,8 @@
   width: 100%;
 }
 
-.detail-meta {
+.detail-meta,
+.metadata {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
@@ -349,7 +363,8 @@
   border: 1px solid var(--line-light);
 }
 
-.detail-meta span {
+.detail-meta span,
+.metadata span {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -358,7 +373,8 @@
   font-weight: 500;
 }
 
-.detail-meta svg {
+.detail-meta svg,
+.metadata svg {
   color: var(--brand);
   width: 16px;
   height: 16px;
@@ -454,7 +470,40 @@
   max-width: 100%;
 }
 
-@media (max-width: 640px) {
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 24px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  margin: 20px 0;
+}
+
+.qr-image {
+  width: 170px;
+  height: 170px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 8px;
+  object-fit: contain;
+}
+
+.payment-instruction-box {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 16px 18px;
+  background: var(--soft);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(97, 88, 223, 0.16);
+}
+
+@media (max-width: 639px) {
   .store-toolbar {
     flex-direction: column;
     align-items: stretch;

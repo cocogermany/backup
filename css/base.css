@@ -1,10 +1,14 @@
 ﻿/* ==========================================================================
    COCO GERMANY — BASE & RESET (base.css)
+   Foundation styles, typography hierarchy, accessibility & reset.
    ========================================================================== */
 
+/* ─── Box Sizing & Reset ─────────────────────────────────────────────────── */
 *,
 *::before,
-*::after { box-sizing: border-box; }
+*::after {
+  box-sizing: border-box;
+}
 
 html {
   scroll-behavior: smooth;
@@ -35,7 +39,7 @@ body {
   color: var(--ink);
 }
 
-/* ─── Headings ─────────────────────────────────────────────── */
+/* ─── Typography Hierarchy ───────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-body);
   color: var(--ink);
@@ -44,19 +48,42 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
 }
 
-h1 { font-size: clamp(28px, 4vw, 44px);  letter-spacing: -0.05em; }
-h2 { font-size: clamp(22px, 2.8vw, 32px); letter-spacing: -0.04em; }
-h3 { font-size: clamp(18px, 2vw, 22px);   letter-spacing: -0.025em; }
-h4 { font-size: 17px; letter-spacing: -0.015em; }
-h5, h6 { font-size: 15px; letter-spacing: -0.01em; }
+h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: clamp(22px, 2.8vw, 32px);
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  font-size: clamp(18px, 2vw, 22px);
+  letter-spacing: -0.025em;
+}
+
+h4 {
+  font-size: 17px;
+  letter-spacing: -0.015em;
+}
+
+h5, h6 {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
 
 p {
   margin-top: 0;
   margin-bottom: 1em;
   color: var(--ink);
 }
-p:last-child { margin-bottom: 0; }
 
+p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Typography Helpers & Section Subtitles ─────────────────────────────── */
 .lead {
   font-size: clamp(15.5px, 1.4vw, 17px);
   line-height: 1.7;
@@ -64,55 +91,35 @@ p:last-child { margin-bottom: 0; }
   max-width: 68ch;
 }
 
-/* ─── Page-Section Header Pattern ──────────────────────────── */
-.page-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brand);
-  margin-bottom: 10px;
-}
-
-.page-hero {
-  margin-bottom: 44px;
-  padding-bottom: 36px;
-  border-bottom: 1px solid var(--line-light);
-}
-
-.page-hero h1 {
-  font-size: clamp(28px, 4.5vw, 46px);
-  letter-spacing: -0.055em;
-  margin-bottom: 14px;
-}
-
-.page-hero p {
-  font-size: 16.5px;
-  color: var(--muted);
-  max-width: 620px;
+.intro {
+  font-size: clamp(15px, 1.4vw, 17px);
   line-height: 1.65;
-  margin-bottom: 0;
-}
-
-/* ─── Section Titles (used inside content blocks) ─────────── */
-.section-title {
-  font-size: clamp(22px, 2.8vw, 30px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  margin-bottom: 6px;
-}
-
-.section-desc {
-  font-size: 15px;
   color: var(--muted);
-  line-height: 1.65;
-  max-width: 600px;
+  max-width: 640px;
+  margin-top: 6px;
+  margin-bottom: 24px;
 }
 
-/* ─── Media ────────────────────────────────────────────────── */
+.subtitle {
+  font-size: 14.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.muted,
+.text-muted {
+  color: var(--muted) !important;
+}
+
+.text-brand {
+  color: var(--brand) !important;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* ─── Media & Vector Icons ───────────────────────────────────────────────── */
 img {
   display: block;
   max-width: 100%;
@@ -127,16 +134,24 @@ svg {
   flex-shrink: 0;
 }
 
-/* ─── Links & Controls Reset ───────────────────────────────── */
+/* ─── Controls & Link Reset ──────────────────────────────────────────────── */
 a {
   color: inherit;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-a:hover { color: var(--brand); }
+a:hover {
+  color: var(--brand);
+}
 
-button, input, select, textarea { font: inherit; color: inherit; }
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
 
 button {
   background: none;
@@ -146,16 +161,17 @@ button {
   touch-action: manipulation;
 }
 
-/* ─── Focus Ring ───────────────────────────────────────────── */
+/* ─── Accessibility: Focus Visible & Screen Reader ───────────────────────── */
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
-#app:focus { outline: none; }
+#app:focus {
+  outline: none;
+}
 
-/* Screen-reader only */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -168,7 +184,7 @@ button {
   border: 0;
 }
 
-/* ─── Dividers ─────────────────────────────────────────────── */
+/* ─── Dividers ───────────────────────────────────────────────────────────── */
 .divider {
   border: none;
   height: 1px;
@@ -176,19 +192,11 @@ button {
   margin: 32px 0;
 }
 
-/* ─── Fade-in Animation ────────────────────────────────────── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.fade-up {
-  animation: fadeUp 0.4s var(--ease-spring) both;
-}
-
-/* ─── Reduced Motion ───────────────────────────────────────── */
+/* ─── Reduced Motion Safeguard ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

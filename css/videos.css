@@ -1,6 +1,6 @@
 ﻿/* ==========================================================================
    COCO GERMANY — VIDEO LIBRARY (videos.css)
-   CEFR level filter tabs, video cards, 16:9 responsive embeds.
+   CEFR level filter tabs, video cards, 16:9 responsive embeds & gallery.
    ========================================================================== */
 
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
@@ -28,7 +28,7 @@
   margin-top: 24px;
 }
 
-/* Tab grid container */
+/* 4-Tab Grid Container */
 .category-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -41,7 +41,7 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* Individual tab button */
+/* Individual Tab Button */
 .category-tabs button,
 .video-level-tab {
   display: flex;
@@ -81,7 +81,7 @@
   transform: translateY(-1px);
 }
 
-/* Tab label (CEFR level code) */
+/* Tab Level Code */
 .category-tabs button span,
 .video-level-tab strong {
   font-family: var(--font-heading);
@@ -91,7 +91,7 @@
   letter-spacing: -0.02em;
 }
 
-/* Tab sublabel */
+/* Tab Sub-label */
 .category-tabs button small,
 .video-level-tab small {
   font-size: 10.5px;
@@ -107,12 +107,11 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .category-tabs {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
-
   .category-tabs button,
   .video-level-tab {
     min-height: 56px;
@@ -148,7 +147,7 @@
   border-color: var(--line-medium);
 }
 
-/* Responsive 16:9 video wrapper */
+/* Responsive 16:9 Video Wrapper */
 .video-embed-container,
 .video-frame {
   position: relative;
@@ -225,7 +224,6 @@
     grid-template-columns: 1fr;
     gap: 20px;
   }
-
   .video-card-body {
     padding: 20px;
   }
