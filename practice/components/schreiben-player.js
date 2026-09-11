@@ -237,20 +237,20 @@ window.SchreibenPlayerComponent = {
         <!-- Sticky Minimal Header -->
         <header class="schreiben-header">
           <div class="schreiben-header-left">
-            <button type="button" class="schreiben-exit-btn" id="schreiben-btn-exit" onclick="window.SchreibenPlayerComponent.exitPlayer()" title="Zurück zum Practice Hub">
+            <button type="button" class="schreiben-exit-btn" id="schreiben-btn-exit" onclick="window.SchreibenPlayerComponent.exitPlayer()" title="Back to Practice Hub">
               <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
               <span class="schreiben-exit-label">Practice Hub</span>
             </button>
             <div class="schreiben-header-divider"></div>
             <div class="schreiben-brand-mark">
               <span class="schreiben-badge-gold">SCHREIBEN</span>
-              <span class="schreiben-header-meta" id="schreiben-header-meta">Lade Prüfung...</span>
+              <span class="schreiben-header-meta" id="schreiben-header-meta">Loading task...</span>
             </div>
           </div>
           <div class="schreiben-header-right">
             <div class="schreiben-credits-indicator" id="schreiben-credits-indicator">
               <i data-lucide="award" style="width:15px;height:15px; color:#d97706;"></i>
-              <span id="schreiben-credits-text">Schreiben Player</span>
+              <span id="schreiben-credits-text">Writing Module</span>
             </div>
           </div>
         </header>
@@ -259,8 +259,8 @@ window.SchreibenPlayerComponent = {
         <main class="schreiben-content-container" id="schreiben-content-area">
           <div class="schreiben-loading-card">
             <div class="schreiben-spinner"></div>
-            <p class="schreiben-loading-title">Lade Schreibaufgabe...</p>
-            <p class="schreiben-loading-sub">Aufgabendetails und Prüfungsrichtlinien werden vorbereitet</p>
+            <p class="schreiben-loading-title">Loading writing task...</p>
+            <p class="schreiben-loading-sub">Preparing task details and examination guidelines...</p>
           </div>
         </main>
       </div>
@@ -337,7 +337,7 @@ window.SchreibenPlayerComponent = {
     if (!material) {
       material = {
         id: materialId || "schreiben-fallback",
-        title: `Schreibaufgabe (${level})`,
+        title: `Writing Task (${level})`,
         exam: "goethe",
         level: level,
         module: "Schreiben",
@@ -369,7 +369,7 @@ window.SchreibenPlayerComponent = {
     const creditsEl = document.getElementById("schreiben-credits-text");
     if (creditsEl) {
       if (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number") {
-        creditsEl.textContent = `${window.AppState.schreibenCreditsRemaining} wöchentliche Credits`;
+        creditsEl.textContent = `${window.AppState.schreibenCreditsRemaining} weekly credits`;
       } else {
         (async () => {
           try {
@@ -379,7 +379,7 @@ window.SchreibenPlayerComponent = {
               if (res && typeof res.schreiben_credits_remaining === "number") {
                 if (window.AppState) window.AppState.schreibenCreditsRemaining = res.schreiben_credits_remaining;
                 const el = document.getElementById("schreiben-credits-text");
-                if (el) el.textContent = `${res.schreiben_credits_remaining} wöchentliche Credits`;
+                if (el) el.textContent = `${res.schreiben_credits_remaining} weekly credits`;
               }
             }
           } catch (e) {}
@@ -398,7 +398,7 @@ window.SchreibenPlayerComponent = {
     const material = this.currentMaterial || {};
     const examFormat = (material.exam || "Goethe").toUpperCase();
     const level = (material.level || "A1").toUpperCase();
-    const title = material.contentTitle || material.title || "Schreibaufgabe";
+    const title = material.contentTitle || material.title || "Writing Task";
     const taskDetails = this.extractTaskDetails(material);
     const wordLimits = this.getWordLimits(material);
     const maxWords = wordLimits.maximum;
@@ -409,7 +409,7 @@ window.SchreibenPlayerComponent = {
         <!-- Top Meta Pill Row -->
         <div class="schreiben-meta-row">
           <span class="schreiben-badge-pill schreiben-badge-level">${this.escapeHtml(examFormat)} ${this.escapeHtml(level)}</span>
-          <span class="schreiben-badge-pill schreiben-badge-module">Schreiben</span>
+          <span class="schreiben-badge-pill schreiben-badge-module">Writing</span>
           ${material.teil ? `<span class="schreiben-badge-pill schreiben-badge-sub">${this.escapeHtml(material.teil)}</span>` : ''}
         </div>
 
@@ -419,7 +419,7 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-task-card">
           <div class="schreiben-task-header">
             <i data-lucide="file-text" style="width:16px;height:16px; color:#0284c7;"></i>
-            <span>Aufgabenstellung (Writing Task)</span>
+            <span>Task Prompt</span>
           </div>
           <div class="schreiben-task-body">${taskDetails.taskHtml}</div>
         </div>
@@ -428,17 +428,17 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-input-card">
           <div class="schreiben-input-header">
             <label for="schreiben-textarea" class="schreiben-input-label">
-              Deine schriftliche Ausarbeitung (Your German Text):
+              Your German Writing:
             </label>
             <div id="schreiben-word-count-pill" class="schreiben-word-pill">
-              0 / ${maxWords} Wörter
+              0 / ${maxWords} words
             </div>
           </div>
 
           <textarea
             id="schreiben-textarea"
             class="schreiben-textarea"
-            placeholder="Schreibe deinen Text hier auf Deutsch... (${minWords ? `Mindestens ${minWords}, maximal ${maxWords} Wörter` : `Maximal ${maxWords} Wörter`})"
+            placeholder="Write your text here in German... (${minWords ? `Minimum ${minWords}, maximum ${maxWords} words` : `Maximum ${maxWords} words`})"
             rows="12"
             oninput="window.SchreibenPlayerComponent.onTextInput(this)"
           >${this.escapeHtml(this.studentAnswer || "")}</textarea>
@@ -456,11 +456,11 @@ window.SchreibenPlayerComponent = {
             disabled
           >
             <i data-lucide="send" style="width:16px;height:16px;"></i>
-            <span>Text zur Bewertung einreichen</span>
+            <span>Submit Text for Evaluation</span>
           </button>
           <div class="schreiben-footnote">
             <i data-lucide="info" style="width:14px;height:14px; color:#64748b;"></i>
-            <span>${minWords ? `Richtwert: ${minWords}–${maxWords} Wörter` : `Maximal ${maxWords} Wörter`} · 1 wöchentlicher Credit nach erfolgreicher Bewertung</span>
+            <span>${minWords ? `Guideline: ${minWords}–${maxWords} words` : `Maximum ${maxWords} words`} · 1 weekly credit deducted upon successful evaluation</span>
           </div>
         </div>
       </div>
@@ -491,7 +491,7 @@ window.SchreibenPlayerComponent = {
 
     if (pill) {
       if (count > maxWords) {
-        pill.innerHTML = `<span class="schreiben-text-danger">${count} / ${maxWords} Wörter (Limit überschritten!)</span>`;
+        pill.innerHTML = `<span class="schreiben-text-danger">${count} / ${maxWords} words (Word limit exceeded!)</span>`;
         pill.classList.add("schreiben-pill-error");
         pill.classList.remove("schreiben-pill-warn");
       } else {
@@ -503,16 +503,16 @@ window.SchreibenPlayerComponent = {
         }
 
         if (minWords && count > 0 && count < minWords) {
-          pill.textContent = `${count} / ${maxWords} Wörter (Empfohlen: mind. ${minWords})`;
+          pill.textContent = `${count} / ${maxWords} words (Recommended: min. ${minWords})`;
         } else {
-          pill.textContent = `${count} / ${maxWords} Wörter`;
+          pill.textContent = `${count} / ${maxWords} words`;
         }
       }
     }
 
     if (count > maxWords) {
       if (errorBanner) {
-        errorBanner.textContent = `Die maximale Wortanzahl beträgt ${maxWords} Wörter. Bitte kürze deinen Text um ${count - maxWords} Wörter.`;
+        errorBanner.textContent = `The maximum word limit is ${maxWords} words. Please shorten your text by ${count - maxWords} words.`;
         errorBanner.style.display = "block";
       }
       if (submitBtn) {
@@ -546,11 +546,11 @@ window.SchreibenPlayerComponent = {
 
     if (wordCount === 0) {
       if (errorBanner) {
-        errorBanner.textContent = "Bitte schreibe zuerst deinen Text, bevor du ihn einreichst.";
+        errorBanner.textContent = "Please enter your text before submitting.";
         errorBanner.style.display = "block";
       }
       if (window.PracticeApp?.showToast) {
-        window.PracticeApp.showToast("Bitte gib einen Text ein.", "warning", 3500);
+        window.PracticeApp.showToast("Please enter your text.", "warning", 3500);
       }
       return;
     }
@@ -561,11 +561,11 @@ window.SchreibenPlayerComponent = {
 
     if (wordCount > maxWords) {
       if (errorBanner) {
-        errorBanner.textContent = `Die maximal erlaubte Wortanzahl ist ${maxWords} Wörter (aktuell: ${wordCount}).`;
+        errorBanner.textContent = `The maximum allowed word limit is ${maxWords} words (currently: ${wordCount}).`;
         errorBanner.style.display = "block";
       }
       if (window.PracticeApp?.showToast) {
-        window.PracticeApp.showToast(`Maximal ${maxWords} Wörter erlaubt (${wordCount} Wörter).`, "error", 3500);
+        window.PracticeApp.showToast(`Maximum ${maxWords} words allowed (${wordCount} words).`, "error", 3500);
       }
       return;
     }
@@ -579,12 +579,12 @@ window.SchreibenPlayerComponent = {
       contentArea.innerHTML = `
         <div class="schreiben-evaluating-card">
           <div class="schreiben-spinner-lg"></div>
-          <h2 class="schreiben-eval-title">Text wird bewertet...</h2>
+          <h2 class="schreiben-eval-title">Evaluating your writing...</h2>
           <p class="schreiben-eval-sub">
-            Deine Einreichung wird nach den offiziellen Prüfungsrichtlinien auf Aufgabenerfüllung, Textaufbau, Wortschatz und Grammatik geprüft.
+            Your submission is being evaluated against official exam criteria for task fulfillment, structure, vocabulary, and grammar.
           </p>
           <div class="schreiben-eval-meta">
-            <span>Umfang: ${wordCount} / ${maxWords} Wörter</span> · <span>1 wöchentlicher Credit wird nach erfolgreicher Auswertung verbucht</span>
+            <span>Length: ${wordCount} / ${maxWords} words</span> · <span>1 weekly credit will be deducted upon successful evaluation</span>
           </div>
         </div>
       `;
@@ -609,11 +609,11 @@ window.SchreibenPlayerComponent = {
     try {
       const idToken = await (window.PracticeApp?.getFirebaseIdToken ? window.PracticeApp.getFirebaseIdToken() : null);
       if (!idToken) {
-        throw new Error("Du musst angemeldet sein, um die Auswertung zu starten.");
+        throw new Error("You must be logged in to start the evaluation.");
       }
 
       if (!window.SupabaseService?.evaluateSchreiben) {
-        throw new Error("Der Bewertungsdienst ist derzeit nicht verfügbar.");
+        throw new Error("The evaluation service is currently unavailable.");
       }
 
       const payload = {
@@ -643,7 +643,7 @@ window.SchreibenPlayerComponent = {
       this.isEvaluating = false;
       this.renderWritingWorkspace();
       if (window.PracticeApp?.showToast) {
-        window.PracticeApp.showToast(err.message || "Auswertungsfehler. Kein Credit abgezogen.", "error", 4500);
+        window.PracticeApp.showToast(err.message || "Evaluation error. No credit was deducted.", "error", 4500);
       }
       return;
     }
@@ -654,7 +654,7 @@ window.SchreibenPlayerComponent = {
       }
       this.isEvaluating = false;
       this.renderWritingWorkspace();
-      const msg = evalRes?.message || "Auswertung fehlgeschlagen. Es wurde kein Credit abgezogen.";
+      const msg = evalRes?.message || "Evaluation failed. No credit was deducted.";
       if (window.PracticeApp?.showToast) {
         window.PracticeApp.showToast(msg, "error", 4500);
       }
@@ -670,7 +670,7 @@ window.SchreibenPlayerComponent = {
       window.AppState.schreibenCreditsRemaining = evalRes.schreiben_credits_remaining;
       const creditsEl = document.getElementById("schreiben-credits-text");
       if (creditsEl) {
-        creditsEl.textContent = `${evalRes.schreiben_credits_remaining} wöchentliche Credits`;
+        creditsEl.textContent = `${evalRes.schreiben_credits_remaining} weekly credits`;
       }
     }
 
@@ -680,7 +680,7 @@ window.SchreibenPlayerComponent = {
       this.isEvaluating = false;
       this.renderWritingWorkspace();
       if (window.PracticeApp?.showToast) {
-        window.PracticeApp.showToast("Ungültiges Bewertungsergebnis erhalten. Es wurde kein Credit abgezogen.", "error", 4500);
+        window.PracticeApp.showToast("Invalid evaluation result received. No credit was deducted.", "error", 4500);
       }
       return;
     }
@@ -833,31 +833,31 @@ window.SchreibenPlayerComponent = {
       statusBadgeHtml = `
         <span class="schreiben-status-badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
           <i data-lucide="alert-triangle" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-          Sprachhinweis (Nicht auf Deutsch)
+          Language Notice (Non-German)
         </span>`;
     } else if (tfPoints.length > 0 && missingCount === 0 && partialCount === 0) {
       statusBadgeHtml = `
         <span class="schreiben-status-badge schreiben-status-pass">
           <i data-lucide="check-check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-          Alle Leitpunkte erfüllt
+          All Task Points Fulfilled
         </span>`;
     } else if (tfPoints.length > 0 && missingCount === 0) {
       statusBadgeHtml = `
         <span class="schreiben-status-badge" style="background:#f0fdf4; color:#15803d; border:1px solid #86efac;">
           <i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-          Aufgabe vollständig bearbeitet
+          Task Fully Addressed
         </span>`;
     } else if (tfPoints.length > 0 && fulfilledCount > 0) {
       statusBadgeHtml = `
         <span class="schreiben-status-badge" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">
           <i data-lucide="file-text" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-          Leitpunkte teilweise erfüllt
+          Task Points Partially Fulfilled
         </span>`;
     } else {
       statusBadgeHtml = `
         <span class="schreiben-status-badge" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1;">
           <i data-lucide="file-check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-          Qualitative Fachauswertung
+          Qualitative Examination Report
         </span>`;
     }
 
@@ -868,11 +868,11 @@ window.SchreibenPlayerComponent = {
           <div>
             <div class="schreiben-meta-row" style="margin-bottom:8px;">
               <span class="schreiben-badge-pill schreiben-badge-level">${this.escapeHtml(exam)} ${this.escapeHtml(level)}</span>
-              <span class="schreiben-badge-pill schreiben-badge-module">Schreiben Gutachten</span>
+              <span class="schreiben-badge-pill schreiben-badge-module">Writing Report</span>
               ${material.teil ? `<span class="schreiben-badge-pill schreiben-badge-sub">${this.escapeHtml(material.teil)}</span>` : ''}
-              ${creditsRemaining !== null ? `<span class="schreiben-badge-pill schreiben-badge-credits">${creditsRemaining} Credits übrig</span>` : ''}
+              ${creditsRemaining !== null ? `<span class="schreiben-badge-pill schreiben-badge-credits">${creditsRemaining} credits remaining</span>` : ''}
             </div>
-            <h1 class="schreiben-results-heading">Prüfungsauswertung (Gutachten)</h1>
+            <h1 class="schreiben-results-heading">Examination Evaluation Report</h1>
           </div>
           <div>
             ${statusBadgeHtml}
@@ -887,10 +887,10 @@ window.SchreibenPlayerComponent = {
             </div>
             <div>
               <div class="schreiben-eval-overview-title">
-                Qualitatives ${this.escapeHtml(exam)}-Prüfungsgutachten (${this.escapeHtml(level)})
+                Qualitative ${this.escapeHtml(exam)} Examination Report (${this.escapeHtml(level)})
               </div>
               <div class="schreiben-eval-overview-sub">
-                Eingereichter Textumfang: <strong>${wordCount} Wörter</strong> ${minWords ? `· Richtwert: ${minWords}–${maxWords} Wörter` : `· Maximal: ${maxWords} Wörter`}
+                Submitted Length: <strong>${wordCount} words</strong> ${minWords ? `· Guideline: ${minWords}–${maxWords} words` : `· Maximum: ${maxWords} words`}
               </div>
             </div>
           </div>
@@ -900,27 +900,27 @@ window.SchreibenPlayerComponent = {
             ${tfPoints.length > 0 ? `
               <div class="schreiben-eval-pill">
                 <i data-lucide="list-checks" style="width:14px;height:14px; color:#10b981;"></i>
-                <span>Aufgabenerfüllung: <strong>${fulfilledCount}/${tfPoints.length}</strong> Leitpunkte</span>
+                <span>Task Fulfillment: <strong>${fulfilledCount}/${tfPoints.length}</strong> bullet points</span>
               </div>
             ` : ''}
             <div class="schreiben-eval-pill">
               <i data-lucide="languages" style="width:14px;height:14px; color:#0284c7;"></i>
-              <span>Sprache: <strong>${this.escapeHtml(evaluation.language?.detected || "Deutsch")}</strong></span>
+              <span>Language: <strong>${this.escapeHtml(evaluation.language?.detected || "German")}</strong></span>
             </div>
             ${evaluation.development?.quality ? `
               <div class="schreiben-eval-pill">
                 <i data-lucide="sparkles" style="width:14px;height:14px; color:#8b5cf6;"></i>
-                <span>Textentwicklung: <strong>${this.escapeHtml(evaluation.development.quality)}</strong></span>
+                <span>Text Development: <strong>${this.escapeHtml(evaluation.development.quality)}</strong></span>
               </div>
             ` : ''}
             <div class="schreiben-eval-pill">
               <i data-lucide="spell-check" style="width:14px;height:14px; color:#f59e0b;"></i>
-              <span>Sprachkorrekturen: <strong>${mistakes.length}</strong></span>
+              <span>Language Corrections: <strong>${mistakes.length}</strong></span>
             </div>
             ${redemittel.length > 0 ? `
               <div class="schreiben-eval-pill">
                 <i data-lucide="bookmark" style="width:14px;height:14px; color:#0284c7;"></i>
-                <span>Redemittel: <strong>${redemittel.length}</strong></span>
+                <span>Useful Phrases: <strong>${redemittel.length}</strong></span>
               </div>
             ` : ''}
           </div>
@@ -931,7 +931,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="check-square" style="width:18px;height:18px; color:#10b981;"></i>
-              <span>1. Aufgabenerfüllung nach Leitpunkten (Task Fulfillment)</span>
+              <span>1. Task Fulfillment (Bullet Points)</span>
             </h3>
             <div style="display:flex; flex-direction:column; gap:10px;">
               ${tfPoints.map(p => {
@@ -939,14 +939,14 @@ window.SchreibenPlayerComponent = {
                 const badgeStyle = st === "fulfilled"
                   ? "background:#dcfce7; color:#15803d; border:1px solid #86efac;"
                   : (st === "partial" ? "background:#fef9c3; color:#a16207; border:1px solid #fde047;" : "background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;");
-                const badgeLabel = st === "fulfilled" ? "✓ Erfüllt" : (st === "partial" ? "⚠ Teilweise" : "✗ Fehlt");
+                const badgeLabel = st === "fulfilled" ? "✓ Fulfilled" : (st === "partial" ? "⚠ Partial" : "✗ Missing");
                 return `
                   <div style="background:#ffffff; border:1px solid var(--schreiben-border); border-radius:8px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <span style="font-weight:600; font-size:0.9rem; color:var(--schreiben-ink);">Leitpunkt #${p.id || 1}</span>
+                      <span style="font-weight:600; font-size:0.9rem; color:var(--schreiben-ink);">Task Bullet Point #${p.id || 1}</span>
                       <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; ${badgeStyle}">${badgeLabel}</span>
                     </div>
-                    ${p.evidence ? `<p style="margin:8px 0 0 0; font-size:0.88rem; color:#334155; font-style:italic;">„${this.escapeHtml(p.evidence)}“</p>` : `<p style="margin:8px 0 0 0; font-size:0.85rem; color:#94a3b8;">Keine Textbelege gefunden.</p>`}
+                    ${p.evidence ? `<p style="margin:8px 0 0 0; font-size:0.88rem; color:#334155; font-style:italic;">„${this.escapeHtml(p.evidence)}“</p>` : `<p style="margin:8px 0 0 0; font-size:0.85rem; color:#94a3b8;">No textual evidence found.</p>`}
                   </div>
                 `;
               }).join("")}
@@ -960,11 +960,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="check-square" style="width:20px;height:20px; color:#64748b;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Aufgabenerfüllung nach Leitpunkten</h4>
-                  <p class="schreiben-locked-feature-desc">Prüft alle geforderten Leitpunkte einzeln auf Vollständigkeit mit konkreten Textbelegen aus deiner Einreichung.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Task Fulfillment Analysis</h4>
+                  <p class="schreiben-locked-feature-desc">Verifies each required task bullet point with concrete textual evidence from your submission.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Leitpunkt-Check</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Task Check</a>
             </div>
           </div>
         ` : '')}
@@ -973,7 +973,7 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="file-check-2" style="width:18px;height:18px; color:#0284c7;"></i>
-            <span>2. Bewertungskriterien & Gutachten (Evaluation Criteria)</span>
+            <span>2. Evaluation Criteria & Report</span>
           </h3>
           <div class="schreiben-criteria-grid">
             ${criteria.map(c => {
@@ -991,7 +991,7 @@ window.SchreibenPlayerComponent = {
                       <i data-lucide="${critIcon}" style="width:16px;height:16px; color:#0284c7;"></i>
                       <span>${this.escapeHtml(c.name)}</span>
                     </span>
-                    <span class="schreiben-criteria-badge">Qualitativ</span>
+                    <span class="schreiben-criteria-badge">Qualitative</span>
                   </div>
                   ${c.feedback ? `<p class="schreiben-criteria-sub" style="margin-top:6px; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(c.feedback)}</p>` : ''}
                 </div>
@@ -1004,14 +1004,14 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="spell-check" style="width:18px;height:18px; color:#f59e0b;"></i>
-            <span>3. Gefundene Fehler & Korrekturen (Key Mistakes)</span>
+            <span>3. Key Mistakes & Corrections</span>
           </h3>
           ${mistakes.length > 0 ? `
             <div class="schreiben-mistakes-list">
               ${mistakes.map(m => `
                 <div class="schreiben-mistake-card">
                   <div class="schreiben-mistake-row">
-                    <span class="schreiben-mistake-type-pill schreiben-type-grammar">Grammatik</span>
+                    <span class="schreiben-mistake-type-pill schreiben-type-grammar">Grammar</span>
                     <span class="schreiben-badge-mistake">${this.escapeHtml(m.original || "")}</span>
                     <span class="schreiben-arrow">➔</span>
                     <span class="schreiben-badge-correction">${this.escapeHtml(m.correction || "")}</span>
@@ -1027,17 +1027,17 @@ window.SchreibenPlayerComponent = {
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
                   <div>
-                    <div class="schreiben-locked-teaser-title">Weitere Fehlerhinweise im Text gefunden</div>
-                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_key_mistakes || 3} Fehler. Höhere Pläne schalten alle weiteren Fundstellen frei.</div>
+                    <div class="schreiben-locked-teaser-title">More errors identified in your text</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.max_key_mistakes || 3} errors. Higher plans unlock all remaining findings and detailed explanations.</div>
                   </div>
                 </div>
-                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
               </div>
             ` : ''}
           ` : `
             <div class="schreiben-clean-banner">
               <i data-lucide="check-circle-2" style="width:18px;height:18px; color:#16a34a;"></i>
-              <span>Keine gravierenden sprachlichen Fehler gefunden. Sehr saubere Ausarbeitung!</span>
+              <span>No major language errors found. Very clean writing!</span>
             </div>
           `}
         </div>
@@ -1047,14 +1047,14 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="book-open" style="width:18px;height:18px; color:#0284c7;"></i>
-              <span>4. Wortwahl & Ausdruck (Word Usage)</span>
+              <span>4. Word Choice & Vocabulary (Word Usage)</span>
             </h3>
             ${wordUsage.length > 0 ? `
               <div class="schreiben-word-usage-list">
                 ${wordUsage.map(wu => `
                   <div class="schreiben-word-usage-card">
                     <div class="schreiben-word-usage-row">
-                      <span class="schreiben-mistake-type-pill schreiben-type-vocab">Wortwahl</span>
+                      <span class="schreiben-mistake-type-pill schreiben-type-vocab">Vocabulary</span>
                       <span class="schreiben-badge-mistake">${this.escapeHtml(wu.original || "")}</span>
                       <span class="schreiben-arrow">➔</span>
                       <span class="schreiben-badge-correction">${this.escapeHtml(wu.suggestion || wu.correction || "")}</span>
@@ -1071,11 +1071,11 @@ window.SchreibenPlayerComponent = {
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
                   <div>
-                    <div class="schreiben-locked-teaser-title">Weitere Wortwahl-Optimierungen verfügbar</div>
-                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_word_usage_items || 2} Wortschatz-Empfehlungen. Upgrade für unbegrenzte lexikalische Beratung.</div>
+                    <div class="schreiben-locked-teaser-title">More vocabulary recommendations available</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.max_word_usage_items || 2} vocabulary suggestions. Upgrade for unlimited lexical guidance.</div>
                   </div>
                 </div>
-                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
               </div>
             ` : ''}
           </div>
@@ -1086,14 +1086,14 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="help-circle" style="width:18px;height:18px; color:#d97706;"></i>
-              <span>5. Unklare Sätze & Satzbau (Sentence Clarity)</span>
+              <span>5. Sentence Structure & Clarity (Unclear Sentences)</span>
             </h3>
             ${unclearSentences.length > 0 ? `
               <div class="schreiben-unclear-sentences-list">
                 ${unclearSentences.map(us => `
                   <div class="schreiben-unclear-sentence-card">
                     <div class="schreiben-unclear-sentence-row">
-                      <span class="schreiben-mistake-type-pill schreiben-type-structure">Satzbau</span>
+                      <span class="schreiben-mistake-type-pill schreiben-type-structure">Sentence Structure</span>
                       <span class="schreiben-badge-mistake">${this.escapeHtml(us.original || "")}</span>
                       <span class="schreiben-arrow">➔</span>
                       <span class="schreiben-badge-correction">${this.escapeHtml(us.rewritten || us.correction || "")}</span>
@@ -1110,11 +1110,11 @@ window.SchreibenPlayerComponent = {
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
                   <div>
-                    <div class="schreiben-locked-teaser-title">Weitere Satzbau-Hinweise gefunden</div>
-                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.unclear_sentence_limit || 2} unklare Formulierungen. Höhere Pläne bieten tiefe Satzbau-Analysen.</div>
+                    <div class="schreiben-locked-teaser-title">More sentence structure notes found</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.unclear_sentence_limit || 2} unclear sentences. Higher plans offer deep structural analysis.</div>
                   </div>
                 </div>
-                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
               </div>
             ` : ''}
           </div>
@@ -1124,20 +1124,20 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="scale" style="width:18px;height:18px; color:#6366f1;"></i>
-            <span>6. Stilebene & Registeranalyse (Register Analysis)</span>
+            <span>6. Register & Tone Analysis</span>
           </h3>
           ${registerAnalysis ? `
             <div class="schreiben-register-card">
               <div class="schreiben-register-meta">
                 <span class="schreiben-badge-pill" style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;">
-                  Tonalität: <strong>${this.escapeHtml(registerAnalysis.tone || "Neutral")}</strong>
+                  Tone: <strong>${this.escapeHtml(registerAnalysis.tone || "Neutral")}</strong>
                 </span>
                 <span class="schreiben-badge-pill" style="${registerAnalysis.appropriate !== false ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">
-                  ${registerAnalysis.appropriate !== false ? '✓ Dem Prüfungsformat angemessen' : '⚠ Register unpassend'}
+                  ${registerAnalysis.appropriate !== false ? '✓ Register appropriate for exam format' : '⚠ Register inappropriate'}
                 </span>
               </div>
               ${registerAnalysis.analysis ? `<p style="margin:10px 0 6px 0; font-size:0.9rem; line-height:1.6; color:#334155;">${this.escapeHtml(registerAnalysis.analysis)}</p>` : ''}
-              ${registerAnalysis.recommendation ? `<p style="margin:6px 0 0 0; font-size:0.86rem; color:#4f46e5; font-style:italic;">Empfehlung: ${this.escapeHtml(registerAnalysis.recommendation)}</p>` : ''}
+              ${registerAnalysis.recommendation ? `<p style="margin:6px 0 0 0; font-size:0.86rem; color:#4f46e5; font-style:italic;">Recommendation: ${this.escapeHtml(registerAnalysis.recommendation)}</p>` : ''}
             </div>
           ` : `
             <div class="schreiben-locked-feature-card">
@@ -1146,11 +1146,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="scale" style="width:20px;height:20px; color:#6366f1;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Register- & Stilanalyse freischalten</h4>
-                  <p class="schreiben-locked-feature-desc">Prüft, ob die Anrede (Du vs. Sie), Tonalität und Formulierungen exakt dem geforderten Prüfungsformat entsprechen.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Register & Tone Analysis</h4>
+                  <p class="schreiben-locked-feature-desc">Checks whether your form of address (Du vs. Sie), formality, and tone match the required exam conventions.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Stilanalyse</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Register Analysis</a>
             </div>
           `}
         </div>
@@ -1160,7 +1160,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="refresh-cw" style="width:18px;height:18px; color:#059669;"></i>
-              <span>7. Satzoptimierung (Bessere Formulierungen)</span>
+              <span>7. Sentence Optimizations (Better Phrasing)</span>
             </h3>
             ${improvedSentences.length > 0 ? `
               <div class="schreiben-improved-sentences-list">
@@ -1173,7 +1173,7 @@ window.SchreibenPlayerComponent = {
                       </div>
                       <div class="schreiben-sentence-arrow">➔</div>
                       <div class="schreiben-sentence-after">
-                        <span class="schreiben-sentence-label">Besser:</span>
+                        <span class="schreiben-sentence-label">Better:</span>
                         <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
                       </div>
                     </div>
@@ -1189,11 +1189,11 @@ window.SchreibenPlayerComponent = {
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
                   <div>
-                    <div class="schreiben-locked-teaser-title">Weitere Satzoptimierungen verfügbar</div>
-                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_improved_sentences || 3} Satzoptimierungen. Höhere Pläne bieten unbegrenzte Satzverbesserungen.</div>
+                    <div class="schreiben-locked-teaser-title">More sentence optimizations available</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.max_improved_sentences || 3} sentence optimizations. Higher plans offer unlimited improvements.</div>
                   </div>
                 </div>
-                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
               </div>
             ` : ''}
           </div>
@@ -1204,7 +1204,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="bookmark" style="width:18px;height:18px; color:#0284c7;"></i>
-              <span>8. Empfohlene Redemittel & Satzbausteine</span>
+              <span>8. Recommended Phrases & Connectors (Redemittel)</span>
             </h3>
             ${redemittel.length > 0 ? `
               <div class="schreiben-redemittel-grid">
@@ -1227,11 +1227,11 @@ window.SchreibenPlayerComponent = {
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
                   <div>
-                    <div class="schreiben-locked-teaser-title">Weitere prüfungsrelevante Redemittel verfügbar</div>
-                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.redemittel_limit || 2} Redemittel. Upgrade für unbegrenzte Satzbausteine passend zu deiner Aufgabe.</div>
+                    <div class="schreiben-locked-teaser-title">More exam-relevant phrases available</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.redemittel_limit || 2} phrases. Upgrade for unlimited task-specific expressions.</div>
                   </div>
                 </div>
-                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
               </div>
             ` : ''}
           </div>
@@ -1241,34 +1241,34 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="sparkles" style="width:18px;height:18px; color:#8b5cf6;"></i>
-            <span>9. Musterüberarbeitung (Optimierter Text)</span>
+            <span>9. Model Revision (Improved Text)</span>
           </h3>
           ${improvedVersion ? `
             <div class="schreiben-improved-version-box">
               <div class="schreiben-improved-header">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="schreiben-badge-pill" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">
-                    ${improvedVersionMode === "first_2_sentences" ? "2-Satz-Vorschau" : "Vollständige Überarbeitung"}
+                    ${improvedVersionMode === "first_2_sentences" ? "2-Sentence Preview" : "Full Model Text"}
                   </span>
                 </div>
                 <button type="button" class="schreiben-copy-btn" onclick="window.SchreibenPlayerComponent.copyImprovedText(this)">
                   <i data-lucide="copy" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
-                  <span>Text kopieren</span>
+                  <span>Copy Text</span>
                 </button>
               </div>
               <p class="schreiben-improved-sub">
                 ${improvedVersionMode === "first_2_sentences"
-                  ? "Vorschau deines optimierten Textes (erste 2 Sätze) mit muttersprachlichen Korrekturen und fehlerfreiem Satzbau."
-                  : "Vollständig korrigierte und stilistisch geschliffene Fassung deines Textes unter Beibehaltung deiner Kernaussagen."}
+                  ? "Preview of your optimized text (first 2 sentences) featuring native corrections and polished sentence structure."
+                  : "Fully corrected and stylistically polished revision of your writing while preserving your core ideas."}
               </p>
               <div class="schreiben-improved-content">${this.escapeHtml(improvedVersion)}</div>
               ${improvedVersionMode === "first_2_sentences" || lockedFeatures.has_more_improved_version ? `
                 <div class="schreiben-improved-locked-footer">
                   <div class="schreiben-improved-locked-info">
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
-                    <span>Der vollständige optimierte Mustertext ist in Pro, Advanced und Personal verfügbar.</span>
+                    <span>The full optimized model text is available on Pro, Advanced, and Personal plans.</span>
                   </div>
-                  <a href="#membership" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Volltext freischalten</a>
+                  <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Unlock Full Text</a>
                 </div>
               ` : ''}
             </div>
@@ -1279,11 +1279,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Musterüberarbeitung freischalten</h4>
-                  <p class="schreiben-locked-feature-desc">Erhalte eine vollständige, fehlerfreie und stilistisch perfektionierte Version deines Textes mit optimalen Formulierungen.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Model Revision</h4>
+                  <p class="schreiben-locked-feature-desc">Receive a complete, error-free, and stylistically perfected revision of your text with native phrasing.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade für Mustertext</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade for Model Text</a>
             </div>
           `}
         </div>
@@ -1292,7 +1292,7 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="thumbs-up" style="width:18px;height:18px; color:#10b981;"></i>
-            <span>10. Gesamteinschätzung & Stärken (Feedback & Strengths)</span>
+            <span>10. Overall Assessment & Strengths</span>
           </h3>
           ${feedback ? `
             <div class="schreiben-feedback-callout" style="margin-bottom:14px;">
@@ -1309,7 +1309,7 @@ window.SchreibenPlayerComponent = {
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:16px;">
                   <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#166534; display:flex; align-items:center; gap:6px;">
                     <i data-lucide="thumbs-up" style="width:16px;height:16px;"></i>
-                    <span>Stärken (Strengths)</span>
+                    <span>Strengths</span>
                   </h4>
                   <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#14532d; line-height:1.6;">
                     ${strengths.map(s => `<li>${this.escapeHtml(s)}</li>`).join("")}
@@ -1320,7 +1320,7 @@ window.SchreibenPlayerComponent = {
                 <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px;">
                   <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#92400e; display:flex; align-items:center; gap:6px;">
                     <i data-lucide="arrow-up-right" style="width:16px;height:16px;"></i>
-                    <span>Tipps zur Verbesserung (Improvements)</span>
+                    <span>Tips for Improvement</span>
                   </h4>
                   <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#78350f; line-height:1.6;">
                     ${improvements.map(i => `<li>${this.escapeHtml(i)}</li>`).join("")}
@@ -1335,20 +1335,20 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="layers" style="width:18px;height:18px; color:#f59e0b;"></i>
-            <span>11. Systematische Fehlermuster (Error Patterns)</span>
+            <span>11. Systematic Error Patterns</span>
           </h3>
           ${errorPatterns.length > 0 ? `
             <div class="schreiben-error-patterns-list">
               ${errorPatterns.map(ep => `
                 <div class="schreiben-pattern-card">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--schreiben-ink);">${this.escapeHtml(ep.pattern || "Muster")}</h4>
+                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--schreiben-ink);">${this.escapeHtml(ep.pattern || "Pattern")}</h4>
                     ${ep.frequency ? `<span class="schreiben-badge-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${this.escapeHtml(ep.frequency)}</span>` : ''}
                   </div>
                   ${ep.description ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(ep.description)}</p>` : ''}
                   ${ep.examples && ep.examples.length > 0 ? `
                     <div style="background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:0.82rem; color:#475569;">
-                      <strong>Beispiele aus dem Text:</strong>
+                      <strong>Examples from your text:</strong>
                       <ul style="margin:4px 0 0 0; padding-left:18px; font-style:italic;">
                         ${ep.examples.map(ex => `<li>„${this.escapeHtml(ex)}“</li>`).join("")}
                       </ul>
@@ -1364,11 +1364,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="layers" style="width:20px;height:20px; color:#f59e0b;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Systematische Fehlermuster freischalten</h4>
-                  <p class="schreiben-locked-feature-desc">Erkennt wiederkehrende Fehlerstrukturen (z.B. Verbposition im Nebensatz, Kasus nach Präpositionen) über deinen gesamten Text.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Systematic Error Patterns</h4>
+                  <p class="schreiben-locked-feature-desc">Identifies recurring structural error patterns (e.g., subordinate clause word order, prepositional cases) across your entire text.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Fehlermuster</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Error Patterns</a>
             </div>
           `}
         </div>
@@ -1377,19 +1377,19 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="target" style="width:18px;height:18px; color:#ef4444;"></i>
-            <span>12. Langfristige Schwachstellen (Long-Term Diagnostic)</span>
+            <span>12. Long-Term Weaknesses (Diagnostic)</span>
           </h3>
           ${longTermWeaknesses.length > 0 ? `
             <div class="schreiben-weaknesses-list">
               ${longTermWeaknesses.map(w => `
                 <div class="schreiben-weakness-card">
                   <h4 style="margin:0 0 6px 0; font-size:0.95rem; font-weight:700; color:#b91c1c;">
-                    ${this.escapeHtml(w.area || "Schwachstelle")}
+                    ${this.escapeHtml(w.area || "Weakness Area")}
                   </h4>
-                  ${w.diagnostic ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;"><strong>Diagnose:</strong> ${this.escapeHtml(w.diagnostic)}</p>` : ''}
+                  ${w.diagnostic ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;"><strong>Diagnostic:</strong> ${this.escapeHtml(w.diagnostic)}</p>` : ''}
                   ${w.remedy ? `
                     <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px 12px; font-size:0.84rem; color:#166534;">
-                      <strong>Gegenmaßnahme:</strong> ${this.escapeHtml(w.remedy)}
+                      <strong>Actionable Remedy:</strong> ${this.escapeHtml(w.remedy)}
                     </div>
                   ` : ''}
                 </div>
@@ -1402,11 +1402,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="target" style="width:20px;height:20px; color:#ef4444;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Langfristige Schwachstellen-Analyse freischalten</h4>
-                  <p class="schreiben-locked-feature-desc">Identifiziert tiefere grammatische und strukturelle Defizite mit gezielten Strategien zur Behebung für die Prüfung.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Long-Term Weakness Analysis</h4>
+                  <p class="schreiben-locked-feature-desc">Identifies deeper grammatical and structural weaknesses with targeted strategies to overcome them for your exam.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Schwachstellen-Analyse</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Weakness Analysis</a>
             </div>
           `}
         </div>
@@ -1415,7 +1415,7 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="compass" style="width:18px;height:18px; color:#10b981;"></i>
-            <span>13. Personalisierter Lernplan (Learning Plan)</span>
+            <span>13. Personalized Learning Plan</span>
           </h3>
           ${learningPlan.length > 0 ? `
             <div class="schreiben-learning-plan-list">
@@ -1423,11 +1423,11 @@ window.SchreibenPlayerComponent = {
                 <div class="schreiben-learning-card">
                   <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:#15803d; display:flex; align-items:center; gap:6px;">
                     <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
-                    <span>Fokus: ${this.escapeHtml(lp.focus || "Lernbereich")}</span>
+                    <span>Focus: ${this.escapeHtml(lp.focus || "Study Area")}</span>
                   </h4>
                   ${lp.action_items && lp.action_items.length > 0 ? `
                     <div style="margin-bottom:8px;">
-                      <div style="font-size:0.82rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:4px;">Konkrete Handlungsschritte:</div>
+                      <div style="font-size:0.82rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:4px;">Action Items:</div>
                       <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.55;">
                         ${lp.action_items.map(ai => `<li>${this.escapeHtml(ai)}</li>`).join("")}
                       </ul>
@@ -1435,7 +1435,7 @@ window.SchreibenPlayerComponent = {
                   ` : ''}
                   ${lp.recommended_topics && lp.recommended_topics.length > 0 ? `
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px;">
-                      <span style="font-size:0.8rem; font-weight:600; color:#64748b;">Themen:</span>
+                      <span style="font-size:0.8rem; font-weight:600; color:#64748b;">Recommended Topics:</span>
                       ${lp.recommended_topics.map(t => `<span class="schreiben-badge-pill" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;">${this.escapeHtml(t)}</span>`).join("")}
                     </div>
                   ` : ''}
@@ -1449,11 +1449,11 @@ window.SchreibenPlayerComponent = {
                   <i data-lucide="compass" style="width:20px;height:20px; color:#10b981;"></i>
                 </div>
                 <div>
-                  <h4 class="schreiben-locked-feature-title">Personalisierten Lernplan freischalten</h4>
-                  <p class="schreiben-locked-feature-desc">Erhalte individuelle Lernempfehlungen und konkrete Grammatikthemen, zugeschnitten auf deine Prüfungsschwächen.</p>
+                  <h4 class="schreiben-locked-feature-title">Unlock Personalized Learning Plan</h4>
+                  <p class="schreiben-locked-feature-desc">Receive personalized study recommendations and targeted grammar exercises tailored to your exam prep.</p>
                 </div>
               </div>
-              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Lernplan</a>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Learning Plan</a>
             </div>
           `}
         </div>
@@ -1462,15 +1462,15 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-results-actions">
           <button type="button" class="schreiben-btn-primary" onclick="window.SchreibenPlayerComponent.enterReviewMode()">
             <i data-lucide="eye" style="width:16px;height:16px;"></i>
-            <span>Eingereichten Text prüfen (Review Text)</span>
+            <span>Review Submitted Text</span>
           </button>
           <button type="button" class="schreiben-btn-secondary" onclick="window.SchreibenPlayerComponent.retry()">
             <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i>
-            <span>Erneut versuchen (Try Again)</span>
+            <span>Try Again</span>
           </button>
           <button type="button" class="schreiben-btn-secondary" onclick="window.SchreibenPlayerComponent.exitPlayer()">
             <i data-lucide="grid" style="width:16px;height:16px;"></i>
-            <span>Zurück zum Practice Hub</span>
+            <span>Back to Practice Hub</span>
           </button>
         </div>
       </div>
@@ -1498,11 +1498,11 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-review-banner">
           <div class="schreiben-review-banner-left">
             <i data-lucide="eye" style="width:16px;height:16px; color:#38bdf8;"></i>
-            <span>Review Mode · Schreiben</span>
-            <span class="schreiben-review-score">Eingereichter Text (${wordCount} Wörter)</span>
+            <span>Review Mode · Writing</span>
+            <span class="schreiben-review-score">Submitted Writing (${wordCount} words)</span>
           </div>
           <button type="button" class="schreiben-review-back-btn" onclick="window.SchreibenPlayerComponent.renderResultsScreen()">
-            Zurück zur Auswertung
+            Back to Evaluation
           </button>
         </div>
 
@@ -1510,7 +1510,7 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-task-card" style="margin-top:20px;">
           <div class="schreiben-task-header">
             <i data-lucide="file-text" style="width:16px;height:16px; color:#0284c7;"></i>
-            <span>Aufgabenstellung</span>
+            <span>Task Prompt</span>
           </div>
           <div class="schreiben-task-body">${taskDetails.taskHtml}</div>
         </div>
@@ -1519,15 +1519,15 @@ window.SchreibenPlayerComponent = {
         <div class="schreiben-task-card">
           <div class="schreiben-task-header">
             <i data-lucide="edit-3" style="width:16px;height:16px; color:#10b981;"></i>
-            <span>Deine abgegebene Antwort (${wordCount} Wörter):</span>
+            <span>Your Submitted Response (${wordCount} words):</span>
           </div>
-          <div class="schreiben-review-text">${this.escapeHtml(studentText || "Keine Antwort erfasst.")}</div>
+          <div class="schreiben-review-text">${this.escapeHtml(studentText || "No response recorded.")}</div>
         </div>
 
         <div style="margin-top:24px;">
           <button type="button" class="schreiben-btn-primary" onclick="window.SchreibenPlayerComponent.renderResultsScreen()">
             <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
-            <span>Zurück zur detaillierten Auswertung</span>
+            <span>Back to Detailed Evaluation</span>
           </button>
         </div>
       </div>
@@ -1561,6 +1561,15 @@ window.SchreibenPlayerComponent = {
     window.location.hash = "#practice?module=Schreiben";
   },
 
+  openMembership: function (event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (window.PracticeApp && typeof window.PracticeApp.handleUpgradePlan === "function") {
+      return window.PracticeApp.handleUpgradePlan(event);
+    }
+    window.location.href = "../index.html#/membership";
+    return false;
+  },
+
   copyImprovedText: function (btn) {
     if (!this.evaluationResult || !this.evaluationResult.improved_version) return;
     const textToCopy = String(this.evaluationResult.improved_version);
@@ -1568,7 +1577,7 @@ window.SchreibenPlayerComponent = {
       navigator.clipboard.writeText(textToCopy).then(() => {
         if (btn) {
           const originalHtml = btn.innerHTML;
-          btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i><span>Kopiert!</span>';
+          btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i><span>Copied!</span>';
           if (window.lucide) window.lucide.createIcons();
           setTimeout(() => {
             btn.innerHTML = originalHtml;
