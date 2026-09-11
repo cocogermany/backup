@@ -1542,11 +1542,11 @@ Point #${pt.id}: ${pt.requirement}
             plan_code: "FREE",
             max_key_mistakes: 3,
             max_grammar_explanations: 2,
-            max_word_usage_items: 1,
-            unclear_sentence_limit: 1,
+            max_word_usage_items: 2,
+            unclear_sentence_limit: 2,
             redemittel_limit: 2,
-            max_strengths: 2,
-            max_improvements: 2,
+            max_strengths: 3,
+            max_improvements: 3,
             max_corrections: 3,
             max_improved_sentences: 1,
             task_fulfillment: true,
@@ -1556,22 +1556,26 @@ Point #${pt.id}: ${pt.requirement}
             structure_depth: "summary",
             redemittel_depth: "limited",
             correction_depth: "limited",
-            improved_version: false,
-            improved_version_depth: "summary",
+            improved_version: "first_2_sentences",
+            improved_version_depth: "limited",
             strengths_depth: "summary",
-            improvements_depth: "limited"
+            improvements_depth: "limited",
+            show_error_patterns: false,
+            show_long_term_weaknesses: false,
+            show_personalized_learning_plan: false,
+            register_analysis: false
           },
           Basic: {
             plan_code: "BASIC",
             max_key_mistakes: 5,
             max_grammar_explanations: 4,
             max_word_usage_items: 3,
-            unclear_sentence_limit: 2,
+            unclear_sentence_limit: 3,
             redemittel_limit: 4,
-            max_strengths: 3,
-            max_improvements: 3,
+            max_strengths: 4,
+            max_improvements: 4,
             max_corrections: 5,
-            max_improved_sentences: 2,
+            max_improved_sentences: 3,
             task_fulfillment: true,
             task_fulfillment_depth: "medium",
             grammar_depth: "medium",
@@ -1579,10 +1583,14 @@ Point #${pt.id}: ${pt.requirement}
             structure_depth: "medium",
             redemittel_depth: "medium",
             correction_depth: "medium",
-            improved_version: false,
+            improved_version: "first_2_sentences",
             improved_version_depth: "medium",
             strengths_depth: "medium",
-            improvements_depth: "medium"
+            improvements_depth: "medium",
+            show_error_patterns: true,
+            show_long_term_weaknesses: false,
+            show_personalized_learning_plan: false,
+            register_analysis: true
           },
           Pro: {
             plan_code: "PRO",
@@ -1591,10 +1599,10 @@ Point #${pt.id}: ${pt.requirement}
             max_word_usage_items: 6,
             unclear_sentence_limit: 5,
             redemittel_limit: 6,
-            max_strengths: 4,
-            max_improvements: 4,
+            max_strengths: 5,
+            max_improvements: 5,
             max_corrections: 10,
-            max_improved_sentences: 4,
+            max_improved_sentences: 5,
             task_fulfillment: true,
             task_fulfillment_depth: "full",
             grammar_depth: "full",
@@ -1602,10 +1610,14 @@ Point #${pt.id}: ${pt.requirement}
             structure_depth: "full",
             redemittel_depth: "full",
             correction_depth: "full",
-            improved_version: true,
+            improved_version: "full",
             improved_version_depth: "full",
             strengths_depth: "full",
-            improvements_depth: "full"
+            improvements_depth: "full",
+            show_error_patterns: true,
+            show_long_term_weaknesses: true,
+            show_personalized_learning_plan: false,
+            register_analysis: true
           },
           Advanced: {
             plan_code: "ADVANCED",
@@ -1614,10 +1626,10 @@ Point #${pt.id}: ${pt.requirement}
             max_word_usage_items: 10,
             unclear_sentence_limit: 8,
             redemittel_limit: 8,
-            max_strengths: 5,
-            max_improvements: 5,
+            max_strengths: 6,
+            max_improvements: 6,
             max_corrections: 15,
-            max_improved_sentences: 6,
+            max_improved_sentences: 8,
             task_fulfillment: true,
             task_fulfillment_depth: "deep",
             grammar_depth: "deep",
@@ -1625,10 +1637,14 @@ Point #${pt.id}: ${pt.requirement}
             structure_depth: "deep",
             redemittel_depth: "extensive",
             correction_depth: "deep",
-            improved_version: true,
+            improved_version: "full",
             improved_version_depth: "enhanced",
             strengths_depth: "enhanced",
-            improvements_depth: "deep"
+            improvements_depth: "deep",
+            show_error_patterns: true,
+            show_long_term_weaknesses: true,
+            show_personalized_learning_plan: true,
+            register_analysis: true
           },
           Personal: {
             plan_code: "PERSONAL",
@@ -1648,10 +1664,14 @@ Point #${pt.id}: ${pt.requirement}
             structure_depth: "deep_personal",
             redemittel_depth: "personalized",
             correction_depth: "deep_personal",
-            improved_version: true,
+            improved_version: "full",
             improved_version_depth: "deep_personal",
             strengths_depth: "personalized",
-            improvements_depth: "deep_personal"
+            improvements_depth: "deep_personal",
+            show_error_patterns: true,
+            show_long_term_weaknesses: true,
+            show_personalized_learning_plan: true,
+            register_analysis: true
           }
         };
 
@@ -1718,7 +1738,7 @@ CALIBRATED EXPLANATION DEPTH REQUIREMENTS:
 - Improvements Depth: ${resolveDepth(activePlanConfig.improvements_depth)}
 - Improved Version Depth: ${resolveDepth(activePlanConfig.improved_version_depth)}
 
-EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL 13 AREAS WHERE APPLICABLE):
+EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL AREAS WHERE APPLICABLE):
 1. Task fulfillment: Check every required Leitpunkt individually. Determine whether each is "fulfilled", "partial", or "missing". Cite the student's exact German wording in "evidence". If missing, set evidence to "".
 2. Grammar mistakes: Identify genuine grammatical errors (syntax, morphology, case government, endings, word order). Provide original wording, correction, and pedagogical explanation of the rule.
 3. Word usage / improper usage: Identify words or expressions that are grammatically possible but inappropriate, unnatural, or unsuitable in the sentence/context.
@@ -1729,9 +1749,12 @@ EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL 13 AREAS WHERE APPLIC
 8. Redemittel: Suggest useful, natural German Redemittel and sentence connectors specifically relevant to this exam task and CEFR ${level}.
 9. How to improve: Provide practical, specific, actionable advice based on the student's actual demonstrated weaknesses.
 10. Improved version: Produce a fully corrected, naturally rewritten version of the student's entire submission in authentic German while strictly preserving the student's intended meaning. Do not introduce ideas that were not present unless necessary to make the text coherent.
-11. What the student did correctly: Identify genuine strengths in grammar, vocabulary, task fulfillment, structure, register, or expression in feedback.strengths.
-12. Where the student needs improvement: Clearly identify the most critical weaknesses and priority areas for growth in feedback.improvements.
-13. Summary: Provide a concise, objective overall qualitative assessment in feedback.summary.
+11. Systematic error patterns: If recurring habits or systematic mistake patterns exist (e.g. Nebensatz verb position, adjective declension), explain them in error_patterns.
+12. Long-term weaknesses: Identify broader language learning hurdles to focus on over coming weeks in long_term_weaknesses.
+13. Personalized learning plan: Recommend tailored next study steps and practice drills in personalized_learning_plan.
+14. Register analysis: Analyze formality, salutations, closing etiquette, and situational tone in register_analysis.
+15. Strengths & improvements: Identify genuine strengths in feedback.strengths and priority growth points in feedback.improvements.
+16. Summary: Provide a concise, objective overall qualitative assessment in feedback.summary.
 
 MANDATORY RULES & CONSTRAINTS:
 1. STRICTLY QUALITATIVE: Completely remove all percentage, marks, pass/fail, and score-based evaluation concepts. You must NOT calculate, recommend, determine, or return any numeric score, mark, or percentage. Focus exclusively on qualitative feedback, explanations, and actionable observations.
@@ -1815,6 +1838,32 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
     }
   ],
   "improved_version": "...",
+  "error_patterns": [
+    {
+      "pattern": "...",
+      "explanation": "...",
+      "advice": "..."
+    }
+  ],
+  "long_term_weaknesses": [
+    {
+      "area": "...",
+      "impact": "...",
+      "recommendation": "..."
+    }
+  ],
+  "personalized_learning_plan": [
+    {
+      "step": 1,
+      "focus": "...",
+      "action": "..."
+    }
+  ],
+  "register_analysis": {
+    "appropriate": true,
+    "tone": "...",
+    "feedback": "..."
+  },
   "feedback": {
     "summary": "Objective qualitative overview of the submission...",
     "strengths": [],
@@ -2020,8 +2069,26 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             return arr.slice(0, Math.max(0, numLimit));
           };
 
-          // 1. Process genuine mistakes and findings across categories
-          let rawMistakes = Array.isArray(parsed.mistakes)
+          // Helper: extract first two sentences for German text
+          const extractFirstTwoSentences = (text) => {
+            if (!text) return "";
+            const str = String(text).trim();
+            const sentenceMatches = str.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
+            if (sentenceMatches && sentenceMatches.length >= 2) {
+              return (sentenceMatches[0] + sentenceMatches[1]).trim();
+            }
+            if (sentenceMatches && sentenceMatches.length === 1) {
+              return sentenceMatches[0].trim();
+            }
+            const parts = str.split(/(?<=[.!?])\s+/);
+            if (parts.length >= 2) {
+              return (parts[0] + " " + parts[1]).trim();
+            }
+            return str;
+          };
+
+          // 1. Process genuine mistakes (Grammar, Spelling, Form)
+          const rawMistakes = Array.isArray(parsed.mistakes)
             ? parsed.mistakes.map((m) => ({
                 original: String(m.original || "").trim(),
                 correction: String(m.correction || "").trim(),
@@ -2029,38 +2096,6 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
                 explanation: String(m.explanation || "").trim(),
               })).filter((m) => m.original || m.correction)
             : [];
-
-          // Merge distinct word_usage findings into mistakes for unified rendering
-          if (Array.isArray(parsed.word_usage)) {
-            parsed.word_usage.forEach((wu) => {
-              const orig = String(wu.original || "").trim();
-              const corr = String(wu.correction || "").trim();
-              if ((orig || corr) && !rawMistakes.some((m) => m.original === orig && m.correction === corr)) {
-                rawMistakes.push({
-                  original: orig,
-                  correction: corr,
-                  type: "word_usage",
-                  explanation: String(wu.explanation || "").trim(),
-                });
-              }
-            });
-          }
-
-          // Merge distinct unclear sentence findings into mistakes for unified rendering
-          if (Array.isArray(parsed.unclear_sentences)) {
-            parsed.unclear_sentences.forEach((us) => {
-              const orig = String(us.original || "").trim();
-              const corr = String(us.rewritten || us.correction || "").trim();
-              if ((orig || corr) && !rawMistakes.some((m) => m.original === orig && m.correction === corr)) {
-                rawMistakes.push({
-                  original: orig,
-                  correction: corr,
-                  type: "unclear_sentence",
-                  explanation: String(us.explanation || "").trim(),
-                });
-              }
-            });
-          }
 
           // Apply max_key_mistakes limit
           let filteredMistakes = applyLimit(rawMistakes, activePlanConfig.max_key_mistakes);
@@ -2077,12 +2112,14 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           const maxGrammarExplanations = typeof activePlanConfig.max_grammar_explanations === "number"
             ? activePlanConfig.max_grammar_explanations
             : 999;
+          let hasMoreGrammarExplanations = false;
           if (maxGrammarExplanations < 999) {
             let grammarExpCount = 0;
             filteredMistakes = filteredMistakes.map((m) => {
               if (m.type === "grammar" && m.explanation) {
                 grammarExpCount++;
                 if (grammarExpCount > maxGrammarExplanations) {
+                  hasMoreGrammarExplanations = true;
                   return { ...m, explanation: "" };
                 }
               }
@@ -2090,7 +2127,74 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             });
           }
 
-          // 2. Strengths and improvements
+          // 2. Word usage
+          const rawWordUsage = Array.isArray(parsed.word_usage)
+            ? parsed.word_usage.map((wu) => ({
+                original: String(wu.original || "").trim(),
+                suggestion: String(wu.suggestion || wu.correction || "").trim(),
+                explanation: String(wu.explanation || "").trim(),
+              })).filter((wu) => wu.original || wu.suggestion)
+            : [];
+          const filteredWordUsage = applyLimit(rawWordUsage, activePlanConfig.max_word_usage_items);
+
+          // 3. Unclear sentences
+          const rawUnclearSentences = Array.isArray(parsed.unclear_sentences)
+            ? parsed.unclear_sentences.map((us) => ({
+                original: String(us.original || "").trim(),
+                rewritten: String(us.rewritten || us.correction || "").trim(),
+                explanation: String(us.explanation || "").trim(),
+              })).filter((us) => us.original || us.rewritten)
+            : [];
+          const filteredUnclearSentences = applyLimit(rawUnclearSentences, activePlanConfig.unclear_sentence_limit);
+
+          // 4. Register analysis (Boolean gate)
+          const allowRegisterAnalysis = Boolean(activePlanConfig.register_analysis);
+          const filteredRegisterAnalysis = (allowRegisterAnalysis && parsed.register_analysis)
+            ? {
+                appropriate: parsed.register_analysis.appropriate !== false,
+                tone: String(parsed.register_analysis.tone || "").trim(),
+                analysis: String(parsed.register_analysis.analysis || "").trim(),
+                recommendation: String(parsed.register_analysis.recommendation || "").trim(),
+              }
+            : null;
+
+          // 5. Improved sentences
+          const rawImprovedSentences = Array.isArray(parsed.improved_sentences)
+            ? parsed.improved_sentences.map((is) => ({
+                original: String(is.original || "").trim(),
+                improved: String(is.improved || is.correction || "").trim(),
+                explanation: String(is.explanation || is.reason || "").trim(),
+              })).filter((is) => is.original || is.improved)
+            : [];
+          const filteredImprovedSentences = applyLimit(rawImprovedSentences, activePlanConfig.max_improved_sentences);
+
+          // 6. Redemittel
+          const rawRedemittel = Array.isArray(parsed.redemittel)
+            ? parsed.redemittel.map((r) => ({
+                phrase: typeof r === "object" ? String(r.phrase || r.text || "").trim() : String(r || "").trim(),
+                usage: typeof r === "object" ? String(r.usage || r.context || "").trim() : "",
+              })).filter((r) => r.phrase)
+            : [];
+          const filteredRedemittel = applyLimit(rawRedemittel, activePlanConfig.redemittel_limit);
+
+          // 7. Improved version feature gate ("first_2_sentences" | "full" | "none"/falsy)
+          const rawImprovedVersion = parsed.improved_version ? String(parsed.improved_version).trim() : "";
+          const improvedVersionConfig = String(activePlanConfig.improved_version || "").toLowerCase().trim();
+          let filteredImprovedVersion = null;
+          let improvedVersionMode = "none";
+
+          if (improvedVersionConfig === "first_2_sentences" && rawImprovedVersion) {
+            filteredImprovedVersion = extractFirstTwoSentences(rawImprovedVersion);
+            improvedVersionMode = "first_2_sentences";
+          } else if ((improvedVersionConfig === "full" || improvedVersionConfig === "true") && rawImprovedVersion) {
+            filteredImprovedVersion = rawImprovedVersion;
+            improvedVersionMode = "full";
+          } else {
+            filteredImprovedVersion = null;
+            improvedVersionMode = "none";
+          }
+
+          // 8. Strengths and improvements
           const feedbackObj = typeof parsed.feedback === "object" ? parsed.feedback : {};
           const rawStrengths = Array.isArray(feedbackObj?.strengths)
             ? feedbackObj.strengths.map((s) => String(s || "").trim()).filter(Boolean)
@@ -2103,47 +2207,63 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           const filteredImprovements = applyLimit(rawImprovements, activePlanConfig.max_improvements);
 
           const feedbackSummary = String(feedbackObj?.summary || parsed.feedback || "").trim();
-          let feedbackText = feedbackSummary || "Your writing submission was evaluated against the examination task.";
+          const feedbackText = feedbackSummary || "Your writing submission was evaluated against the examination task.";
 
-          // 3. Redemittel
-          const rawRedemittel = Array.isArray(parsed.redemittel)
-            ? parsed.redemittel.map((r) => (typeof r === "object" ? String(r?.phrase || r?.text || "").trim() : String(r || "").trim())).filter(Boolean)
-            : [];
-          const filteredRedemittel = applyLimit(rawRedemittel, activePlanConfig.redemittel_limit);
-
-          // 4. Unclear sentences
-          const rawUnclearSentences = Array.isArray(parsed.unclear_sentences)
-            ? parsed.unclear_sentences
-            : [];
-          const filteredUnclearSentences = applyLimit(rawUnclearSentences, activePlanConfig.unclear_sentence_limit);
-
-          // 5. Word usage
-          const rawWordUsage = Array.isArray(parsed.word_usage)
-            ? parsed.word_usage
-            : [];
-          const filteredWordUsage = applyLimit(rawWordUsage, activePlanConfig.max_word_usage_items);
-
-          // 6. Improved sentences
-          const rawImprovedSentences = Array.isArray(parsed.improved_sentences)
-            ? parsed.improved_sentences
-            : [];
-          const filteredImprovedSentences = applyLimit(rawImprovedSentences, activePlanConfig.max_improved_sentences);
-
-          // 7. Improved version feature gate
-          const allowImprovedVersion = Boolean(activePlanConfig.improved_version);
-          const filteredImprovedVersion = (allowImprovedVersion && parsed.improved_version)
-            ? String(parsed.improved_version).trim()
-            : null;
-
-          // 8. Task fulfillment feature gate
+          // 9. Task fulfillment feature gate
           let filteredTaskFulfillment = parsed.task_fulfillment || null;
-          if (activePlanConfig.task_fulfillment === false && filteredTaskFulfillment) {
-            filteredTaskFulfillment = {
-              missing_count: filteredTaskFulfillment.missing_count || 0,
-              partial_count: filteredTaskFulfillment.partial_count || 0,
-              points: [],
-            };
+          if (activePlanConfig.task_fulfillment === false) {
+            filteredTaskFulfillment = null;
           }
+
+          // 10. Systematic error patterns (Boolean gate)
+          const rawErrorPatterns = Array.isArray(parsed.error_patterns)
+            ? parsed.error_patterns.map((ep) => ({
+                pattern: String(ep.pattern || "").trim(),
+                description: String(ep.description || "").trim(),
+                frequency: String(ep.frequency || "").trim(),
+                examples: Array.isArray(ep.examples) ? ep.examples.map((ex) => String(ex || "").trim()).filter(Boolean) : [],
+              })).filter((ep) => ep.pattern || ep.description)
+            : [];
+          const filteredErrorPatterns = activePlanConfig.show_error_patterns ? rawErrorPatterns : null;
+
+          // 11. Long-term weaknesses (Boolean gate)
+          const rawLongTermWeaknesses = Array.isArray(parsed.long_term_weaknesses)
+            ? parsed.long_term_weaknesses.map((w) => ({
+                area: String(w.area || "").trim(),
+                diagnostic: String(w.diagnostic || "").trim(),
+                remedy: String(w.remedy || "").trim(),
+              })).filter((w) => w.area || w.diagnostic)
+            : [];
+          const filteredLongTermWeaknesses = activePlanConfig.show_long_term_weaknesses ? rawLongTermWeaknesses : null;
+
+          // 12. Personalized learning plan (Boolean gate)
+          const rawLearningPlan = Array.isArray(parsed.personalized_learning_plan)
+            ? parsed.personalized_learning_plan.map((lp) => ({
+                focus: String(lp.focus || "").trim(),
+                action_items: Array.isArray(lp.action_items) ? lp.action_items.map((ai) => String(ai || "").trim()).filter(Boolean) : [],
+                recommended_topics: Array.isArray(lp.recommended_topics) ? lp.recommended_topics.map((rt) => String(rt || "").trim()).filter(Boolean) : [],
+              })).filter((lp) => lp.focus || (lp.action_items && lp.action_items.length > 0))
+            : [];
+          const filteredLearningPlan = activePlanConfig.show_personalized_learning_plan ? rawLearningPlan : null;
+
+          // Compute locked_features metadata for frontend
+          const lockedFeatures = {
+            has_more_mistakes: rawMistakes.length > filteredMistakes.length,
+            has_more_grammar_explanations: hasMoreGrammarExplanations,
+            has_more_word_usage: rawWordUsage.length > filteredWordUsage.length,
+            has_more_unclear_sentences: rawUnclearSentences.length > filteredUnclearSentences.length,
+            has_more_improved_sentences: rawImprovedSentences.length > filteredImprovedSentences.length,
+            has_more_redemittel: rawRedemittel.length > filteredRedemittel.length,
+            has_more_strengths: rawStrengths.length > filteredStrengths.length,
+            has_more_improvements: rawImprovements.length > filteredImprovements.length,
+            has_more_improved_version: improvedVersionMode === "first_2_sentences",
+            improved_version_locked: improvedVersionMode === "none",
+            task_fulfillment_locked: activePlanConfig.task_fulfillment === false,
+            register_analysis_locked: !activePlanConfig.register_analysis,
+            error_patterns_locked: !activePlanConfig.show_error_patterns,
+            long_term_weaknesses_locked: !activePlanConfig.show_long_term_weaknesses,
+            personalized_learning_plan_locked: !activePlanConfig.show_personalized_learning_plan,
+          };
 
           evaluationResult = {
             score_percent: null,
@@ -2163,11 +2283,18 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             development: parsed.development || null,
             format: parsed.format || null,
             improved_version: filteredImprovedVersion,
+            improved_version_mode: improvedVersionMode,
             improved_sentences: filteredImprovedSentences,
             redemittel: filteredRedemittel,
             unclear_sentences: filteredUnclearSentences,
             word_usage: filteredWordUsage,
+            register_analysis: filteredRegisterAnalysis,
+            error_patterns: filteredErrorPatterns,
+            long_term_weaknesses: filteredLongTermWeaknesses,
+            personalized_learning_plan: filteredLearningPlan,
             applied_rules: ["qualitative_evaluation", "schreiben_plan_config"],
+            plan_config: activePlanConfig,
+            locked_features: lockedFeatures,
           };
         } catch (evalErr) {
           console.error("Evaluation parsing error:", evalErr);

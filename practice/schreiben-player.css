@@ -1029,6 +1029,209 @@ body.exam-mode:has(.schreiben-player-root) .app-viewport {
   border-radius: 6px;
 }
 
+/* Plan-driven Locked Teasers & Feature Cards */
+.schreiben-locked-teaser {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 14px;
+}
+
+.schreiben-locked-teaser-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.schreiben-locked-teaser-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.schreiben-locked-teaser-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+}
+
+.schreiben-locked-teaser-desc {
+  font-size: 0.8rem;
+  color: var(--schreiben-ink-muted);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+.schreiben-teaser-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px;
+  background: #0284c7;
+  color: #ffffff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.schreiben-teaser-btn:hover {
+  background: #0369a1;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.schreiben-teaser-btn-purple {
+  background: #7c3aed;
+}
+
+.schreiben-teaser-btn-purple:hover {
+  background: #6d28d9;
+}
+
+.schreiben-locked-feature-card {
+  background: #fafbfc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.schreiben-locked-feature-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 640px;
+}
+
+.schreiben-locked-feature-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.schreiben-locked-feature-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--schreiben-ink);
+  margin: 0 0 4px 0;
+}
+
+.schreiben-locked-feature-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--schreiben-ink-muted);
+  margin: 0;
+}
+
+.schreiben-improved-locked-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #d8b4fe;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.schreiben-improved-locked-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #6b21a8;
+  font-weight: 500;
+}
+
+/* Word Usage & Unclear Sentences */
+.schreiben-word-usage-list,
+.schreiben-unclear-sentences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.schreiben-word-usage-card,
+.schreiben-unclear-sentence-card {
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.schreiben-word-usage-row,
+.schreiben-unclear-sentence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.schreiben-word-usage-exp,
+.schreiben-unclear-sentence-exp {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+/* Register Card */
+.schreiben-register-card {
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+
+.schreiben-register-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Systematic Error Patterns, Weaknesses, Learning Plan */
+.schreiben-error-patterns-list,
+.schreiben-weaknesses-list,
+.schreiben-learning-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schreiben-pattern-card,
+.schreiben-weakness-card,
+.schreiben-learning-card {
+  background: #ffffff;
+  border: 1px solid var(--schreiben-border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .schreiben-header {
@@ -1074,5 +1277,20 @@ body.exam-mode:has(.schreiben-player-root) .app-viewport {
 
   .schreiben-btn-primary {
     width: 100%;
+  }
+
+  .schreiben-locked-teaser {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .schreiben-locked-feature-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .schreiben-improved-locked-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

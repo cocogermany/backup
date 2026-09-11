@@ -785,12 +785,28 @@ window.SchreibenPlayerComponent = {
     if (root) root.scrollTop = 0;
 
     const evaluation = this.evaluationResult || {};
+    const planConfig = evaluation.plan_config || {};
+    const lockedFeatures = evaluation.locked_features || {};
+
     const criteria = Array.isArray(evaluation.criteria) ? evaluation.criteria : [];
     const mistakes = Array.isArray(evaluation.mistakes) ? evaluation.mistakes : [];
+    const wordUsage = Array.isArray(evaluation.word_usage) ? evaluation.word_usage : [];
+    const unclearSentences = Array.isArray(evaluation.unclear_sentences) ? evaluation.unclear_sentences : [];
+    const registerAnalysis = evaluation.register_analysis || null;
+    const improvedSentences = Array.isArray(evaluation.improved_sentences) ? evaluation.improved_sentences : [];
+    const redemittel = Array.isArray(evaluation.redemittel) ? evaluation.redemittel : [];
+    const improvedVersion = evaluation.improved_version ? String(evaluation.improved_version).trim() : null;
+    const improvedVersionMode = evaluation.improved_version_mode || (improvedVersion ? "full" : "none");
+
     const feedback = evaluation.feedback || "";
     const feedbackDetails = evaluation.feedback_details || {};
     const strengths = Array.isArray(feedbackDetails.strengths) ? feedbackDetails.strengths : [];
     const improvements = Array.isArray(feedbackDetails.improvements) ? feedbackDetails.improvements : [];
+
+    const errorPatterns = Array.isArray(evaluation.error_patterns) ? evaluation.error_patterns : [];
+    const longTermWeaknesses = Array.isArray(evaluation.long_term_weaknesses) ? evaluation.long_term_weaknesses : [];
+    const learningPlan = Array.isArray(evaluation.personalized_learning_plan) ? evaluation.personalized_learning_plan : [];
+
     const tfPoints = evaluation.task_fulfillment && Array.isArray(evaluation.task_fulfillment.points)
       ? evaluation.task_fulfillment.points
       : [];
@@ -802,10 +818,6 @@ window.SchreibenPlayerComponent = {
     const creditsRemaining = (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number")
       ? window.AppState.schreibenCreditsRemaining
       : null;
-
-    const improvedVersion = evaluation.improved_version ? String(evaluation.improved_version).trim() : null;
-    const redemittel = Array.isArray(evaluation.redemittel) ? evaluation.redemittel : [];
-    const improvedSentences = Array.isArray(evaluation.improved_sentences) ? evaluation.improved_sentences : [];
 
     // Derived qualitative indicators from actual evaluation data
     const fulfilledCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "fulfilled").length;
@@ -883,12 +895,12 @@ window.SchreibenPlayerComponent = {
             </div>
           </div>
 
-          <!-- Diagnostic Metrics Row based on actual evaluation -->
+          <!-- Diagnostic Metrics Row -->
           <div class="schreiben-eval-pills-row">
             ${tfPoints.length > 0 ? `
               <div class="schreiben-eval-pill">
                 <i data-lucide="list-checks" style="width:14px;height:14px; color:#10b981;"></i>
-                <span>Aufgabenerfüllung: <strong>${fulfilledCount}/${tfPoints.length}</strong> Leitpunkte erfüllt</span>
+                <span>Aufgabenerfüllung: <strong>${fulfilledCount}/${tfPoints.length}</strong> Leitpunkte</span>
               </div>
             ` : ''}
             <div class="schreiben-eval-pill">
@@ -903,62 +915,23 @@ window.SchreibenPlayerComponent = {
             ` : ''}
             <div class="schreiben-eval-pill">
               <i data-lucide="spell-check" style="width:14px;height:14px; color:#f59e0b;"></i>
-              <span>Sprachkorrekturen: <strong>${mistakes.length}</strong> ${mistakes.length === 1 ? 'Hinweis' : 'Hinweise'}</span>
+              <span>Sprachkorrekturen: <strong>${mistakes.length}</strong></span>
             </div>
             ${redemittel.length > 0 ? `
               <div class="schreiben-eval-pill">
                 <i data-lucide="bookmark" style="width:14px;height:14px; color:#0284c7;"></i>
-                <span>Redemittel: <strong>${redemittel.length}</strong> ${redemittel.length === 1 ? 'Vorschlag' : 'Vorschläge'}</span>
+                <span>Redemittel: <strong>${redemittel.length}</strong></span>
               </div>
             ` : ''}
           </div>
         </div>
 
-        <!-- Qualitative General Feedback -->
-        ${feedback ? `
-          <div class="schreiben-feedback-callout">
-            <div class="schreiben-feedback-label">
-              <i data-lucide="message-square" style="width:15px;height:15px;"></i>
-              <span>Gesamteinschätzung (Examiner Feedback)</span>
-            </div>
-            <p class="schreiben-feedback-text">${this.escapeHtml(feedback)}</p>
-          </div>
-        ` : ''}
-
-        <!-- Strengths and Improvements -->
-        ${(strengths.length > 0 || improvements.length > 0) ? `
-          <div class="schreiben-section-block" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
-            ${strengths.length > 0 ? `
-              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:16px;">
-                <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#166534; display:flex; align-items:center; gap:6px;">
-                  <i data-lucide="thumbs-up" style="width:16px;height:16px;"></i>
-                  <span>Stärken (Strengths)</span>
-                </h4>
-                <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#14532d; line-height:1.6;">
-                  ${strengths.map(s => `<li>${this.escapeHtml(s)}</li>`).join("")}
-                </ul>
-              </div>
-            ` : ''}
-            ${improvements.length > 0 ? `
-              <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px;">
-                <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#92400e; display:flex; align-items:center; gap:6px;">
-                  <i data-lucide="arrow-up-right" style="width:16px;height:16px;"></i>
-                  <span>Tipps zur Verbesserung (Improvements)</span>
-                </h4>
-                <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#78350f; line-height:1.6;">
-                  ${improvements.map(i => `<li>${this.escapeHtml(i)}</li>`).join("")}
-                </ul>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <!-- Leitpunkte Evidence Checklist -->
-        ${tfPoints.length > 0 ? `
+        <!-- 1. Task Fulfillment -->
+        ${!lockedFeatures.task_fulfillment_locked && tfPoints.length > 0 ? `
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="check-square" style="width:18px;height:18px; color:#10b981;"></i>
-              <span>Aufgabenerfüllung nach Leitpunkten (Task Fulfillment Evidence)</span>
+              <span>1. Aufgabenerfüllung nach Leitpunkten (Task Fulfillment)</span>
             </h3>
             <div style="display:flex; flex-direction:column; gap:10px;">
               ${tfPoints.map(p => {
@@ -979,13 +952,28 @@ window.SchreibenPlayerComponent = {
               }).join("")}
             </div>
           </div>
-        ` : ''}
+        ` : (lockedFeatures.task_fulfillment_locked ? `
+          <div class="schreiben-section-block">
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="check-square" style="width:20px;height:20px; color:#64748b;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Aufgabenerfüllung nach Leitpunkten</h4>
+                  <p class="schreiben-locked-feature-desc">Prüft alle geforderten Leitpunkte einzeln auf Vollständigkeit mit konkreten Textbelegen aus deiner Einreichung.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Leitpunkt-Check</a>
+            </div>
+          </div>
+        ` : '')}
 
-        <!-- Criteria Grid (Qualitative Assessment without numeric marks) -->
+        <!-- 2. Criteria -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="file-check-2" style="width:18px;height:18px; color:#0284c7;"></i>
-            <span>Bewertungskriterien & Gutachten (Evaluation Criteria)</span>
+            <span>2. Bewertungskriterien & Gutachten (Evaluation Criteria)</span>
           </h3>
           <div class="schreiben-criteria-grid">
             ${criteria.map(c => {
@@ -1012,103 +1000,256 @@ window.SchreibenPlayerComponent = {
           </div>
         </div>
 
-        <!-- Mistakes & Corrections -->
+        <!-- 3. Key Mistakes -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="spell-check" style="width:18px;height:18px; color:#f59e0b;"></i>
-            <span>Gefundene Fehler & Korrekturen (Mistakes & Corrections)</span>
+            <span>3. Gefundene Fehler & Korrekturen (Key Mistakes)</span>
           </h3>
           ${mistakes.length > 0 ? `
             <div class="schreiben-mistakes-list">
-              ${mistakes.map(m => {
-                const mType = String(m.type || "grammar").toLowerCase();
-                let typeBadge = "";
-                if (mType.includes("grammar") || mType.includes("grammatik")) {
-                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-grammar">Grammatik</span>';
-                } else if (mType.includes("word") || mType.includes("vocab") || mType.includes("wort")) {
-                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-vocab">Wortwahl</span>';
-                } else if (mType.includes("unclear") || mType.includes("satz")) {
-                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-structure">Satzbau</span>';
-                }
-                return `
-                  <div class="schreiben-mistake-card">
-                    <div class="schreiben-mistake-row">
-                      ${typeBadge}
-                      <span class="schreiben-badge-mistake">${this.escapeHtml(m.original || "")}</span>
-                      <span class="schreiben-arrow">➔</span>
-                      <span class="schreiben-badge-correction">${this.escapeHtml(m.correction || "")}</span>
-                    </div>
-                    ${m.explanation ? `<div class="schreiben-mistake-exp">${this.escapeHtml(m.explanation)}</div>` : ''}
+              ${mistakes.map(m => `
+                <div class="schreiben-mistake-card">
+                  <div class="schreiben-mistake-row">
+                    <span class="schreiben-mistake-type-pill schreiben-type-grammar">Grammatik</span>
+                    <span class="schreiben-badge-mistake">${this.escapeHtml(m.original || "")}</span>
+                    <span class="schreiben-arrow">➔</span>
+                    <span class="schreiben-badge-correction">${this.escapeHtml(m.correction || "")}</span>
                   </div>
-                `;
-              }).join("")}
+                  ${m.explanation ? `<div class="schreiben-mistake-exp">${this.escapeHtml(m.explanation)}</div>` : ''}
+                </div>
+              `).join("")}
             </div>
+            ${lockedFeatures.has_more_mistakes ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">Weitere Fehlerhinweise im Text gefunden</div>
+                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_key_mistakes || 3} Fehler. Höhere Pläne schalten alle weiteren Fundstellen frei.</div>
+                  </div>
+                </div>
+                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+              </div>
+            ` : ''}
           ` : `
             <div class="schreiben-clean-banner">
               <i data-lucide="check-circle-2" style="width:18px;height:18px; color:#16a34a;"></i>
-              <span>Keine gravierenden sprachlichen Fehler gefunden. Sehr gute Formulierung!</span>
+              <span>Keine gravierenden sprachlichen Fehler gefunden. Sehr saubere Ausarbeitung!</span>
             </div>
           `}
         </div>
 
-        <!-- Sentence Optimizations / Better Formulations -->
-        ${improvedSentences.length > 0 ? `
+        <!-- 4. Word Usage -->
+        ${wordUsage.length > 0 || lockedFeatures.has_more_word_usage ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="book-open" style="width:18px;height:18px; color:#0284c7;"></i>
+              <span>4. Wortwahl & Ausdruck (Word Usage)</span>
+            </h3>
+            ${wordUsage.length > 0 ? `
+              <div class="schreiben-word-usage-list">
+                ${wordUsage.map(wu => `
+                  <div class="schreiben-word-usage-card">
+                    <div class="schreiben-word-usage-row">
+                      <span class="schreiben-mistake-type-pill schreiben-type-vocab">Wortwahl</span>
+                      <span class="schreiben-badge-mistake">${this.escapeHtml(wu.original || "")}</span>
+                      <span class="schreiben-arrow">➔</span>
+                      <span class="schreiben-badge-correction">${this.escapeHtml(wu.suggestion || wu.correction || "")}</span>
+                    </div>
+                    ${wu.explanation ? `<div class="schreiben-word-usage-exp">${this.escapeHtml(wu.explanation)}</div>` : ''}
+                  </div>
+                `).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_word_usage ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">Weitere Wortwahl-Optimierungen verfügbar</div>
+                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_word_usage_items || 2} Wortschatz-Empfehlungen. Upgrade für unbegrenzte lexikalische Beratung.</div>
+                  </div>
+                </div>
+                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- 5. Unclear Sentences -->
+        ${unclearSentences.length > 0 || lockedFeatures.has_more_unclear_sentences ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="help-circle" style="width:18px;height:18px; color:#d97706;"></i>
+              <span>5. Unklare Sätze & Satzbau (Sentence Clarity)</span>
+            </h3>
+            ${unclearSentences.length > 0 ? `
+              <div class="schreiben-unclear-sentences-list">
+                ${unclearSentences.map(us => `
+                  <div class="schreiben-unclear-sentence-card">
+                    <div class="schreiben-unclear-sentence-row">
+                      <span class="schreiben-mistake-type-pill schreiben-type-structure">Satzbau</span>
+                      <span class="schreiben-badge-mistake">${this.escapeHtml(us.original || "")}</span>
+                      <span class="schreiben-arrow">➔</span>
+                      <span class="schreiben-badge-correction">${this.escapeHtml(us.rewritten || us.correction || "")}</span>
+                    </div>
+                    ${us.explanation ? `<div class="schreiben-unclear-sentence-exp">${this.escapeHtml(us.explanation)}</div>` : ''}
+                  </div>
+                `).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_unclear_sentences ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">Weitere Satzbau-Hinweise gefunden</div>
+                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.unclear_sentence_limit || 2} unklare Formulierungen. Höhere Pläne bieten tiefe Satzbau-Analysen.</div>
+                  </div>
+                </div>
+                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- 6. Register Analysis -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="scale" style="width:18px;height:18px; color:#6366f1;"></i>
+            <span>6. Stilebene & Registeranalyse (Register Analysis)</span>
+          </h3>
+          ${registerAnalysis ? `
+            <div class="schreiben-register-card">
+              <div class="schreiben-register-meta">
+                <span class="schreiben-badge-pill" style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;">
+                  Tonalität: <strong>${this.escapeHtml(registerAnalysis.tone || "Neutral")}</strong>
+                </span>
+                <span class="schreiben-badge-pill" style="${registerAnalysis.appropriate !== false ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">
+                  ${registerAnalysis.appropriate !== false ? '✓ Dem Prüfungsformat angemessen' : '⚠ Register unpassend'}
+                </span>
+              </div>
+              ${registerAnalysis.analysis ? `<p style="margin:10px 0 6px 0; font-size:0.9rem; line-height:1.6; color:#334155;">${this.escapeHtml(registerAnalysis.analysis)}</p>` : ''}
+              ${registerAnalysis.recommendation ? `<p style="margin:6px 0 0 0; font-size:0.86rem; color:#4f46e5; font-style:italic;">Empfehlung: ${this.escapeHtml(registerAnalysis.recommendation)}</p>` : ''}
+            </div>
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="scale" style="width:20px;height:20px; color:#6366f1;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Register- & Stilanalyse freischalten</h4>
+                  <p class="schreiben-locked-feature-desc">Prüft, ob die Anrede (Du vs. Sie), Tonalität und Formulierungen exakt dem geforderten Prüfungsformat entsprechen.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Stilanalyse</a>
+            </div>
+          `}
+        </div>
+
+        <!-- 7. Sentence Optimizations -->
+        ${improvedSentences.length > 0 || lockedFeatures.has_more_improved_sentences ? `
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="refresh-cw" style="width:18px;height:18px; color:#059669;"></i>
-              <span>Satzoptimierung (Bessere Formulierungen)</span>
+              <span>7. Satzoptimierung (Bessere Formulierungen)</span>
             </h3>
-            <div class="schreiben-improved-sentences-list">
-              ${improvedSentences.map(s => `
-                <div class="schreiben-sentence-card">
-                  <div class="schreiben-sentence-row">
-                    <div class="schreiben-sentence-before">
-                      <span class="schreiben-sentence-label">Original:</span>
-                      <span>${this.escapeHtml(s.original || "")}</span>
+            ${improvedSentences.length > 0 ? `
+              <div class="schreiben-improved-sentences-list">
+                ${improvedSentences.map(s => `
+                  <div class="schreiben-sentence-card">
+                    <div class="schreiben-sentence-row">
+                      <div class="schreiben-sentence-before">
+                        <span class="schreiben-sentence-label">Original:</span>
+                        <span>${this.escapeHtml(s.original || "")}</span>
+                      </div>
+                      <div class="schreiben-sentence-arrow">➔</div>
+                      <div class="schreiben-sentence-after">
+                        <span class="schreiben-sentence-label">Besser:</span>
+                        <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
+                      </div>
                     </div>
-                    <div class="schreiben-sentence-arrow">➔</div>
-                    <div class="schreiben-sentence-after">
-                      <span class="schreiben-sentence-label">Besser:</span>
-                      <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
-                    </div>
+                    ${(s.explanation || s.reason) ? `<div class="schreiben-sentence-reason">${this.escapeHtml(s.explanation || s.reason)}</div>` : ''}
                   </div>
-                  ${(s.explanation || s.reason) ? `<div class="schreiben-sentence-reason">${this.escapeHtml(s.explanation || s.reason)}</div>` : ''}
+                `).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_improved_sentences ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">Weitere Satzoptimierungen verfügbar</div>
+                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.max_improved_sentences || 3} Satzoptimierungen. Höhere Pläne bieten unbegrenzte Satzverbesserungen.</div>
+                  </div>
                 </div>
-              `).join("")}
-            </div>
+                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
 
-        <!-- Recommended Redemittel & Phrases -->
-        ${redemittel.length > 0 ? `
+        <!-- 8. Redemittel -->
+        ${redemittel.length > 0 || lockedFeatures.has_more_redemittel ? `
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="bookmark" style="width:18px;height:18px; color:#0284c7;"></i>
-              <span>Empfohlene Redemittel & Satzbausteine</span>
+              <span>8. Empfohlene Redemittel & Satzbausteine</span>
             </h3>
-            <div class="schreiben-redemittel-grid">
-              ${redemittel.map(r => {
-                const phrase = typeof r === "object" ? (r.phrase || r.text || "") : String(r || "");
-                const usage = typeof r === "object" ? (r.usage || r.context || "") : "";
-                return `
-                  <div class="schreiben-redemittel-card">
-                    <div class="schreiben-redemittel-phrase">„${this.escapeHtml(phrase)}“</div>
-                    ${usage ? `<div class="schreiben-redemittel-usage">${this.escapeHtml(usage)}</div>` : ''}
+            ${redemittel.length > 0 ? `
+              <div class="schreiben-redemittel-grid">
+                ${redemittel.map(r => {
+                  const phrase = typeof r === "object" ? (r.phrase || r.text || "") : String(r || "");
+                  const usage = typeof r === "object" ? (r.usage || r.context || "") : "";
+                  return `
+                    <div class="schreiben-redemittel-card">
+                      <div class="schreiben-redemittel-phrase">„${this.escapeHtml(phrase)}“</div>
+                      ${usage ? `<div class="schreiben-redemittel-usage">${this.escapeHtml(usage)}</div>` : ''}
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_redemittel ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
                   </div>
-                `;
-              }).join("")}
-            </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">Weitere prüfungsrelevante Redemittel verfügbar</div>
+                    <div class="schreiben-locked-teaser-desc">Dein aktueller Plan zeigt bis zu ${planConfig.redemittel_limit || 2} Redemittel. Upgrade für unbegrenzte Satzbausteine passend zu deiner Aufgabe.</div>
+                  </div>
+                </div>
+                <a href="#membership" class="schreiben-teaser-btn">Plan erweitern</a>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
 
-        <!-- Improved Full Version (Musterüberarbeitung) -->
-        ${improvedVersion ? `
-          <div class="schreiben-section-block">
+        <!-- 9. Improved Version -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="sparkles" style="width:18px;height:18px; color:#8b5cf6;"></i>
+            <span>9. Musterüberarbeitung (Optimierter Text)</span>
+          </h3>
+          ${improvedVersion ? `
             <div class="schreiben-improved-version-box">
               <div class="schreiben-improved-header">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
-                  <h3 class="schreiben-improved-title">Musterüberarbeitung (Optimierter Text)</h3>
+                  <span class="schreiben-badge-pill" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">
+                    ${improvedVersionMode === "first_2_sentences" ? "2-Satz-Vorschau" : "Vollständige Überarbeitung"}
+                  </span>
                 </div>
                 <button type="button" class="schreiben-copy-btn" onclick="window.SchreibenPlayerComponent.copyImprovedText(this)">
                   <i data-lucide="copy" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
@@ -1116,12 +1257,206 @@ window.SchreibenPlayerComponent = {
                 </button>
               </div>
               <p class="schreiben-improved-sub">
-                Vollständig korrigierte und stilistisch geschliffene Fassung deines Textes unter Beibehaltung deiner Kernaussagen.
+                ${improvedVersionMode === "first_2_sentences"
+                  ? "Vorschau deines optimierten Textes (erste 2 Sätze) mit muttersprachlichen Korrekturen und fehlerfreiem Satzbau."
+                  : "Vollständig korrigierte und stilistisch geschliffene Fassung deines Textes unter Beibehaltung deiner Kernaussagen."}
               </p>
               <div class="schreiben-improved-content">${this.escapeHtml(improvedVersion)}</div>
+              ${improvedVersionMode === "first_2_sentences" || lockedFeatures.has_more_improved_version ? `
+                <div class="schreiben-improved-locked-footer">
+                  <div class="schreiben-improved-locked-info">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                    <span>Der vollständige optimierte Mustertext ist in Pro, Advanced und Personal verfügbar.</span>
+                  </div>
+                  <a href="#membership" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Volltext freischalten</a>
+                </div>
+              ` : ''}
             </div>
-          </div>
-        ` : ''}
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Musterüberarbeitung freischalten</h4>
+                  <p class="schreiben-locked-feature-desc">Erhalte eine vollständige, fehlerfreie und stilistisch perfektionierte Version deines Textes mit optimalen Formulierungen.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade für Mustertext</a>
+            </div>
+          `}
+        </div>
+
+        <!-- 10. Strengths & Improvements -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="thumbs-up" style="width:18px;height:18px; color:#10b981;"></i>
+            <span>10. Gesamteinschätzung & Stärken (Feedback & Strengths)</span>
+          </h3>
+          ${feedback ? `
+            <div class="schreiben-feedback-callout" style="margin-bottom:14px;">
+              <div class="schreiben-feedback-label">
+                <i data-lucide="message-square" style="width:15px;height:15px;"></i>
+                <span>Examiner Feedback</span>
+              </div>
+              <p class="schreiben-feedback-text">${this.escapeHtml(feedback)}</p>
+            </div>
+          ` : ''}
+          ${(strengths.length > 0 || improvements.length > 0) ? `
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+              ${strengths.length > 0 ? `
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:16px;">
+                  <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#166534; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="thumbs-up" style="width:16px;height:16px;"></i>
+                    <span>Stärken (Strengths)</span>
+                  </h4>
+                  <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#14532d; line-height:1.6;">
+                    ${strengths.map(s => `<li>${this.escapeHtml(s)}</li>`).join("")}
+                  </ul>
+                </div>
+              ` : ''}
+              ${improvements.length > 0 ? `
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px;">
+                  <h4 style="margin:0 0 10px 0; font-size:0.95rem; color:#92400e; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="arrow-up-right" style="width:16px;height:16px;"></i>
+                    <span>Tipps zur Verbesserung (Improvements)</span>
+                  </h4>
+                  <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#78350f; line-height:1.6;">
+                    ${improvements.map(i => `<li>${this.escapeHtml(i)}</li>`).join("")}
+                  </ul>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- 11. Systematic Error Patterns -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="layers" style="width:18px;height:18px; color:#f59e0b;"></i>
+            <span>11. Systematische Fehlermuster (Error Patterns)</span>
+          </h3>
+          ${errorPatterns.length > 0 ? `
+            <div class="schreiben-error-patterns-list">
+              ${errorPatterns.map(ep => `
+                <div class="schreiben-pattern-card">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--schreiben-ink);">${this.escapeHtml(ep.pattern || "Muster")}</h4>
+                    ${ep.frequency ? `<span class="schreiben-badge-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${this.escapeHtml(ep.frequency)}</span>` : ''}
+                  </div>
+                  ${ep.description ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(ep.description)}</p>` : ''}
+                  ${ep.examples && ep.examples.length > 0 ? `
+                    <div style="background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:0.82rem; color:#475569;">
+                      <strong>Beispiele aus dem Text:</strong>
+                      <ul style="margin:4px 0 0 0; padding-left:18px; font-style:italic;">
+                        ${ep.examples.map(ex => `<li>„${this.escapeHtml(ex)}“</li>`).join("")}
+                      </ul>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join("")}
+            </div>
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="layers" style="width:20px;height:20px; color:#f59e0b;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Systematische Fehlermuster freischalten</h4>
+                  <p class="schreiben-locked-feature-desc">Erkennt wiederkehrende Fehlerstrukturen (z.B. Verbposition im Nebensatz, Kasus nach Präpositionen) über deinen gesamten Text.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Fehlermuster</a>
+            </div>
+          `}
+        </div>
+
+        <!-- 12. Long-Term Weaknesses -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="target" style="width:18px;height:18px; color:#ef4444;"></i>
+            <span>12. Langfristige Schwachstellen (Long-Term Diagnostic)</span>
+          </h3>
+          ${longTermWeaknesses.length > 0 ? `
+            <div class="schreiben-weaknesses-list">
+              ${longTermWeaknesses.map(w => `
+                <div class="schreiben-weakness-card">
+                  <h4 style="margin:0 0 6px 0; font-size:0.95rem; font-weight:700; color:#b91c1c;">
+                    ${this.escapeHtml(w.area || "Schwachstelle")}
+                  </h4>
+                  ${w.diagnostic ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;"><strong>Diagnose:</strong> ${this.escapeHtml(w.diagnostic)}</p>` : ''}
+                  ${w.remedy ? `
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px 12px; font-size:0.84rem; color:#166534;">
+                      <strong>Gegenmaßnahme:</strong> ${this.escapeHtml(w.remedy)}
+                    </div>
+                  ` : ''}
+                </div>
+              `).join("")}
+            </div>
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="target" style="width:20px;height:20px; color:#ef4444;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Langfristige Schwachstellen-Analyse freischalten</h4>
+                  <p class="schreiben-locked-feature-desc">Identifiziert tiefere grammatische und strukturelle Defizite mit gezielten Strategien zur Behebung für die Prüfung.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Schwachstellen-Analyse</a>
+            </div>
+          `}
+        </div>
+
+        <!-- 13. Personalized Learning Plan -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="compass" style="width:18px;height:18px; color:#10b981;"></i>
+            <span>13. Personalisierter Lernplan (Learning Plan)</span>
+          </h3>
+          ${learningPlan.length > 0 ? `
+            <div class="schreiben-learning-plan-list">
+              ${learningPlan.map(lp => `
+                <div class="schreiben-learning-card">
+                  <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:#15803d; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
+                    <span>Fokus: ${this.escapeHtml(lp.focus || "Lernbereich")}</span>
+                  </h4>
+                  ${lp.action_items && lp.action_items.length > 0 ? `
+                    <div style="margin-bottom:8px;">
+                      <div style="font-size:0.82rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:4px;">Konkrete Handlungsschritte:</div>
+                      <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.55;">
+                        ${lp.action_items.map(ai => `<li>${this.escapeHtml(ai)}</li>`).join("")}
+                      </ul>
+                    </div>
+                  ` : ''}
+                  ${lp.recommended_topics && lp.recommended_topics.length > 0 ? `
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                      <span style="font-size:0.8rem; font-weight:600; color:#64748b;">Themen:</span>
+                      ${lp.recommended_topics.map(t => `<span class="schreiben-badge-pill" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;">${this.escapeHtml(t)}</span>`).join("")}
+                    </div>
+                  ` : ''}
+                </div>
+              `).join("")}
+            </div>
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="compass" style="width:20px;height:20px; color:#10b981;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Personalisierten Lernplan freischalten</h4>
+                  <p class="schreiben-locked-feature-desc">Erhalte individuelle Lernempfehlungen und konkrete Grammatikthemen, zugeschnitten auf deine Prüfungsschwächen.</p>
+                </div>
+              </div>
+              <a href="#membership" class="schreiben-teaser-btn">Upgrade für Lernplan</a>
+            </div>
+          `}
+        </div>
 
         <!-- Action Buttons -->
         <div class="schreiben-results-actions">
