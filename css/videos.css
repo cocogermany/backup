@@ -1,9 +1,9 @@
 ﻿/* ==========================================================================
-   COCO GERMANY — VIDEO LIBRARY (videos.css)
+   COCO GERMANY - VIDEO LIBRARY (videos.css)
    CEFR level filter tabs, video cards, 16:9 responsive embeds & gallery.
    ========================================================================== */
 
-/* ─── Hero ───────────────────────────────────────────────────────────────── */
+/* Hero header */
 .videos-hero {
   margin-bottom: 36px;
 }
@@ -121,12 +121,23 @@
 /* ==========================================================================
    VIDEOS GRID & CARDS
    ========================================================================== */
-.videos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 28px;
+
+/* .grid.two.category-results - uses standard .grid.two from components.css */
+/* Override gap for video-specific layout */
+.video-results,
+.category-results {
+  gap: 24px;
 }
 
+@media (max-width: 768px) {
+  .video-results,
+  .category-results {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+}
+
+/* Video card: rendered as .card.resource-card.video-card */
 .video-card {
   display: flex;
   flex-direction: column;
@@ -167,7 +178,8 @@
   border: 0;
 }
 
-.video-card-body {
+/* Card body: video cards use .card-body (same as standard .card) */
+.video-card .card-body {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -193,7 +205,7 @@
   font-size: 18px;
   font-weight: 700;
   color: var(--ink);
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   line-height: 1.35;
   letter-spacing: -0.025em;
 }
@@ -205,11 +217,17 @@
   margin-bottom: 16px;
 }
 
-.video-image-gallery {
+/* Small gallery strip of images inside video card */
+.video-image-gallery,
+.video-image-gallery.product-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 8px;
   margin-top: auto;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .video-image-gallery img {
@@ -217,14 +235,17 @@
   border: 1px solid var(--line);
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  width: 100%;
+}
+
+/* Hide gallery nav dots when inside video-image-gallery */
+.video-image-gallery .gallery-nav,
+.video-image-gallery .gallery-dots {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
-  .videos-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .video-card-body {
+  .video-card .card-body {
     padding: 20px;
   }
 }

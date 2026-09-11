@@ -1,5 +1,5 @@
 ﻿/* ==========================================================================
-   COCO GERMANY — RESOURCES & COMMERCE (resources.css)
+   COCO GERMANY - RESOURCES & COMMERCE (resources.css)
    Resources Hub, Bookstore Catalog, Product Detail, Checkout & Cart.
    ========================================================================== */
 
@@ -10,9 +10,9 @@
   padding-bottom: 64px;
 }
 
+/* Hub grid: rendered as .grid.two.resources-hub-grid
+   .grid.two gives 2-col layout; override gap for hub cards */
 .resources-hub-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px;
   margin-top: 36px;
 }
@@ -57,7 +57,7 @@
   font-size: 24px;
   font-weight: 800;
   color: var(--ink);
-  margin-bottom: 10px;
+  margin: 0 0 10px;
   letter-spacing: -0.04em;
 }
 
@@ -94,12 +94,15 @@
 
 @media (max-width: 768px) {
   .resources-hub-grid {
-    grid-template-columns: 1fr;
     gap: 20px;
   }
   .hub-card {
     padding: 28px 22px;
   }
+}
+
+@media (max-width: 639px) {
+  /* resources-hub-grid uses .grid.two which goes 1-col on mobile via components.css */
 }
 
 /* ==========================================================================
@@ -133,7 +136,7 @@
   background: var(--surface);
   padding: 0 16px;
   flex: 1;
-  min-width: 260px;
+  min-width: 240px;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
@@ -158,6 +161,7 @@
   outline: none;
   font-size: 13.5px;
   color: var(--ink);
+  min-height: 0;
 }
 
 .store-search input::placeholder {
@@ -212,7 +216,8 @@
   margin-bottom: 20px;
 }
 
-.store-empty {
+.store-empty,
+.notice.store-empty {
   padding: 28px 24px;
   text-align: center;
   border-radius: var(--radius-lg);
@@ -227,10 +232,14 @@
 /* ==========================================================================
    3. STORE CATALOG GRID & PRODUCT CARDS
    ========================================================================== */
-.store-grid,
-.category-results {
+/* .grid.two.category-results uses .grid.two from components.css */
+.store-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.category-results {
   gap: 24px;
 }
 
@@ -290,7 +299,7 @@
 .resource-card h3 {
   font-size: 17px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   color: var(--ink);
   letter-spacing: -0.025em;
   line-height: 1.35;
@@ -516,4 +525,19 @@
   #purchase-form {
     padding: 24px 18px;
   }
+  .store-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   6. PRICE DISPLAY & MISC
+   ========================================================================== */
+.price {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 16px 0 20px;
 }

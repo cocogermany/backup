@@ -466,3 +466,34 @@
     align-items: stretch;
   }
 }
+
+/* Analytics row (used in admin analytics page) */
+.analytics-row {
+  font-size: 13px;
+}
+
+/* Admin section that is also a grid */
+.admin-section.admin-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 36px;
+}
+
+@media (max-width: 860px) {
+  .admin-section.admin-grid-two {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-section.admin-grid-two {
+    padding: 24px 18px;
+  }
+  .admin-nav a,
+  .admin-page-nav a {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+}

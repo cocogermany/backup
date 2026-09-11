@@ -30,7 +30,7 @@
 
 @media (max-width: 639px) {
   .section {
-    width: calc(100% - 32px);
+    width: calc(100% - 40px);
     padding: 36px 0;
   }
 }
@@ -455,7 +455,7 @@
 }
 
 .footer-copyright {
-  grid-column: 1 / -1;
+  width: 100%;
   margin-top: 16px;
   padding-top: 22px;
   border-top: 1px solid var(--line);
@@ -475,7 +475,7 @@
     align-items: center;
     text-align: center;
     gap: 28px;
-    width: calc(100% - 32px);
+    width: calc(100% - 40px);
   }
 
   .footer-brand {
@@ -497,3 +497,4 @@
     text-align: center;
   }
 }
+
