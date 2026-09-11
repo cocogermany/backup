@@ -1510,64 +1510,179 @@ Point #${pt.id}: ${pt.requirement}
         const lvlReq = evaluationConfig?.level_expectations || `Appropriate for CEFR ${level}.`;
         const notesReq = evaluationConfig?.scoring_notes || "";
 
-        // 6. Build focused dynamic prompt with validated plan-based qualitative depth
+        // 6. Build dynamic prompt with DB-backed schreiben_plan_config and qualitative teacher evaluation
+        // Centralized depth interpretations
+        const DEPTH_DESCRIPTIONS = {
+          summary: "concise overview",
+          limited: "brief explanation focused on the most important issue",
+          medium: "clear explanation with reason, correction and useful example where appropriate",
+          full: "comprehensive explanation including the rule, problem, correction and example",
+          deep: "detailed teacher-style explanation including the underlying rule, why the student's wording fails, natural alternatives, examples and prevention advice",
+          deep_personal: "deep explanation additionally adapted to the student's demonstrated weaknesses and writing level",
+          targeted: "concentrate on the most useful areas for this particular task/student",
+          personalized: "adapt explanations, examples and recommendations specifically to the student's writing and weaknesses",
+          enhanced: "more detailed/polished than standard full analysis",
+          extensive: "broad useful suggestions without unnecessary repetition"
+        };
+
+        function resolveDepth(depthKey, fallback = "medium") {
+          const k = String(depthKey || "").toLowerCase().trim();
+          return DEPTH_DESCRIPTIONS[k] || DEPTH_DESCRIPTIONS[fallback] || k;
+        }
+
         // Validate database plan against exactly: Free, Basic, Pro, Advanced, Personal
-        // Rule 1 & 4: Only the five database plan names are valid; missing or invalid -> "Free"
         const VALID_PLANS = ["Free", "Basic", "Pro", "Advanced", "Personal"];
         const rawPlanCode = String((plan && (plan.name || plan.code)) || membershipCode || "").trim();
         const matchedPlan = VALID_PLANS.find((p) => p.toLowerCase() === rawPlanCode.toLowerCase());
         const validatedPlan = matchedPlan || "Free";
 
-        // Plan-based qualitative report depth instructions
-        const PLAN_DEPTH_PROMPTS = {
-          Free: `
-PLAN-BASED REPORT DEPTH: Free Tier
-- Significant but concise summary covering all essential areas.
-- Task Fulfillment: Analyze fulfillment of each required Leitpunkt with direct textual evidence.
-- Grammar & Mistakes: Highlight key grammar mistakes with succinct corrections and brief explanations.
-- Vocabulary & Style: Concise commentary on lexical appropriateness and tone for CEFR ${level}.
-- Feedback: Clear key strengths and essential, high-priority improvements.
-`.trim(),
-          Basic: `
-PLAN-BASED REPORT DEPTH: Basic Tier
-- Everything in Free, but more detailed with deeper pedagogical explanations.
-- Task Fulfillment: Thoroughly assess how each Leitpunkt is addressed, noting completeness and communicative depth.
-- Grammar & Mistakes: Detailed grammar explanations, step-by-step corrections, and rules for recurring errors.
-- Vocabulary & Style: Detailed observations on range, register, sentence connectors, and vocabulary choice.
-- Feedback: In-depth feedback with stronger, actionable writing-improvement suggestions and clear next steps.
-`.trim(),
-          Pro: `
-PLAN-BASED REPORT DEPTH: Pro Tier
-- Detailed teacher-style analysis covering all dimensions of writing proficiency.
-- Task Fulfillment: Rigorous examiner-level analysis of task fulfillment, communicative intent, and depth of development.
-- Grammar & Mistakes: Comprehensive grammatical breakdown covering syntax, word order, morphology, and case government with teacher-level explanations.
-- Structure & Coherence: Detailed assessment of text flow, paragraph structuring, and transition words.
-- Natural German & Vocabulary: Deep analysis of natural German phrasing, idiomatic expressions, and register appropriateness.
-- Corrections & Suggestions: Specific sentence re-writes, professional corrections, and practical writing suggestions.
-`.trim(),
-          Advanced: `
-PLAN-BASED REPORT DEPTH: Advanced Tier
-- Very detailed analysis with deeper explanations, mistake patterns, and better formulations.
-- Task Fulfillment & Rhetoric: In-depth critique of argumentation, development, and sophisticated fulfillment of all Leitpunkte.
-- Mistake Patterns & Explanations: Deep grammatical and syntactical explanations identifying underlying error patterns and systematic weaknesses.
-- Better Formulations: Provide elevated, native-level alternative phrasings (gehobene/authentische Formulierungen) demonstrating how to express the student's ideas more eloquently.
-- Targeted Learning Suggestions: Highly targeted, pedagogical study recommendations focused on mastering CEFR ${level} nuances and eliminating habitual errors.
-`.trim(),
-          Personal: `
-PLAN-BASED REPORT DEPTH: Personal Tier
-- Maximum-detail personalized analysis adapted to the student's weaknesses, writing level, and recurring problems.
-- Individualized Diagnostic: Deep, personalized evaluation closely adapted to the student's demonstrated weaknesses, current writing level, and recurring problem areas.
-- Task Fulfillment & Voice: Thorough examination of communicative nuance, personal voice, and comprehensive Leitpunkte development.
-- In-Depth Grammar & Style Pathology: Deep-dive diagnostic on recurring grammatical traps, word choice tendencies, and sentence rhythm.
-- Customized Reformulations: Step-by-step personalized rewrites comparing the student's original sentences with optimized, natural German alternatives.
-- Tailored Action Plan: Concrete, personalized learning advice and tailored practice drills to overcome the student's specific writing hurdles.
-`.trim(),
+        // Baseline defaults for schreiben_plan_config across all 5 tiers
+        const DEFAULT_SCHREIBEN_PLAN_CONFIGS = {
+          Free: {
+            plan_code: "FREE",
+            max_key_mistakes: 3,
+            max_grammar_explanations: 2,
+            max_word_usage_items: 1,
+            unclear_sentence_limit: 1,
+            redemittel_limit: 2,
+            max_strengths: 2,
+            max_improvements: 2,
+            max_corrections: 3,
+            max_improved_sentences: 1,
+            task_fulfillment: true,
+            task_fulfillment_depth: "summary",
+            grammar_depth: "limited",
+            word_usage_depth: "limited",
+            structure_depth: "summary",
+            redemittel_depth: "limited",
+            correction_depth: "limited",
+            improved_version: false,
+            improved_version_depth: "summary",
+            strengths_depth: "summary",
+            improvements_depth: "limited"
+          },
+          Basic: {
+            plan_code: "BASIC",
+            max_key_mistakes: 5,
+            max_grammar_explanations: 4,
+            max_word_usage_items: 3,
+            unclear_sentence_limit: 2,
+            redemittel_limit: 4,
+            max_strengths: 3,
+            max_improvements: 3,
+            max_corrections: 5,
+            max_improved_sentences: 2,
+            task_fulfillment: true,
+            task_fulfillment_depth: "medium",
+            grammar_depth: "medium",
+            word_usage_depth: "medium",
+            structure_depth: "medium",
+            redemittel_depth: "medium",
+            correction_depth: "medium",
+            improved_version: false,
+            improved_version_depth: "medium",
+            strengths_depth: "medium",
+            improvements_depth: "medium"
+          },
+          Pro: {
+            plan_code: "PRO",
+            max_key_mistakes: 10,
+            max_grammar_explanations: 8,
+            max_word_usage_items: 6,
+            unclear_sentence_limit: 5,
+            redemittel_limit: 6,
+            max_strengths: 4,
+            max_improvements: 4,
+            max_corrections: 10,
+            max_improved_sentences: 4,
+            task_fulfillment: true,
+            task_fulfillment_depth: "full",
+            grammar_depth: "full",
+            word_usage_depth: "full",
+            structure_depth: "full",
+            redemittel_depth: "full",
+            correction_depth: "full",
+            improved_version: true,
+            improved_version_depth: "full",
+            strengths_depth: "full",
+            improvements_depth: "full"
+          },
+          Advanced: {
+            plan_code: "ADVANCED",
+            max_key_mistakes: 15,
+            max_grammar_explanations: 12,
+            max_word_usage_items: 10,
+            unclear_sentence_limit: 8,
+            redemittel_limit: 8,
+            max_strengths: 5,
+            max_improvements: 5,
+            max_corrections: 15,
+            max_improved_sentences: 6,
+            task_fulfillment: true,
+            task_fulfillment_depth: "deep",
+            grammar_depth: "deep",
+            word_usage_depth: "enhanced",
+            structure_depth: "deep",
+            redemittel_depth: "extensive",
+            correction_depth: "deep",
+            improved_version: true,
+            improved_version_depth: "enhanced",
+            strengths_depth: "enhanced",
+            improvements_depth: "deep"
+          },
+          Personal: {
+            plan_code: "PERSONAL",
+            max_key_mistakes: 999,
+            max_grammar_explanations: 999,
+            max_word_usage_items: 999,
+            unclear_sentence_limit: 999,
+            redemittel_limit: 999,
+            max_strengths: 999,
+            max_improvements: 999,
+            max_corrections: 999,
+            max_improved_sentences: 999,
+            task_fulfillment: true,
+            task_fulfillment_depth: "deep_personal",
+            grammar_depth: "deep_personal",
+            word_usage_depth: "personalized",
+            structure_depth: "deep_personal",
+            redemittel_depth: "personalized",
+            correction_depth: "deep_personal",
+            improved_version: true,
+            improved_version_depth: "deep_personal",
+            strengths_depth: "personalized",
+            improvements_depth: "deep_personal"
+          }
         };
 
-        const planDepthInstruction = PLAN_DEPTH_PROMPTS[validatedPlan] || PLAN_DEPTH_PROMPTS.Free;
+        let activePlanConfig = { ...(DEFAULT_SCHREIBEN_PLAN_CONFIGS[validatedPlan] || DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free) };
+        try {
+          const configRes = await fetch(
+            `${supabaseUrl}/rest/v1/schreiben_plan_config?plan_code=ilike.${encodeURIComponent(validatedPlan)}&select=*`,
+            {
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+              },
+            }
+          );
+          if (configRes.ok) {
+            const configRows = await configRes.json();
+            if (Array.isArray(configRows) && configRows.length > 0 && configRows[0]) {
+              const row = configRows[0];
+              for (const [k, v] of Object.entries(row)) {
+                if (v !== null && v !== undefined) {
+                  activePlanConfig[k] = v;
+                }
+              }
+            }
+          }
+        } catch (dbErr) {
+          console.warn("Failed to fetch schreiben_plan_config from DB, using fallback defaults:", dbErr);
+        }
 
         const evaluationPrompt = `
-You are an expert, objective Goethe/telc-style German examination writing examiner evaluating a ${examFormat.toUpperCase()} ${level} (${teilText}) submission.
+You are a qualified German writing teacher and Goethe/telc exam-preparation evaluator analyzing a student's ${examFormat.toUpperCase()} ${level} (${teilText}) writing submission.
 
 EXAM SPECIFICATIONS:
 - Exam: ${examFormat.toUpperCase()}
@@ -1592,16 +1707,39 @@ ${notesReq ? `- Task-Specific Scoring Notes: ${notesReq}` : ""}
 STUDENT SUBMISSION (${wordCount} words):
 ${studentAnswer}
 
-${planDepthInstruction}
+CALIBRATED EXPLANATION DEPTH REQUIREMENTS:
+- Task Fulfillment Analysis Depth: ${resolveDepth(activePlanConfig.task_fulfillment_depth)}
+- Grammar Explanations Depth: ${resolveDepth(activePlanConfig.grammar_depth)}
+- Word Usage & Choice Depth: ${resolveDepth(activePlanConfig.word_usage_depth)}
+- Structure & Organization Depth: ${resolveDepth(activePlanConfig.structure_depth)}
+- Redemittel Suggestions Depth: ${resolveDepth(activePlanConfig.redemittel_depth)}
+- Corrections & Re-writes Depth: ${resolveDepth(activePlanConfig.correction_depth)}
+- Strengths Depth: ${resolveDepth(activePlanConfig.strengths_depth)}
+- Improvements Depth: ${resolveDepth(activePlanConfig.improvements_depth)}
+- Improved Version Depth: ${resolveDepth(activePlanConfig.improved_version_depth)}
 
-EXAMINER INSTRUCTIONS & MANDATORY QUALITATIVE RULES:
-1. STRICTLY QUALITATIVE EVALUATION: Remove all scoring and mark calculation. You must NOT calculate, recommend, determine, or return any score, grade, mark, or percentage. All evaluation must be delivered purely as a qualitative report. No score or percentage should be displayed or used to determine the report. In the JSON schema, keep numeric score fields strictly at 0 without calculating any score.
-2. EVIDENCE IS MANDATORY: For every Leitpunkt, classify status as "fulfilled", "partial", or "missing". For "fulfilled" or "partial", cite the exact German phrase from the student's text in "evidence". If a point is missing, evidence must be "". Never invent fulfilled Leitpunkte.
-3. DO NOT INVENT MISTAKES: Only identify authentic grammatical, lexical, orthographic, or structural mistakes present in the student's text. Do not invent mistakes or mark correct German as incorrect.
-4. CEFR LEVEL CALIBRATION: Calibrate all feedback, expectations, and suggestions strictly to CEFR ${level}.
-5. INTERNAL LOGIC CONFIDENTIALITY: Never expose internal plan names, tier details, AI model selection, or system architecture in the feedback or report.
-6. OBJECTIVE PEDAGOGICAL TONE: Begin the feedback summary with an objective qualitative overview of the submission. Avoid generic empty praise (such as "Excellent", "Great job", "Well done", "Congratulations", "Sehr gut", "Hervorragend").
-7. LANGUAGE REQUIREMENT: If the text is mostly non-German (English/other), set language.detected to the detected language, language.appropriate = false, and provide qualitative guidance explaining the requirement to write in German.
+EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL 13 AREAS WHERE APPLICABLE):
+1. Task fulfillment: Check every required Leitpunkt individually. Determine whether each is "fulfilled", "partial", or "missing". Cite the student's exact German wording in "evidence". If missing, set evidence to "".
+2. Grammar mistakes: Identify genuine grammatical errors (syntax, morphology, case government, endings, word order). Provide original wording, correction, and pedagogical explanation of the rule.
+3. Word usage / improper usage: Identify words or expressions that are grammatically possible but inappropriate, unnatural, or unsuitable in the sentence/context.
+4. Word choice: Identify cases where an alternative German word or expression communicates the intended meaning more accurately, idiomatically, or naturally for CEFR ${level}.
+5. Unclear sentences: Identify sentences whose meaning is unclear, awkward, or difficult to comprehend. Provide the original sentence and a completely rewritten, natural German version.
+6. Why it is wrong / problematic: In all explanations, explain the underlying linguistic issue at CEFR ${level} level rather than simply giving a bare correction.
+7. Structure and organization: Evaluate how ideas are introduced, developed, connected, and concluded. Assess paragraph transitions and connective flow in criteria.coherence.
+8. Redemittel: Suggest useful, natural German Redemittel and sentence connectors specifically relevant to this exam task and CEFR ${level}.
+9. How to improve: Provide practical, specific, actionable advice based on the student's actual demonstrated weaknesses.
+10. Improved version: Produce a fully corrected, naturally rewritten version of the student's entire submission in authentic German while strictly preserving the student's intended meaning. Do not introduce ideas that were not present unless necessary to make the text coherent.
+11. What the student did correctly: Identify genuine strengths in grammar, vocabulary, task fulfillment, structure, register, or expression in feedback.strengths.
+12. Where the student needs improvement: Clearly identify the most critical weaknesses and priority areas for growth in feedback.improvements.
+13. Summary: Provide a concise, objective overall qualitative assessment in feedback.summary.
+
+MANDATORY RULES & CONSTRAINTS:
+1. STRICTLY QUALITATIVE: Completely remove all percentage, marks, pass/fail, and score-based evaluation concepts. You must NOT calculate, recommend, determine, or return any numeric score, mark, or percentage. Focus exclusively on qualitative feedback, explanations, and actionable observations.
+2. DO NOT INVENT MISTAKES: Only identify authentic linguistic, grammatical, lexical, or structural issues present in the student's text. If the student's text contains no genuine issue in a category, return an empty array. Never invent mistakes simply to fill a limit.
+3. CEFR LEVEL CALIBRATION: Calibrate all feedback, corrections, explanations, and Redemittel strictly to CEFR ${level}.
+4. INTERNAL LOGIC CONFIDENTIALITY: Never expose internal plan names, limits, AI model selection, or database configuration in the feedback or report.
+5. OBJECTIVE TEACHER TONE: Maintain an encouraging yet objective pedagogical tone. Avoid generic empty praise ("Sehr gut", "Super", "Great job").
+6. LANGUAGE REQUIREMENT: If the text is mostly non-German (English/other), set language.detected to the detected language, language.appropriate = false, and provide guidance explaining the requirement to write in German.
 
 Return ONLY a valid JSON object matching this exact schema (no markdown fences, no text outside JSON):
 {
@@ -1629,23 +1767,15 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
   },
   "criteria": {
     "task_fulfillment": {
-      "score": 0,
-      "max_score": 5,
       "feedback": "Qualitative assessment of task fulfillment and Leitpunkte addressing."
     },
     "coherence": {
-      "score": 0,
-      "max_score": 5,
       "feedback": "Qualitative assessment of coherence, structure, and connective flow."
     },
     "vocabulary": {
-      "score": 0,
-      "max_score": 5,
       "feedback": "Qualitative assessment of vocabulary range, accuracy, and register."
     },
     "grammar_form": {
-      "score": 0,
-      "max_score": 5,
       "feedback": "Qualitative assessment of grammatical correctness, syntax, and form."
     }
   },
@@ -1657,88 +1787,41 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
       "explanation": "..."
     }
   ],
+  "word_usage": [
+    {
+      "original": "...",
+      "correction": "...",
+      "explanation": "..."
+    }
+  ],
+  "unclear_sentences": [
+    {
+      "original": "...",
+      "rewritten": "...",
+      "explanation": "..."
+    }
+  ],
+  "redemittel": [
+    {
+      "phrase": "...",
+      "usage": "..."
+    }
+  ],
+  "improved_sentences": [
+    {
+      "original": "...",
+      "improved": "...",
+      "explanation": "..."
+    }
+  ],
+  "improved_version": "...",
   "feedback": {
     "summary": "Objective qualitative overview of the submission...",
     "strengths": [],
     "improvements": []
-  },
-  "recommended_score": 0
+  }
 }
 `.trim();
-
-        // Direct Gemini evaluation scoring with basic numeric validation and 0–95 clamping
-        function applyUniversalSafetyRules(parsed, taskData, actualWordCount) {
-          const rawCriteria = parsed?.criteria || {};
-          const getCritScore = (crit) => {
-            const raw = typeof crit?.score === "number" ? crit.score : parseFloat(String(crit?.score || "0"));
-            if (isNaN(raw) || raw < 0) return 0;
-            return Math.max(0, Math.min(5, Math.round(raw * 2) / 2));
-          };
-
-          const tfScore = getCritScore(rawCriteria.task_fulfillment);
-          const csScore = getCritScore(rawCriteria.coherence);
-          const vocabScore = getCritScore(rawCriteria.vocabulary);
-          const gramScore = getCritScore(rawCriteria.grammar_form);
-
-          // Per-criterion feedback from Gemini (may be empty string if not returned)
-          const tfFeedback = String(rawCriteria.task_fulfillment?.feedback || "").trim();
-          const csFeedback = String(rawCriteria.coherence?.feedback || "").trim();
-          const vocabFeedback = String(rawCriteria.vocabulary?.feedback || "").trim();
-          const gramFeedback = String(rawCriteria.grammar_form?.feedback || "").trim();
-
-          // Direct Gemini score with basic safety validation (numeric + clamped to 0–95)
-          const rawRecScore = typeof parsed?.recommended_score === "number"
-            ? parsed.recommended_score
-            : (typeof parsed?.recommended_score_percent === "number"
-                ? parsed.recommended_score_percent
-                : parseFloat(String(parsed?.recommended_score || "0")));
-
-          if (isNaN(rawRecScore)) {
-            throw new Error("Gemini evaluation response missing valid numeric recommended_score.");
-          }
-
-          const finalScore = Math.max(0, Math.min(95, Math.round(rawRecScore)));
-
-          const criteriaList = [
-            {
-              name: "Task Fulfillment",
-              score: tfScore,
-              max_score: 5,
-              feedback: tfFeedback || "Aufgabenerfüllung und Leitpunkte wurden qualitativ geprüft."
-            },
-            {
-              name: "Coherence & Structure",
-              score: csScore,
-              max_score: 5,
-              feedback: csFeedback || "Textaufbau, Struktur und Kohärenz wurden qualitativ geprüft."
-            },
-            {
-              name: "Vocabulary",
-              score: vocabScore,
-              max_score: 5,
-              feedback: vocabFeedback || "Wortschatzspektrum und Ausdrucksvermögen wurden qualitativ geprüft."
-            },
-            {
-              name: "Grammar & Form",
-              score: gramScore,
-              max_score: 5,
-              feedback: gramFeedback || "Grammatische Korrektheit und Form wurden qualitativ geprüft."
-            }
-          ];
-
-          return {
-            score_percent: finalScore,
-            cefr_level_met: true,
-            criteria: criteriaList,
-            criteria_map: {
-              task_fulfillment: { score: tfScore, max_score: 5 },
-              coherence: { score: csScore, max_score: 5 },
-              vocabulary: { score: vocabScore, max_score: 5 },
-              grammar_form: { score: gramScore, max_score: 5 }
-            },
-            applied_rules: ["qualitative_evaluation"]
-          };
-        }
 
 
         // Helper: safely sanitize Gemini error messages to never leak secrets
@@ -1901,19 +1984,44 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             throw new Error("Gemini evaluation response missing criteria object.");
           }
 
-          // Apply universal deterministic safety rules
-          const taskInfo = {
-            exam: examFormat,
-            level: level,
-            teil: teilText,
-            points: pointsList,
-            situation: situationText,
-            task: instructionText,
-            evaluation: evaluationConfig, // pass material caps through to safety rules
-          };
-          const ruleResult = applyUniversalSafetyRules(parsed, taskInfo, wordCount);
+          // Extract qualitative criteria feedback
+          const rawCriteria = parsed?.criteria || {};
+          const criteriaList = [
+            {
+              name: "Task Fulfillment",
+              feedback: String(rawCriteria.task_fulfillment?.feedback || rawCriteria.task_fulfillment || "").trim() || "Aufgabenerfüllung und Leitpunkte wurden qualitativ geprüft."
+            },
+            {
+              name: "Coherence & Structure",
+              feedback: String(rawCriteria.coherence?.feedback || rawCriteria.coherence || "").trim() || "Textaufbau, Struktur und Kohärenz wurden qualitativ geprüft."
+            },
+            {
+              name: "Vocabulary",
+              feedback: String(rawCriteria.vocabulary?.feedback || rawCriteria.vocabulary || "").trim() || "Wortschatzspektrum und Ausdrucksvermögen wurden qualitativ geprüft."
+            },
+            {
+              name: "Grammar & Form",
+              feedback: String(rawCriteria.grammar_form?.feedback || rawCriteria.grammar_form || "").trim() || "Grammatische Korrektheit und Form wurden qualitativ geprüft."
+            }
+          ];
 
-          const mistakes = Array.isArray(parsed.mistakes)
+          const criteriaMap = {
+            task_fulfillment: { feedback: criteriaList[0].feedback },
+            coherence: { feedback: criteriaList[1].feedback },
+            vocabulary: { feedback: criteriaList[2].feedback },
+            grammar_form: { feedback: criteriaList[3].feedback }
+          };
+
+          // Helper: safely apply numeric plan limit (999 means no practical restriction)
+          const applyLimit = (arr, limit) => {
+            if (!Array.isArray(arr)) return [];
+            const numLimit = typeof limit === "number" ? limit : parseInt(String(limit || "999"), 10);
+            if (isNaN(numLimit) || numLimit >= 999) return arr;
+            return arr.slice(0, Math.max(0, numLimit));
+          };
+
+          // 1. Process genuine mistakes and findings across categories
+          let rawMistakes = Array.isArray(parsed.mistakes)
             ? parsed.mistakes.map((m) => ({
                 original: String(m.original || "").trim(),
                 correction: String(m.correction || "").trim(),
@@ -1922,26 +2030,144 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
               })).filter((m) => m.original || m.correction)
             : [];
 
-          const feedbackSummary = typeof parsed.feedback === "object"
-            ? String(parsed.feedback?.summary || "").trim()
-            : String(parsed.feedback || "").trim();
+          // Merge distinct word_usage findings into mistakes for unified rendering
+          if (Array.isArray(parsed.word_usage)) {
+            parsed.word_usage.forEach((wu) => {
+              const orig = String(wu.original || "").trim();
+              const corr = String(wu.correction || "").trim();
+              if ((orig || corr) && !rawMistakes.some((m) => m.original === orig && m.correction === corr)) {
+                rawMistakes.push({
+                  original: orig,
+                  correction: corr,
+                  type: "word_usage",
+                  explanation: String(wu.explanation || "").trim(),
+                });
+              }
+            });
+          }
 
+          // Merge distinct unclear sentence findings into mistakes for unified rendering
+          if (Array.isArray(parsed.unclear_sentences)) {
+            parsed.unclear_sentences.forEach((us) => {
+              const orig = String(us.original || "").trim();
+              const corr = String(us.rewritten || us.correction || "").trim();
+              if ((orig || corr) && !rawMistakes.some((m) => m.original === orig && m.correction === corr)) {
+                rawMistakes.push({
+                  original: orig,
+                  correction: corr,
+                  type: "unclear_sentence",
+                  explanation: String(us.explanation || "").trim(),
+                });
+              }
+            });
+          }
+
+          // Apply max_key_mistakes limit
+          let filteredMistakes = applyLimit(rawMistakes, activePlanConfig.max_key_mistakes);
+
+          // Apply max_corrections (cap total correction items)
+          const maxCorrections = typeof activePlanConfig.max_corrections === "number"
+            ? activePlanConfig.max_corrections
+            : 999;
+          if (maxCorrections < 999 && filteredMistakes.length > maxCorrections) {
+            filteredMistakes = filteredMistakes.slice(0, Math.max(0, maxCorrections));
+          }
+
+          // Apply max_grammar_explanations (limit explanations on grammar issues)
+          const maxGrammarExplanations = typeof activePlanConfig.max_grammar_explanations === "number"
+            ? activePlanConfig.max_grammar_explanations
+            : 999;
+          if (maxGrammarExplanations < 999) {
+            let grammarExpCount = 0;
+            filteredMistakes = filteredMistakes.map((m) => {
+              if (m.type === "grammar" && m.explanation) {
+                grammarExpCount++;
+                if (grammarExpCount > maxGrammarExplanations) {
+                  return { ...m, explanation: "" };
+                }
+              }
+              return m;
+            });
+          }
+
+          // 2. Strengths and improvements
+          const feedbackObj = typeof parsed.feedback === "object" ? parsed.feedback : {};
+          const rawStrengths = Array.isArray(feedbackObj?.strengths)
+            ? feedbackObj.strengths.map((s) => String(s || "").trim()).filter(Boolean)
+            : [];
+          const rawImprovements = Array.isArray(feedbackObj?.improvements)
+            ? feedbackObj.improvements.map((i) => String(i || "").trim()).filter(Boolean)
+            : [];
+
+          const filteredStrengths = applyLimit(rawStrengths, activePlanConfig.max_strengths);
+          const filteredImprovements = applyLimit(rawImprovements, activePlanConfig.max_improvements);
+
+          const feedbackSummary = String(feedbackObj?.summary || parsed.feedback || "").trim();
           let feedbackText = feedbackSummary || "Your writing submission was evaluated against the examination task.";
 
+          // 3. Redemittel
+          const rawRedemittel = Array.isArray(parsed.redemittel)
+            ? parsed.redemittel.map((r) => (typeof r === "object" ? String(r?.phrase || r?.text || "").trim() : String(r || "").trim())).filter(Boolean)
+            : [];
+          const filteredRedemittel = applyLimit(rawRedemittel, activePlanConfig.redemittel_limit);
+
+          // 4. Unclear sentences
+          const rawUnclearSentences = Array.isArray(parsed.unclear_sentences)
+            ? parsed.unclear_sentences
+            : [];
+          const filteredUnclearSentences = applyLimit(rawUnclearSentences, activePlanConfig.unclear_sentence_limit);
+
+          // 5. Word usage
+          const rawWordUsage = Array.isArray(parsed.word_usage)
+            ? parsed.word_usage
+            : [];
+          const filteredWordUsage = applyLimit(rawWordUsage, activePlanConfig.max_word_usage_items);
+
+          // 6. Improved sentences
+          const rawImprovedSentences = Array.isArray(parsed.improved_sentences)
+            ? parsed.improved_sentences
+            : [];
+          const filteredImprovedSentences = applyLimit(rawImprovedSentences, activePlanConfig.max_improved_sentences);
+
+          // 7. Improved version feature gate
+          const allowImprovedVersion = Boolean(activePlanConfig.improved_version);
+          const filteredImprovedVersion = (allowImprovedVersion && parsed.improved_version)
+            ? String(parsed.improved_version).trim()
+            : null;
+
+          // 8. Task fulfillment feature gate
+          let filteredTaskFulfillment = parsed.task_fulfillment || null;
+          if (activePlanConfig.task_fulfillment === false && filteredTaskFulfillment) {
+            filteredTaskFulfillment = {
+              missing_count: filteredTaskFulfillment.missing_count || 0,
+              partial_count: filteredTaskFulfillment.partial_count || 0,
+              points: [],
+            };
+          }
+
           evaluationResult = {
-            score_percent: ruleResult.score_percent,
-            cefr_level_met: ruleResult.cefr_level_met,
+            score_percent: null,
+            cefr_level_met: true,
             word_count: wordCount,
-            criteria: ruleResult.criteria,
-            criteria_map: ruleResult.criteria_map,
-            mistakes,
+            criteria: criteriaList,
+            criteria_map: criteriaMap,
+            mistakes: filteredMistakes,
             feedback: feedbackText,
-            feedback_details: typeof parsed.feedback === "object" ? parsed.feedback : { summary: feedbackText, strengths: [], improvements: [] },
-            task_fulfillment: parsed.task_fulfillment || null,
-            language: parsed.language || null,
+            feedback_details: {
+              summary: feedbackText,
+              strengths: filteredStrengths,
+              improvements: filteredImprovements,
+            },
+            task_fulfillment: filteredTaskFulfillment,
+            language: parsed.language || { detected: "German", appropriate: true },
             development: parsed.development || null,
             format: parsed.format || null,
-            applied_rules: ruleResult.applied_rules,
+            improved_version: filteredImprovedVersion,
+            improved_sentences: filteredImprovedSentences,
+            redemittel: filteredRedemittel,
+            unclear_sentences: filteredUnclearSentences,
+            word_usage: filteredWordUsage,
+            applied_rules: ["qualitative_evaluation", "schreiben_plan_config"],
           };
         } catch (evalErr) {
           console.error("Evaluation parsing error:", evalErr);

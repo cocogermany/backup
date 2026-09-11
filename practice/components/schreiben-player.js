@@ -803,6 +803,10 @@ window.SchreibenPlayerComponent = {
       ? window.AppState.schreibenCreditsRemaining
       : null;
 
+    const improvedVersion = evaluation.improved_version ? String(evaluation.improved_version).trim() : null;
+    const redemittel = Array.isArray(evaluation.redemittel) ? evaluation.redemittel : [];
+    const improvedSentences = Array.isArray(evaluation.improved_sentences) ? evaluation.improved_sentences : [];
+
     // Derived qualitative indicators from actual evaluation data
     const fulfilledCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "fulfilled").length;
     const partialCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "partial").length;
@@ -901,6 +905,12 @@ window.SchreibenPlayerComponent = {
               <i data-lucide="spell-check" style="width:14px;height:14px; color:#f59e0b;"></i>
               <span>Sprachkorrekturen: <strong>${mistakes.length}</strong> ${mistakes.length === 1 ? 'Hinweis' : 'Hinweise'}</span>
             </div>
+            ${redemittel.length > 0 ? `
+              <div class="schreiben-eval-pill">
+                <i data-lucide="bookmark" style="width:14px;height:14px; color:#0284c7;"></i>
+                <span>Redemittel: <strong>${redemittel.length}</strong> ${redemittel.length === 1 ? 'Vorschlag' : 'Vorschläge'}</span>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -1010,16 +1020,28 @@ window.SchreibenPlayerComponent = {
           </h3>
           ${mistakes.length > 0 ? `
             <div class="schreiben-mistakes-list">
-              ${mistakes.map(m => `
-                <div class="schreiben-mistake-card">
-                  <div class="schreiben-mistake-row">
-                    <span class="schreiben-badge-mistake">${this.escapeHtml(m.original || "")}</span>
-                    <span class="schreiben-arrow">➔</span>
-                    <span class="schreiben-badge-correction">${this.escapeHtml(m.correction || "")}</span>
+              ${mistakes.map(m => {
+                const mType = String(m.type || "grammar").toLowerCase();
+                let typeBadge = "";
+                if (mType.includes("grammar") || mType.includes("grammatik")) {
+                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-grammar">Grammatik</span>';
+                } else if (mType.includes("word") || mType.includes("vocab") || mType.includes("wort")) {
+                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-vocab">Wortwahl</span>';
+                } else if (mType.includes("unclear") || mType.includes("satz")) {
+                  typeBadge = '<span class="schreiben-mistake-type-pill schreiben-type-structure">Satzbau</span>';
+                }
+                return `
+                  <div class="schreiben-mistake-card">
+                    <div class="schreiben-mistake-row">
+                      ${typeBadge}
+                      <span class="schreiben-badge-mistake">${this.escapeHtml(m.original || "")}</span>
+                      <span class="schreiben-arrow">➔</span>
+                      <span class="schreiben-badge-correction">${this.escapeHtml(m.correction || "")}</span>
+                    </div>
+                    ${m.explanation ? `<div class="schreiben-mistake-exp">${this.escapeHtml(m.explanation)}</div>` : ''}
                   </div>
-                  ${m.explanation ? `<div class="schreiben-mistake-exp">${this.escapeHtml(m.explanation)}</div>` : ''}
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           ` : `
             <div class="schreiben-clean-banner">
@@ -1028,6 +1050,78 @@ window.SchreibenPlayerComponent = {
             </div>
           `}
         </div>
+
+        <!-- Sentence Optimizations / Better Formulations -->
+        ${improvedSentences.length > 0 ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="refresh-cw" style="width:18px;height:18px; color:#059669;"></i>
+              <span>Satzoptimierung (Bessere Formulierungen)</span>
+            </h3>
+            <div class="schreiben-improved-sentences-list">
+              ${improvedSentences.map(s => `
+                <div class="schreiben-sentence-card">
+                  <div class="schreiben-sentence-row">
+                    <div class="schreiben-sentence-before">
+                      <span class="schreiben-sentence-label">Original:</span>
+                      <span>${this.escapeHtml(s.original || "")}</span>
+                    </div>
+                    <div class="schreiben-sentence-arrow">➔</div>
+                    <div class="schreiben-sentence-after">
+                      <span class="schreiben-sentence-label">Besser:</span>
+                      <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
+                    </div>
+                  </div>
+                  ${(s.explanation || s.reason) ? `<div class="schreiben-sentence-reason">${this.escapeHtml(s.explanation || s.reason)}</div>` : ''}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Recommended Redemittel & Phrases -->
+        ${redemittel.length > 0 ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="bookmark" style="width:18px;height:18px; color:#0284c7;"></i>
+              <span>Empfohlene Redemittel & Satzbausteine</span>
+            </h3>
+            <div class="schreiben-redemittel-grid">
+              ${redemittel.map(r => {
+                const phrase = typeof r === "object" ? (r.phrase || r.text || "") : String(r || "");
+                const usage = typeof r === "object" ? (r.usage || r.context || "") : "";
+                return `
+                  <div class="schreiben-redemittel-card">
+                    <div class="schreiben-redemittel-phrase">„${this.escapeHtml(phrase)}“</div>
+                    ${usage ? `<div class="schreiben-redemittel-usage">${this.escapeHtml(usage)}</div>` : ''}
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Improved Full Version (Musterüberarbeitung) -->
+        ${improvedVersion ? `
+          <div class="schreiben-section-block">
+            <div class="schreiben-improved-version-box">
+              <div class="schreiben-improved-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
+                  <h3 class="schreiben-improved-title">Musterüberarbeitung (Optimierter Text)</h3>
+                </div>
+                <button type="button" class="schreiben-copy-btn" onclick="window.SchreibenPlayerComponent.copyImprovedText(this)">
+                  <i data-lucide="copy" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i>
+                  <span>Text kopieren</span>
+                </button>
+              </div>
+              <p class="schreiben-improved-sub">
+                Vollständig korrigierte und stilistisch geschliffene Fassung deines Textes unter Beibehaltung deiner Kernaussagen.
+              </p>
+              <div class="schreiben-improved-content">${this.escapeHtml(improvedVersion)}</div>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Action Buttons -->
         <div class="schreiben-results-actions">
@@ -1130,5 +1224,25 @@ window.SchreibenPlayerComponent = {
     }
 
     window.location.hash = "#practice?module=Schreiben";
+  },
+
+  copyImprovedText: function (btn) {
+    if (!this.evaluationResult || !this.evaluationResult.improved_version) return;
+    const textToCopy = String(this.evaluationResult.improved_version);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        if (btn) {
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"></i><span>Kopiert!</span>';
+          if (window.lucide) window.lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            if (window.lucide) window.lucide.createIcons();
+          }, 2000);
+        }
+      }).catch((err) => {
+        console.warn("Clipboard copy failed:", err);
+      });
+    }
   }
 };
