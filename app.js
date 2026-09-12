@@ -1194,9 +1194,6 @@ function renderHome() {
         <div class="home-block-header">
           <div class="home-block-icon">${icon("award")}</div>
           <div>
-        <div class="home-block-header">
-          <div class="home-block-icon">${icon("award")}</div>
-          <div>
             <h2>Mock Exams</h2>
             <p class="home-block-subtitle">Goethe & telc practice exams with timed modules and scoring feedback.</p>
           </div>

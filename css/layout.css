@@ -265,10 +265,10 @@
   .nav-home-sections {
     display: flex;
     flex-direction: column;
-    margin: 4px 0 4px 4px;
-    padding: 4px 0 4px 20px;
-    border-left: 1px solid rgba(97, 88, 223, 0.12);
-    gap: 1px;
+    margin: 4px 0 8px 20px;
+    padding: 2px 0 2px 14px;
+    border-left: 1.5px solid rgba(97, 88, 223, 0.16);
+    gap: 2px;
   }
 
   .nav-home-sections a {
@@ -276,19 +276,37 @@
     font-weight: 500;
     color: var(--muted);
     min-height: 29px;
-    padding: 5px 8px;
-    border-radius: var(--radius-xs);
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    position: relative;
+    transition:
+      color var(--transition-fast),
+      background var(--transition-fast),
+      padding-left var(--transition-fast);
   }
 
   .nav-home-sections a:hover {
     color: var(--brand);
     background: rgba(97, 88, 223, 0.06);
+    padding-left: 12px;
   }
 
   .nav-home-sections a.active {
     color: var(--brand);
     font-weight: 700;
-    background: rgba(97, 88, 223, 0.09);
+    background: rgba(97, 88, 223, 0.10);
+  }
+
+  .nav-home-sections a.active::before {
+    content: "";
+    position: absolute;
+    left: -15.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.5px;
+    height: 16px;
+    background: var(--brand);
+    border-radius: 2px;
   }
 
   .nav-scroll-control {

@@ -416,14 +416,6 @@
   margin-bottom: 24px;
 }
 
-.home-block-header:has(> div > .home-block-header) {
-  display: contents;
-}
-
-.home-block-header:has(> div > .home-block-header) > .home-block-icon {
-  display: none;
-}
-
 .home-block-header > div:not(.home-block-icon) {
   display: flex;
   flex-direction: column;
@@ -485,12 +477,17 @@
 /* ==========================================================================
    4. FEATURE BLOCKS AND CONTENT GRIDS
    ========================================================================== */
+.home-products {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
 .home-feature-block {
   display: block;
   width: 100%;
-  flex: 0 0 100%;
   box-sizing: border-box;
-  margin-bottom: 32px;
+  margin-bottom: 0;
   padding: 40px 44px;
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -539,10 +536,6 @@
   color: var(--accent-teal);
 }
 
-.home-products {
-  display: block;
-}
-
 .home-block-grid,
 .home-feature-subcards {
   display: grid;
@@ -572,11 +565,6 @@
   .home-block-grid.three {
     grid-template-columns: 1fr;
   }
-}
-
-/* Practice Centre gets 2-up grid on phone inside the mock-exams block */
-#mock-exams #practice {
-  margin-top: clamp(40px, 5vw, 64px);
 }
 
 /* ==========================================================================
@@ -759,8 +747,13 @@
 
 /* Tablet feature block adjustments */
 @media (min-width: 640px) and (max-width: 1023px) {
+  .home-products {
+    gap: 30px;
+  }
+
   .home-feature-block {
     padding: 36px;
+    margin-bottom: 0;
   }
 
   .home-why-grid {
@@ -774,10 +767,14 @@
 
 /* Mobile feature block adjustments */
 @media (max-width: 639px) {
+  .home-products {
+    gap: 24px;
+  }
+
   .home-feature-block {
     padding: 26px 18px;
     border-radius: 20px;
-    margin-bottom: 24px;
+    margin-bottom: 0;
   }
 
   .home-block-header {
