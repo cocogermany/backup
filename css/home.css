@@ -445,42 +445,7 @@
 /* Mobile adjustments */
 @media (max-width: 639px) {
   .home-trust-bar {
-    width: calc(100% - 32px);
-    margin: 0 auto -12px;
-  }
-
-  .home-trust-inner {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    justify-content: flex-start;
-    padding: 9px 14px;
-    gap: 12px;
-    border-radius: var(--radius-lg);
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .home-trust-inner::-webkit-scrollbar {
     display: none;
-  }
-
-  .trust-item {
-    font-size: 12px;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .trust-item svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .trust-dot,
-  .trust-divider {
-    width: 3.5px;
-    height: 3.5px;
-    flex-shrink: 0;
   }
 }
 
