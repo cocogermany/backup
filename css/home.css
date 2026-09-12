@@ -94,7 +94,7 @@
 .home-hero-logo {
   width: 22px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -270,19 +270,7 @@
   }
 
   .home-hero-badge {
-    gap: 5px;
-    margin-bottom: 20px;
-    padding: 5px 9px;
-    font-size: 8.5px;
-    letter-spacing: 0.08em;
-  }
-
-  .home-hero-brand {
-    font-size: 9px;
-  }
-
-  .hero-edition-pill {
-    display: none;
+    display: none !important;
   }
 
   .home-hero-title {

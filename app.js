@@ -1132,7 +1132,6 @@ function renderHome() {
         <div class="home-hero-badge">
           <img class="home-hero-logo" src="public/images/cocoLogo.jpg" alt="Coco Germany logo" />
           <span class="home-hero-brand">CocoGermany</span>
-          <span class="badge badge-gold hero-edition-pill">2026 SaaS Platform</span>
         </div>
         <h1 class="home-hero-title">Master German with Precision.</h1>
         <p class="home-hero-subtitle">German learning made practical. Goethe & telc exam preparation, interactive drills, and AI feedback engineered for serious learners.</p>
@@ -1155,7 +1154,7 @@ function renderHome() {
           <div class="floating-card float-card-2">
             <div class="floating-card-icon glow-gold">${icon("sparkles")}</div>
             <div class="floating-card-text">
-              <strong>AI Essay Evaluator</strong>
+              <strong>Advanced Writing Analysis</strong>
               <small>Real-time Grammar Scoring</small>
             </div>
           </div>
@@ -1226,7 +1225,7 @@ function renderHome() {
           <div class="home-block-icon">${icon("pen-tool")}</div>
           <div>
             <h2>Practice Centre</h2>
-            <p class="home-block-subtitle">Targeted interactive drills for reading, listening, grammar, and AI writing.</p>
+            <p class="home-block-subtitle">Targeted interactive drills for reading, listening, grammar, and Advanced Writing.</p>
           </div>
         </div>
 
@@ -1374,7 +1373,7 @@ function renderHome() {
 
         <div class="home-why-card">
           <div class="home-why-icon">${icon("sparkles")}</div>
-          <h3>AI Writing Feedback</h3>
+          <h3>Advanced Writing Analysis</h3>
           <p>Instant evaluations and structural corrections for written exercises.</p>
         </div>
 
@@ -3366,9 +3365,9 @@ function renderAIWriting() {
   if (!checkLearningAccess("#/ai-writing")) return;
   app.innerHTML = html`
     <section class="section">
-      ${pageHeader("AI Assistant", "AI Writing Correction", "Submit German essays and written exercises for real-time AI feedback and grammar analysis.")}
+      ${pageHeader("Learning Suite", "Advanced Writing Analysis", "Submit German essays and written exercises for real-time advanced writing feedback and grammar analysis.")}
       <div class="card card-body">
-        <p class="muted">AI Writing Correction feature engine.</p>
+        <p class="muted">Advanced Writing Analysis feature engine.</p>
       </div>
     </section>
   `;

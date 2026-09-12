@@ -79,18 +79,18 @@ function formatMockExams(exams) {
 function formatSchreibenFeature(enabled, limit) {
   if (!enabled) {
     return {
-      text: "AI Schreiben (Writing) evaluation locked",
+      text: "Advanced Writing (Schreiben) evaluation locked",
       enabled: false,
     };
   }
   if (typeof limit === "number" && limit > 0) {
     return {
-      text: `<strong>${limit}</strong> AI writing submission${limit > 1 ? "s" : ""} & examiner evaluations / week`,
+      text: `<strong>${limit}</strong> Advanced Writing submission${limit > 1 ? "s" : ""} & examiner evaluations / week`,
       enabled: true,
     };
   }
   return {
-    text: "Unlimited AI writing evaluations with detailed scoring",
+    text: "Unlimited Advanced Writing evaluations with detailed scoring",
     enabled: true,
   };
 }
@@ -216,7 +216,7 @@ async function renderMembership() {
           <div class="membership-reassurance-item">
             <div class="membership-reassurance-icon">${icon("check-circle-2")}</div>
             <div>
-              <h3>AI Examiner Scoring</h3>
+              <h3>Advanced Examiner Scoring</h3>
               <p>Schreiben tasks evaluate grammar, Leitpunkte task fulfillment, and CEFR-appropriate vocabulary.</p>
             </div>
           </div>
@@ -237,7 +237,7 @@ async function renderMembership() {
             </p>
           </div>
           <div class="membership-faq-item">
-            <div class="membership-faq-question">${icon("help-circle")} How does the AI Schreiben evaluation work?</div>
+            <div class="membership-faq-question">${icon("help-circle")} How does the Advanced Writing evaluation work?</div>
             <p class="membership-faq-answer">
               When you submit a written letter or essay, our evaluation engine analyzes your submission against official Goethe and telc rubrics. You receive detailed feedback on structure, grammar accuracy, connector usage, and vocabulary range.
             </p>
@@ -321,7 +321,7 @@ function renderPlanCard(plan, userPlanCode, isLoggedIn) {
 
   const subtitle = isFree
     ? "Essential daily practice sessions and foundational German exam preparation."
-    : "Comprehensive Goethe & telc preparation with AI writing evaluations and full mock tests.";
+    : "Comprehensive Goethe & telc preparation with Advanced Writing evaluations and full mock tests.";
 
   return html`
     <div class="membership-card ${isCurrentPlan ? "is-current" : ""} ${isFeatured ? "is-featured" : ""}">

@@ -41,7 +41,7 @@
 .auth-logo {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
+  border-radius: 50%;
   margin: 0 auto 20px;
   object-fit: cover;
   box-shadow: 0 8px 24px rgba(74, 69, 178, 0.22);
