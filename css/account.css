@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — ACCOUNT & AUTH (account.css)
    Login, Registration, Google Sign-in, Profile Setup, and Account Dashboard.
    ========================================================================== */
@@ -20,8 +20,8 @@
   padding: 48px 40px;
   border-radius: var(--radius-xl);
   background: var(--surface);
-  border: 1px solid var(--line-light);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(54, 62, 124, 0.11);
+  box-shadow: var(--shadow-polished);
   text-align: center;
   position: relative;
 }
@@ -170,6 +170,8 @@
   gap: 24px;
   margin-bottom: 36px;
   flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(54, 62, 124, 0.11);
 }
 
 .account-header h1 {
@@ -277,20 +279,22 @@
   background: var(--soft);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .account-grid {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .auth-card {
     padding: 36px 22px;
   }
+
   .account-card {
     padding: 24px 18px;
   }
+
   .account-order-item,
   .order-row {
     flex-direction: column;
@@ -305,6 +309,12 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   margin-bottom: 32px;
+}
+
+/* Polished border/shadow for dashboard cards */
+.dashboard-grid .card {
+  border-color: rgba(54, 62, 124, 0.11);
+  box-shadow: var(--shadow-polished);
 }
 
 @media (max-width: 1023px) {

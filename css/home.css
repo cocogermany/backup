@@ -8,8 +8,10 @@
    1. HERO SECTION
    ========================================================================== */
 .home-hero {
-  padding: 12px 0 28px;
+  padding-top: clamp(16px, 3vw, 34px);
+  padding-bottom: 28px;
   position: relative;
+  overflow: hidden;
 }
 
 .home-hero-glow {
@@ -24,10 +26,15 @@
 }
 
 .home-hero-card {
+  isolation: isolate;
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  background: linear-gradient(150deg, #18193a 0%, #23245a 44%, #171836 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 75% 18%, rgba(113, 103, 235, 0.62), transparent 25%),
+    radial-gradient(circle at 16% 100%, rgba(25, 154, 152, 0.28), transparent 29%),
+    linear-gradient(135deg, #131735 0%, #202351 50%, #161838 100%);
   box-shadow: 0 32px 80px rgba(18, 20, 52, 0.30), 0 8px 24px rgba(18, 20, 52, 0.12);
   padding: 76px 64px;
   color: #ffffff;
@@ -40,21 +47,24 @@
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-size: 36px 36px;
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.4) 62%, transparent 100%);
   pointer-events: none;
   z-index: 0;
+  opacity: 0.75;
 }
 
 .home-hero-card::after {
   content: "";
   position: absolute;
-  top: -25%;
-  right: -8%;
-  width: 600px;
-  height: 600px;
+  top: -8%;
+  right: -50%;
+  width: 470px;
+  height: 470px;
   background: radial-gradient(circle, rgba(97, 88, 223, 0.38) 0%, transparent 65%);
   pointer-events: none;
   z-index: 0;
+  opacity: 0.8;
 }
 
 .home-hero-content {
@@ -78,6 +88,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
   margin-bottom: 24px;
   backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .home-hero-logo {
@@ -111,6 +122,7 @@
   letter-spacing: -0.055em;
   color: #ffffff;
   margin-bottom: 20px;
+  max-width: 780px;
 }
 
 .home-hero-subtitle {
@@ -118,7 +130,7 @@
   line-height: 1.65;
   color: rgba(255, 255, 255, 0.82);
   margin-bottom: 36px;
-  max-width: 560px;
+  max-width: 610px;
 }
 
 .home-hero-actions {
@@ -174,6 +186,7 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 9px 24px rgba(4, 6, 30, 0.12);
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -227,37 +240,105 @@
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
+/* Tablet hero adjustments */
+@media (min-width: 640px) and (max-width: 1023px) {
   .home-hero-card {
-    padding: 48px 28px;
-    border-radius: var(--radius-lg);
-  }
-  .home-hero-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .home-hero-actions .button {
-    width: 100%;
-  }
-  .home-hero-floating-grid {
-    gap: 8px;
-    margin-top: 28px;
-  }
-  .floating-card {
-    padding: 10px 14px;
-    gap: 10px;
+    padding: 62px 46px;
   }
 }
 
-@media (max-width: 480px) {
+/* Mobile hero adjustments */
+@media (max-width: 639px) {
+  .home-hero {
+    padding-top: 14px;
+  }
+
+  .home-hero-glow {
+    display: none;
+  }
+
   .home-hero-card {
-    padding: 38px 20px;
+    padding: 36px 20px 24px;
+    border-radius: 21px;
   }
-  .home-hero-floating-grid {
+
+  .home-hero-card::after {
+    top: -8%;
+    right: -50%;
+    width: 330px;
+    height: 330px;
+  }
+
+  .home-hero-badge {
+    gap: 5px;
+    margin-bottom: 20px;
+    padding: 5px 9px;
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+  }
+
+  .home-hero-brand {
+    font-size: 9px;
+  }
+
+  .hero-edition-pill {
+    display: none;
+  }
+
+  .home-hero-title {
+    font-size: clamp(34px, 11vw, 46px);
+    line-height: 1.06;
+    letter-spacing: -0.06em;
+  }
+
+  .home-hero-subtitle {
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 26px;
+  }
+
+  .home-hero-actions {
+    gap: 10px;
     flex-direction: column;
+    align-items: stretch;
   }
-  .floating-card {
+
+  .home-hero-actions .button,
+  .home-hero-actions .button-secondary {
     width: 100%;
+    min-height: 48px;
+  }
+
+  .home-hero-floating-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 26px;
+  }
+
+  .floating-card {
+    width: auto;
+    min-width: 0;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .floating-card:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .floating-card-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+
+  .floating-card-text strong {
+    font-size: 11px;
+  }
+
+  .floating-card-text small {
+    font-size: 9.5px;
   }
 }
 
@@ -270,6 +351,8 @@
 }
 
 .home-trust-inner {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -279,8 +362,17 @@
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(14px);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--line-light);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(54, 62, 124, 0.09);
+  box-shadow: 0 12px 30px rgba(24, 30, 72, 0.06);
+}
+
+/* Left brand accent bar */
+.home-trust-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--brand), var(--accent-teal));
 }
 
 .trust-item {
@@ -307,7 +399,7 @@
   background: var(--line);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .home-trust-bar {
     display: none;
   }
@@ -402,8 +494,8 @@
   padding: 40px 44px;
   border-radius: var(--radius-xl);
   background: var(--surface);
-  border: 1px solid var(--line-light);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(54, 62, 124, 0.09);
+  box-shadow: 0 16px 42px rgba(25, 31, 70, 0.06);
   position: relative;
   overflow: hidden;
 }
@@ -421,6 +513,30 @@
   height: 180px;
   background: radial-gradient(circle, rgba(97, 88, 223, 0.055) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* Tinted feature block backgrounds */
+.home-feature-block:nth-child(2) {
+  background: linear-gradient(135deg, rgba(239, 252, 250, 0.94), rgba(255, 255, 255, 0.92) 52%);
+}
+
+.home-feature-block:nth-child(3) {
+  background: linear-gradient(135deg, rgba(248, 247, 255, 0.96), rgba(255, 255, 255, 0.92) 54%);
+}
+
+.home-feature-block:nth-child(4) {
+  background: linear-gradient(135deg, rgba(255, 250, 241, 0.94), rgba(255, 255, 255, 0.92) 54%);
+}
+
+.home-feature-block:nth-child(5) {
+  background: linear-gradient(135deg, rgba(239, 248, 255, 0.94), rgba(255, 255, 255, 0.92) 54%);
+}
+
+/* Alternate icon colors for even-numbered blocks */
+.home-feature-block:nth-child(even) .home-block-icon,
+.home-feature-block:nth-child(even) .home-subcard-icon {
+  background: var(--mint-wash);
+  color: var(--accent-teal);
 }
 
 .home-products {
@@ -445,7 +561,7 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1023px) {
   .home-block-grid.three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -458,15 +574,22 @@
   }
 }
 
+/* Practice Centre gets 2-up grid on phone inside the mock-exams block */
+#mock-exams #practice {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
 /* ==========================================================================
    4b. FEATURE SUB-CARDS
    ========================================================================== */
 .home-feature-subcard {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   padding: 22px;
   border-radius: var(--radius-md);
-  background: var(--surface-muted);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line-light);
   transition:
     transform var(--transition-fast),
@@ -478,10 +601,29 @@
   color: inherit;
 }
 
+/* Radial glow on hover */
+.home-feature-subcard::after {
+  content: "";
+  position: absolute;
+  right: -32px;
+  bottom: -32px;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(113, 103, 235, 0.10), transparent 68%);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.home-feature-subcard:hover::after {
+  opacity: 1;
+}
+
 .home-feature-subcard:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(97, 88, 223, 0.2);
+  box-shadow: var(--shadow-polished);
+  border-color: rgba(97, 88, 223, 0.22);
   background: var(--white);
 }
 
@@ -582,7 +724,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #0d1022;
+  background: linear-gradient(135deg, #171b3e, #30366f);
   overflow: hidden;
 }
 
@@ -615,18 +757,55 @@
   line-height: 1.55;
 }
 
-@media (max-width: 768px) {
+/* Tablet feature block adjustments */
+@media (min-width: 640px) and (max-width: 1023px) {
   .home-feature-block {
-    padding: 28px 20px;
-    margin-bottom: 24px;
-    border-radius: var(--radius-lg);
+    padding: 36px;
   }
-  .home-block-header {
-    gap: 12px;
+
+  .home-why-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-why-card:last-child:nth-child(odd) {
+    grid-column: span 2;
   }
 }
 
-@media (max-width: 600px) {
+/* Mobile feature block adjustments */
+@media (max-width: 639px) {
+  .home-feature-block {
+    padding: 26px 18px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .home-block-header {
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 19px;
+  }
+
+  .home-block-icon {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+  }
+
+  .home-block-header h2 {
+    font-size: 20px;
+  }
+
+  .home-feature-subcard {
+    padding: 18px;
+  }
+
+  .home-subcard-btn,
+  .subcard-link {
+    opacity: 1;
+    transform: none;
+  }
+
   #practice .home-block-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
@@ -681,6 +860,8 @@
 .home-section-title .eyebrow {
   margin-bottom: 12px;
   display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .home-why-header h2,
@@ -705,15 +886,30 @@
 }
 
 .home-why-card {
+  position: relative;
+  overflow: hidden;
   padding: 28px 24px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
   transition:
     transform var(--transition-fast),
     box-shadow var(--transition-fast),
     border-color var(--transition-fast);
+}
+
+/* Accent top stripe */
+.home-why-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 24px;
+  left: 24px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--brand), var(--accent-teal));
+  opacity: 0.7;
 }
 
 .home-why-card:hover {
@@ -753,6 +949,21 @@
   margin: 0;
 }
 
+@media (max-width: 639px) {
+  .home-why-section {
+    margin-bottom: 32px;
+  }
+
+  .home-why-header,
+  .home-section-title {
+    margin-bottom: 28px;
+  }
+
+  .home-why-card {
+    padding: 24px 20px;
+  }
+}
+
 /* ==========================================================================
    7. FINAL CTA SECTION
    ========================================================================== */
@@ -766,7 +977,11 @@
   overflow: hidden;
   padding: 64px 52px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(140deg, #1d1a48 0%, #403aa3 52%, #1e1b46 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 12% 104%, rgba(15, 177, 164, 0.30), transparent 27%),
+    radial-gradient(circle at 88% 8%, rgba(145, 137, 255, 0.44), transparent 30%),
+    linear-gradient(135deg, #18153f 0%, #453ba8 55%, #1d1848 100%);
   color: #ffffff;
   text-align: center;
   box-shadow: 0 28px 72px rgba(28, 22, 70, 0.28), 0 8px 22px rgba(28, 22, 70, 0.14);
@@ -830,14 +1045,19 @@
   color: #ffffff;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .home-cta-card {
-    padding: 44px 24px;
+    padding: 42px 22px;
+    border-radius: 21px;
   }
+
   .home-cta-actions {
     flex-direction: column;
+    gap: 10px;
   }
+
   .home-cta-actions .button {
     width: 100%;
+    min-height: 48px;
   }
 }

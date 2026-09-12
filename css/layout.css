@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — LAYOUT & NAVIGATION (layout.css)
    Consistent 4-tier responsive shell:
    - Mobile:        < 640px
@@ -21,17 +21,17 @@
   }
 }
 
-@media (max-width: 1023px) {
+@media (min-width: 640px) and (max-width: 1023px) {
   .section {
-    width: min(var(--max-width), calc(100% - 44px));
-    padding: 48px 0;
+    width: min(var(--max-width), calc(100% - 56px));
+    padding: 56px 0;
   }
 }
 
 @media (max-width: 639px) {
   .section {
-    width: calc(100% - 40px);
-    padding: 36px 0;
+    width: calc(100% - 32px);
+    padding: 40px 0;
   }
 }
 
@@ -116,11 +116,9 @@
     bottom: 0;
     width: var(--sidebar-width);
     height: 100dvh;
-    background: linear-gradient(
-      180deg,
-      rgba(245, 243, 255, 0.94) 0%,
-      rgba(236, 249, 249, 0.94) 100%
-    );
+    background:
+      radial-gradient(circle at 16% 6%, rgba(123, 115, 240, 0.19), transparent 32%),
+      linear-gradient(180deg, rgba(251, 251, 255, 0.96), rgba(239, 249, 249, 0.94));
     backdrop-filter: blur(24px) saturate(1.35);
     -webkit-backdrop-filter: blur(24px) saturate(1.35);
     border-right: 1px solid rgba(50, 48, 117, 0.08);
@@ -131,36 +129,60 @@
     overflow: hidden;
   }
 
+  /* Decorative fade gradient at bottom of sidebar */
+  .site-header::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 130px;
+    background: linear-gradient(180deg, transparent, rgba(112, 103, 235, 0.045));
+    pointer-events: none;
+  }
+
   .nav {
     display: flex;
     flex-direction: column;
     gap: 20px;
     width: 100%;
     height: 100%;
-    padding: 24px 14px 16px;
+    padding: 28px 16px 18px;
     margin: 0;
     overflow-y: auto;
     scrollbar-width: none;
+    position: relative;
+    z-index: 1;
   }
 
   .nav::-webkit-scrollbar {
     display: none;
   }
 
+  .logo-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    box-shadow: 0 8px 18px rgba(74, 69, 178, 0.18);
+  }
+
   .desktop-nav {
     display: flex;
     flex-direction: column;
     width: 100%;
-    gap: 2px;
+    gap: 4px;
     flex: 1;
+    margin-top: 4px;
   }
 
   .desktop-nav a {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 11px;
+    min-height: 42px;
+    padding: 10px 12px;
     border-radius: var(--radius-sm);
+    border: 1px solid transparent;
     color: var(--muted);
     font-size: 13.5px;
     font-weight: 600;
@@ -168,7 +190,8 @@
     text-decoration: none;
     transition:
       background var(--transition-fast),
-      color var(--transition-fast);
+      color var(--transition-fast),
+      border-color var(--transition-fast);
     position: relative;
     white-space: nowrap;
     overflow: hidden;
@@ -185,12 +208,15 @@
 
   .desktop-nav a:hover {
     background: rgba(97, 88, 223, 0.07);
+    border-color: rgba(97, 88, 223, 0.09);
     color: var(--brand);
   }
 
-  /* Active indicator: left brand accent bar */
+  /* Active indicator: gradient background + left brand accent bar */
   .desktop-nav a.active {
-    background: rgba(97, 88, 223, 0.09);
+    background: linear-gradient(90deg, rgba(103, 94, 225, 0.14), rgba(103, 94, 225, 0.05));
+    border-color: rgba(97, 88, 223, 0.08);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.6);
     color: var(--brand);
     font-weight: 700;
   }
@@ -239,15 +265,17 @@
   .nav-home-sections {
     display: flex;
     flex-direction: column;
-    padding-left: 24px;
+    margin: 4px 0 4px 4px;
+    padding: 4px 0 4px 20px;
+    border-left: 1px solid rgba(97, 88, 223, 0.12);
     gap: 1px;
-    margin-top: 1px;
   }
 
   .nav-home-sections a {
     font-size: 12.5px;
     font-weight: 500;
     color: var(--muted);
+    min-height: 29px;
     padding: 5px 8px;
     border-radius: var(--radius-xs);
   }
@@ -313,11 +341,11 @@
     z-index: var(--z-nav);
     width: 100%;
     height: var(--header-height-mobile);
-    background: rgba(246, 248, 255, 0.90);
+    background: rgba(250, 251, 255, 0.88);
     backdrop-filter: blur(22px) saturate(1.35);
     -webkit-backdrop-filter: blur(22px) saturate(1.35);
     border-bottom: 1px solid rgba(50, 48, 117, 0.07);
-    box-shadow: 0 2px 14px rgba(31, 34, 88, 0.04);
+    box-shadow: 0 3px 18px rgba(30, 36, 80, 0.05);
   }
 
   .nav {
@@ -335,7 +363,7 @@
     display: none !important;
   }
 
-  /* Fixed Bottom Navigation */
+  /* Fixed Bottom Navigation — floating pill style */
   .bottom-nav {
     position: fixed;
     right: 0;
@@ -344,11 +372,14 @@
     z-index: var(--z-nav);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    margin: 0 8px 8px;
+    width: calc(100% - 16px);
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(22px) saturate(1.2);
     -webkit-backdrop-filter: blur(22px) saturate(1.2);
-    border-top: 1px solid rgba(50, 48, 117, 0.08);
-    box-shadow: 0 -4px 20px rgba(34, 34, 60, 0.06);
+    border: 1px solid rgba(54, 62, 124, 0.10);
+    border-radius: 18px;
+    box-shadow: 0 12px 34px rgba(28, 33, 74, 0.16);
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
   }
 
@@ -381,6 +412,7 @@
 
   .bottom-nav a.active {
     color: var(--brand);
+    background: linear-gradient(180deg, rgba(107, 98, 227, 0.13), rgba(107, 98, 227, 0.07));
   }
 
   .bottom-nav a.active svg {
@@ -391,7 +423,7 @@
   #app {
     margin-left: 0;
     width: 100%;
-    padding-bottom: calc(var(--bottom-nav-height) + 28px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--bottom-nav-height) + 46px + env(safe-area-inset-bottom));
   }
 
   .footer {
@@ -401,14 +433,48 @@
   }
 }
 
+@media (max-width: 639px) {
+  .logo strong {
+    font-size: 14px;
+  }
+
+  .logo small {
+    font-size: 8.5px;
+  }
+
+  .bottom-nav {
+    margin: 0 6px 6px;
+    width: calc(100% - 12px);
+    border-radius: 16px;
+  }
+
+  .bottom-nav a {
+    min-height: 50px;
+    font-size: 9.5px;
+  }
+}
+
 /* ==========================================================================
    FOOTER COMPONENT
    ========================================================================== */
 .footer {
-  border-top: 1px solid var(--line);
+  position: relative;
+  border-top: 1px solid rgba(54, 62, 124, 0.10);
   padding: 60px 0 48px;
   margin-top: 56px;
-  background: transparent;
+  background: linear-gradient(180deg, rgba(244, 246, 255, 0.3), rgba(234, 240, 255, 0.72));
+}
+
+/* Rainbow accent bar at top of footer */
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-teal) 28%, var(--brand) 52%, var(--gold) 76%, transparent 100%);
+  opacity: 0.78;
 }
 
 .footer-inner {
@@ -444,6 +510,7 @@
 
 .footer-col a {
   display: block;
+  width: fit-content;
   font-size: 13.5px;
   color: var(--muted);
   margin-bottom: 10px;
@@ -455,7 +522,6 @@
 }
 
 .footer-copyright {
-  width: 100%;
   margin-top: 16px;
   padding-top: 22px;
   border-top: 1px solid var(--line);
@@ -466,16 +532,22 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  grid-column: 1 / -1;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
+  .footer {
+    margin-top: 26px;
+    padding-top: 46px;
+  }
+
   .footer-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 28px;
-    width: calc(100% - 40px);
+    width: calc(100% - 32px);
   }
 
   .footer-brand {
@@ -497,4 +569,3 @@
     text-align: center;
   }
 }
-

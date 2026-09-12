@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — SHARED COMPONENTS (components.css)
    Universal grid system, buttons, badges, cards, forms, tables,
    galleries, accordions, and interactive feedback UI.
@@ -23,13 +23,13 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 46px;
   padding: 0 24px;
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   text-decoration: none;
   cursor: pointer;
   position: relative;
@@ -93,9 +93,9 @@
 /* Secondary / Light Button */
 .button-secondary,
 .button-light {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.76);
   color: var(--ink);
-  border-color: rgba(31, 39, 89, 0.12);
+  border-color: rgba(57, 63, 123, 0.15);
   box-shadow: var(--shadow-xs);
   backdrop-filter: blur(8px);
 }
@@ -182,13 +182,24 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  width: fit-content;
   margin: 0 0 10px;
+  padding: 5px 10px;
+  border: 1px solid rgba(97, 88, 223, 0.16);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 2px 7px rgba(51, 51, 115, 0.04);
   color: var(--brand);
   font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   font-family: var(--font-body);
+}
+
+.eyebrow svg {
+  width: 14px;
+  height: 14px;
 }
 
 .badges {
@@ -212,21 +223,21 @@
   border-radius: var(--radius-pill);
   font-size: 11.5px;
   font-weight: 700;
-  background: var(--soft);
+  background: rgba(240, 239, 255, 0.86);
   color: var(--brand);
-  border: 1px solid rgba(97, 88, 223, 0.18);
+  border: 1px solid rgba(97, 88, 223, 0.14);
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
 
 .badge-teal {
-  background: var(--sky);
+  background: var(--mint-wash);
   color: var(--accent-teal);
   border-color: rgba(21, 154, 152, 0.22);
 }
 
 .badge-gold {
-  background: #fff8ec;
+  background: var(--gold-wash);
   color: #b45309;
   border-color: rgba(244, 173, 88, 0.3);
 }
@@ -289,7 +300,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1023px) {
   .grid.three,
   .grid.four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -313,7 +324,7 @@
   align-items: center;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .split {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -324,10 +335,12 @@
    4. CARDS, PANELS & CONTAINERS
    ========================================================================== */
 .card {
-  background: var(--surface);
+  background: var(--surface-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-light);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 30px rgba(25, 31, 70, 0.06), 0 1px 3px rgba(25, 31, 70, 0.04);
   transition:
     transform var(--transition-normal),
     box-shadow var(--transition-normal),
@@ -336,7 +349,7 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-polished);
   transform: translateY(-2px);
   border-color: var(--line-medium);
 }
@@ -345,7 +358,7 @@
   padding: 28px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .card-body {
     padding: 20px;
   }
@@ -354,12 +367,14 @@
 .panel {
   padding: 40px;
   border-radius: var(--radius-xl);
-  background: var(--surface);
+  background: var(--surface-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .panel {
     padding: 24px 18px;
     border-radius: var(--radius-lg);
@@ -434,7 +449,7 @@
   gap: 16px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -479,12 +494,13 @@ textarea {
   width: 100%;
   min-height: 46px;
   padding: 10px 14px;
-  background: var(--white);
-  border: 1.5px solid var(--line);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1.5px solid rgba(54, 62, 124, 0.16);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
@@ -508,8 +524,8 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--brand);
-  background: #fefeff;
-  box-shadow: 0 0 0 3.5px rgba(97, 88, 223, 0.12);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(106, 96, 226, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 input::placeholder,
@@ -716,7 +732,9 @@ textarea {
 .testimonial {
   padding: 28px 24px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -834,7 +852,9 @@ textarea {
 .stats-grid .stat-card {
   padding: 28px 24px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
   text-align: center;
@@ -883,7 +903,9 @@ textarea {
   flex-direction: column;
   padding: 24px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line-light);
   box-shadow: var(--shadow-sm);
   position: relative;
@@ -924,4 +946,25 @@ textarea {
   color: var(--muted);
   line-height: 1.55;
   margin: 0;
+}
+
+/* ==========================================================================
+   12. TOUCH & MOTION OVERRIDES
+   ========================================================================== */
+
+/* Disable hover transforms on touch devices (prevents sticky hover states) */
+@media (hover: none) {
+  .card:hover,
+  .store-product-card:hover,
+  .resource-card:hover,
+  .video-card:hover,
+  .membership-card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-feature-subcard::after {
+    transition: none;
+  }
 }

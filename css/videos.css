@@ -1,10 +1,11 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY - VIDEO LIBRARY (videos.css)
    CEFR level filter tabs, video cards, 16:9 responsive embeds & gallery.
    ========================================================================== */
 
 /* Hero header */
 .videos-hero {
+  position: relative;
   margin-bottom: 36px;
 }
 
@@ -112,6 +113,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
+
   .category-tabs button,
   .video-level-tab {
     min-height: 56px;
@@ -129,10 +131,10 @@
   gap: 24px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .video-results,
   .category-results {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
     gap: 20px;
   }
 }
@@ -142,10 +144,10 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border: 1px solid var(--line-light);
+  border: 1px solid rgba(54, 62, 124, 0.10);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 12px 32px rgba(25, 31, 70, 0.06);
   transition:
     transform var(--transition-normal),
     box-shadow var(--transition-normal),
@@ -154,7 +156,7 @@
 
 .video-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lifted);
   border-color: var(--line-medium);
 }
 
@@ -164,7 +166,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #0d1022;
+  background: linear-gradient(135deg, #171b3e, #30366f);
   overflow: hidden;
 }
 
@@ -244,7 +246,7 @@
   display: none !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .video-card .card-body {
     padding: 20px;
   }

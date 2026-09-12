@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — BASE & RESET (base.css)
    Foundation styles, typography hierarchy, accessibility & reset.
    ========================================================================== */
@@ -16,15 +16,17 @@ html {
   -webkit-text-size-adjust: 100%;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
+  overflow-x: hidden;
   background:
-    radial-gradient(ellipse at 90% -4%, rgba(105, 95, 235, 0.13) 0%, transparent 40%),
-    radial-gradient(ellipse at -5% 30%, rgba(21, 154, 152, 0.09) 0%, transparent 34%),
-    var(--paper);
+    radial-gradient(72rem 38rem at 100% -10%, rgba(113, 103, 235, 0.14), transparent 58%),
+    radial-gradient(54rem 36rem at -8% 42%, rgba(37, 179, 165, 0.10), transparent 55%),
+    linear-gradient(180deg, #fafbff 0%, #f5f7ff 54%, #f9fbff 100%);
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-body);
@@ -35,18 +37,22 @@ body {
 }
 
 ::selection {
-  background: rgba(97, 88, 223, 0.18);
-  color: var(--ink);
+  background: rgba(112, 103, 235, 0.24);
+  color: var(--navy);
 }
 
 /* ─── Typography Hierarchy ───────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-body);
+  font-family: var(--font-heading);
   color: var(--ink);
   margin-top: 0;
   margin-bottom: 0.5em;
   font-weight: 700;
   line-height: 1.2;
+}
+
+h1, h2 {
+  text-wrap: balance;
 }
 
 h1 {
@@ -78,6 +84,7 @@ p {
   margin-top: 0;
   margin-bottom: 1em;
   color: var(--ink);
+  text-wrap: pretty;
 }
 
 p:last-child {
@@ -90,6 +97,7 @@ p:last-child {
   line-height: 1.7;
   color: var(--muted);
   max-width: 68ch;
+  text-wrap: pretty;
 }
 
 .intro {
@@ -99,12 +107,14 @@ p:last-child {
   max-width: 640px;
   margin-top: 6px;
   margin-bottom: 24px;
+  text-wrap: pretty;
 }
 
 .subtitle {
   font-size: 14.5px;
   color: var(--muted);
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .muted,
@@ -204,4 +214,3 @@ button {
     scroll-behavior: auto !important;
   }
 }
-

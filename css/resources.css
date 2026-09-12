@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY - RESOURCES & COMMERCE (resources.css)
    Resources Hub, Bookstore Catalog, Product Detail, Checkout & Cart.
    ========================================================================== */
@@ -18,11 +18,13 @@
 }
 
 .hub-card {
+  position: relative;
+  overflow: hidden;
   padding: 38px 34px;
   border-radius: var(--radius-xl);
-  background: var(--surface);
-  border: 1px solid var(--line-light);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(245, 245, 255, 0.92));
+  border: 1px solid rgba(54, 62, 124, 0.11);
+  box-shadow: var(--shadow-polished);
   display: flex;
   flex-direction: column;
   transition:
@@ -33,9 +35,27 @@
   color: inherit;
 }
 
+/* Second hub card: teal tint */
+.hub-card:nth-child(2) {
+  background: linear-gradient(135deg, rgba(239, 252, 250, 0.94), rgba(255, 255, 255, 0.92));
+}
+
+/* Decorative circle accent */
+.hub-card::after {
+  content: "";
+  position: absolute;
+  top: -52px;
+  right: -52px;
+  width: 152px;
+  height: 152px;
+  border-radius: 50%;
+  background: rgba(108, 98, 226, 0.10);
+  pointer-events: none;
+}
+
 .hub-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lifted);
   border-color: rgba(97, 88, 223, 0.22);
 }
 
@@ -92,17 +112,14 @@
   transform: translateX(4px);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .resources-hub-grid {
     gap: 20px;
   }
+
   .hub-card {
     padding: 28px 22px;
   }
-}
-
-@media (max-width: 639px) {
-  /* resources-hub-grid uses .grid.two which goes 1-col on mobile via components.css */
 }
 
 /* ==========================================================================
@@ -120,10 +137,10 @@
   gap: 16px;
   margin-bottom: 24px;
   padding: 16px 20px;
-  background: var(--surface);
-  border: 1px solid var(--line-light);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(54, 62, 124, 0.10);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 28px rgba(25, 31, 70, 0.05);
 }
 
 .store-search {
@@ -248,10 +265,10 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border: 1px solid var(--line-light);
+  border: 1px solid rgba(54, 62, 124, 0.10);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 12px 32px rgba(25, 31, 70, 0.06);
   transition:
     transform var(--transition-normal),
     box-shadow var(--transition-normal),
@@ -261,7 +278,7 @@
 .store-product-card:hover,
 .resource-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lifted);
   border-color: var(--line-medium);
 }
 
@@ -270,7 +287,7 @@
   aspect-ratio: 4 / 3;
   width: 100%;
   overflow: hidden;
-  background: var(--soft);
+  background: linear-gradient(135deg, #171b3e, #30366f);
   border-bottom: 1px solid var(--line-light);
 }
 
@@ -279,7 +296,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s var(--ease-smooth);
+  transition: transform 0.55s var(--ease-smooth);
 }
 
 .store-product-card:hover .store-product-image img,
@@ -406,7 +423,7 @@
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .mobile-purchase-cta {
     display: block;
     position: fixed;
@@ -421,6 +438,7 @@
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     z-index: var(--z-nav);
   }
+
   .mobile-purchase-cta .button {
     width: 100%;
   }
@@ -469,9 +487,9 @@
 #purchase-form {
   padding: 36px 32px;
   background: var(--surface);
-  border: 1px solid var(--line-light);
+  border: 1px solid rgba(54, 62, 124, 0.11);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-polished);
 }
 
 .checkout-gallery {
@@ -517,14 +535,36 @@
     flex-direction: column;
     align-items: stretch;
     padding: 16px;
+    border-radius: 18px;
   }
+
   .store-search {
     min-width: 0;
     width: 100%;
   }
+
+  .store-filters {
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 1px 0 5px;
+    scrollbar-width: none;
+  }
+
+  .store-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .store-filters button {
+    flex: 0 0 auto;
+  }
+
   #purchase-form {
     padding: 24px 18px;
+    border-radius: 18px;
   }
+
   .store-actions {
     grid-template-columns: 1fr;
   }

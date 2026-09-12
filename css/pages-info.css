@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — INFORMATIONAL PAGES (pages-info.css)
    About, Founder Story, Trust Signals, Contact, and 404 views.
    ========================================================================== */
@@ -138,17 +138,18 @@
   line-height: 1.55;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .section.founder {
     grid-template-columns: 1fr;
     gap: 32px;
   }
+
   .trust-strip {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 639px) {
   .trust-strip {
     grid-template-columns: 1fr;
   }
@@ -239,7 +240,7 @@
   line-height: 1.6;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .not-found-card {
     margin: 44px auto;
     padding: 40px 24px;

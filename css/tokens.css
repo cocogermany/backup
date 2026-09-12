@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    COCO GERMANY — DESIGN SYSTEM TOKENS (tokens.css)
    Single source of truth for colors, typography, spacing, shadows,
    radii, transitions, z-index hierarchy, breakpoints & layout dimensions.
@@ -21,7 +21,7 @@
   --brand-light:      #7b73f0;
   --brand-dim:        #4d44c7;
   --brand-dark:       #282253;
-  --brand-gradient:   linear-gradient(135deg, #7067eb 0%, #4c46ca 100%);
+  --brand-gradient:   linear-gradient(135deg, #6d65e5 0%, #4d46bd 100%);
   --brand-gradient-hover: linear-gradient(135deg, #7c74f0 0%, #5650d8 100%);
   --brand-glow:       rgba(97, 88, 223, 0.22);
   --brand-glow-lg:    rgba(97, 88, 223, 0.32);
@@ -41,11 +41,12 @@
   --red-dark:         #b91c1c;
 
   /* ─── Neutrals & Surfaces ────────────────────────────────────────────── */
-  --paper:            #f6f8ff;
+  --paper:            #f7f8ff;
   --white:            #ffffff;
   --surface:          #ffffff;
   --surface-muted:    #f8f9fc;
   --surface-raised:   #ffffff;
+  --surface-tint:     rgba(255, 255, 255, 0.84);
   --ink:              #141930;
   --ink-secondary:    #2d3258;
   --muted:            #67708e;
@@ -55,6 +56,14 @@
   --line-medium:      rgba(37, 43, 91, 0.13);
   --soft:             #eef1ff;
   --soft-hover:       #e5e9ff;
+
+  /* ─── Extended Palette (from polish layer) ───────────────────────────── */
+  --navy:             #121832;
+  --navy-soft:        #202a53;
+  --violet-ink:       #554bc6;
+  --lilac-wash:       #f0efff;
+  --mint-wash:        #eaf9f6;
+  --gold-wash:        #fff8e9;
 
   /* ─── Typography ─────────────────────────────────────────────────────── */
   --font-body:        Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -67,8 +76,10 @@
   --shadow-md:        0 8px 24px rgba(27, 34, 77, 0.08), 0 2px 6px rgba(27, 34, 77, 0.05);
   --shadow-lg:        0 20px 48px rgba(39, 39, 104, 0.11), 0 6px 16px rgba(39, 39, 104, 0.07);
   --shadow-xl:        0 32px 72px rgba(39, 39, 104, 0.14), 0 12px 28px rgba(39, 39, 104, 0.09);
-  --shadow-glow:      0 8px 22px rgba(85, 76, 204, 0.26), 0 2px 6px rgba(85, 76, 204, 0.14);
-  --shadow-glow-hover: 0 14px 32px rgba(85, 76, 204, 0.34), 0 4px 10px rgba(85, 76, 204, 0.18);
+  --shadow-glow:      0 9px 20px rgba(81, 72, 198, 0.24), 0 2px 5px rgba(30, 28, 91, 0.12);
+  --shadow-glow-hover: 0 14px 28px rgba(81, 72, 198, 0.32), 0 3px 7px rgba(30, 28, 91, 0.12);
+  --shadow-polished:  0 18px 46px rgba(24, 30, 72, 0.09), 0 2px 7px rgba(24, 30, 72, 0.04);
+  --shadow-lifted:    0 24px 56px rgba(24, 30, 72, 0.14), 0 5px 16px rgba(24, 30, 72, 0.07);
   --shadow:           var(--shadow-lg);
 
   /* ─── Border Radii ───────────────────────────────────────────────────── */
@@ -115,7 +126,7 @@
   /* ─── Layout Dimensions ──────────────────────────────────────────────── */
   --max-width:        1200px;
   --max-width-wide:   1400px;
-  --sidebar-width:    252px;
-  --header-height-mobile: 62px;
+  --sidebar-width:    260px;
+  --header-height-mobile: 60px;
   --bottom-nav-height: 64px;
 }
