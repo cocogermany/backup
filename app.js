@@ -1179,7 +1179,7 @@ function renderHome() {
         <span class="trust-divider">•</span>
         <span class="trust-item">${icon("clock")} Daily Practice Drills</span>
         <span class="trust-divider">•</span>
-        <span class="trust-item">${icon("sparkles")} Instant AI Feedback</span>
+        <span class="trust-item">${icon("sparkles")} Instant Feedback</span>
         <span class="trust-divider">•</span>
         <span class="trust-item">${icon("book-open")} Editorial Standards</span>
       </div>
