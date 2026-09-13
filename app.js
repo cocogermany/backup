@@ -1271,13 +1271,13 @@ function renderHome() {
         </div>
       </div>
 
-      <!-- BLOCK 3: VIDEOS -->
+      <!-- BLOCK 3: SELF-PACED LEARNING -->
       <div class="home-feature-block" id="videos">
         <div class="home-block-header">
           <div class="home-block-icon">${icon("video")}</div>
           <div>
-            <h2>Video Lessons</h2>
-            <p class="home-block-subtitle">Structured video walkthroughs and pronunciation guides for every level.</p>
+            <h2>Self-Paced Learning</h2>
+            <p class="home-block-subtitle">Structured self-paced German classes are coming soon. Master A1 through B2 on your own schedule with guided modules, exercises, and exam-focused drills.</p>
           </div>
         </div>
 
@@ -1299,7 +1299,7 @@ function renderHome() {
                   <div class="home-video-body">
                     <div class="badges">
                       <span class="badge badge-gold">${video.category || video.level || "A1"}</span>
-                      <span class="badge">${icon("play-circle")} Video Lesson</span>
+                      <span class="badge">${icon("play-circle")} Preview Lesson</span>
                     </div>
                     <h3>${video.title}</h3>
                     <p>${video.description}</p>
@@ -1310,7 +1310,7 @@ function renderHome() {
             .join("")}
         </div>
         <div style="margin-top: 24px; text-align: center;">
-          <a class="button button-secondary" href="#/videos">${icon("video")} Watch Video Library</a>
+          <button class="button button-primary" type="button" id="join-self-paced-btn">${icon("sparkles")} Join Self-Paced Learning</button>
         </div>
       </div>
 
@@ -3342,7 +3342,354 @@ function attachHomeScrollNavigation() {
     { rootMargin: "-20% 0px -58% 0px", threshold: [0.05, 0.3, 0.6] },
   );
   sections.forEach((section) => homeSectionObserver.observe(section));
+}
 
+/* ==========================================================================
+   SELF-PACED LEARNING SURVEY MODAL & FIRESTORE INTEGRATION
+   ========================================================================== */
+
+function openSelfPacedModal() {
+  const existing = document.querySelector("#self-paced-modal-backdrop");
+  if (existing) existing.remove();
+
+  const userEmail = (currentUser && currentUser.email) || (currentUserProfile && currentUserProfile.email) || "";
+  const alreadySubmitted = currentUser && localStorage.getItem(`coco_self_paced_submitted_${currentUser.uid}`) === "true";
+
+  const modalHtml = html`
+    <div class="modal-backdrop" id="self-paced-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="self-paced-modal-title">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <span class="modal-header-badge">${icon("sparkles")} Coming Soon</span>
+            <h2 id="self-paced-modal-title">Join Self-Paced German Learning</h2>
+            <p>Tell us your preferences so we can tailor the upcoming self-paced classes and curriculum for you.</p>
+          </div>
+          <button class="modal-close-btn" type="button" id="self-paced-modal-close" aria-label="Close dialog">
+            ${icon("x")}
+          </button>
+        </div>
+
+        <div class="modal-body" id="self-paced-modal-body">
+          ${alreadySubmitted ? html`
+            <div class="modal-success-card" style="padding: 16px 12px 24px;">
+              <div class="modal-success-icon">${icon("check-circle")}</div>
+              <h3>You're on the priority waitlist!</h3>
+              <p>We already have your preferences recorded for <strong>${userEmail || "your account"}</strong>. Would you like to submit an updated response?</p>
+              <button class="button button-secondary" type="button" id="self-paced-reopen-form-btn" style="margin-top: 8px;">
+                ${icon("edit-3")} Update My Preferences
+              </button>
+            </div>
+          ` : ""}
+
+          <form class="form" id="self-paced-interest-form" style="${alreadySubmitted ? 'display: none;' : ''}">
+            <!-- 1. Join Self-Paced Classes (Yes/No) -->
+            <div class="field">
+              <label>Would you like to join self-paced classes? <span style="color: var(--red);">*</span></label>
+              <div class="modal-pill-group">
+                <label><input type="radio" name="joinSelfPaced" value="Yes" checked /> Yes, definitely</label>
+                <label><input type="radio" name="joinSelfPaced" value="No" /> Not right now</label>
+              </div>
+            </div>
+
+            <!-- 2. Target German Level (A1-B2) -->
+            <div class="field">
+              <label>What is your target German level? <span style="color: var(--red);">*</span></label>
+              <div class="modal-pill-group">
+                <label><input type="radio" name="germanLevel" value="A1" checked /> A1 (Beginner)</label>
+                <label><input type="radio" name="germanLevel" value="A2" /> A2 (Elementary)</label>
+                <label><input type="radio" name="germanLevel" value="B1" /> B1 (Intermediate)</label>
+                <label><input type="radio" name="germanLevel" value="B2" /> B2 (Upper Intermediate)</label>
+              </div>
+            </div>
+
+            <!-- 3. Current Profession -->
+            <div class="form-grid">
+              <div class="field">
+                <label for="self-paced-profession">Current Profession <span style="color: var(--red);">*</span></label>
+                <select id="self-paced-profession" name="profession" required>
+                  <option value="" disabled selected>Select your profession</option>
+                  <option value="Student">Student (University / College / School)</option>
+                  <option value="Healthcare / Medical Professional">Healthcare / Medical Professional (Doctor, Nurse, Healthcare Worker)</option>
+                  <option value="IT / Software Engineer">IT / Software Engineer / Tech</option>
+                  <option value="Engineer / Technical Specialist">Engineer / Technical Specialist</option>
+                  <option value="Business / Finance / Management">Business / Finance / Management</option>
+                  <option value="Hospitality & Services">Hospitality & Services</option>
+                  <option value="Relocating / Job Seeker">Relocating to Germany / Job Seeker</option>
+                  <option value="Other">Other Profession</option>
+                </select>
+              </div>
+
+              <div class="field" id="self-paced-other-profession-wrap" style="display: none;">
+                <label for="self-paced-other-profession">Specify Profession <span style="color: var(--red);">*</span></label>
+                <input type="text" id="self-paced-other-profession" name="otherProfession" placeholder="e.g. Teacher, Architect, Scientist" />
+              </div>
+            </div>
+
+            <!-- 4. Daily Learning Time -->
+            <div class="field">
+              <label for="self-paced-daily-time">How much time can you spend learning per day? <span style="color: var(--red);">*</span></label>
+              <select id="self-paced-daily-time" name="dailyStudyTime" required>
+                <option value="" disabled selected>Select daily study time commitment</option>
+                <option value="15–30 mins/day">15–30 minutes per day</option>
+                <option value="30–60 mins/day">30–60 minutes per day (Recommended)</option>
+                <option value="1–2 hours/day">1–2 hours per day</option>
+                <option value="2+ hours/day">2+ hours per day (Intensive)</option>
+              </select>
+            </div>
+
+            <!-- 5. Maximum Budget Willing to Spend -->
+            <div class="field">
+              <label for="self-paced-budget">Maximum amount you would be willing to spend <span style="color: var(--red);">*</span></label>
+              <select id="self-paced-budget" name="maxBudget" required>
+                <option value="" disabled selected>Select your preferred budget / price range</option>
+                <option value="Under €25 / month">Under €25 / month (~₹2,200)</option>
+                <option value="€25–€50 / month">€25–€50 / month (~₹2,200–₹4,500)</option>
+                <option value="€50–€100 / month">€50–€100 / month (~₹4,500–₹9,000)</option>
+                <option value="€100+ / month">€100+ / month (Comprehensive with 1-on-1 support)</option>
+                <option value="One-time course payment">Prefer one-time course payment</option>
+                <option value="Flexible depending on curriculum">Flexible / Value dependent</option>
+              </select>
+            </div>
+
+            <!-- 6. What they would like included -->
+            <div class="field">
+              <label>What would you like included? (Select all that apply)</label>
+              <div class="modal-checkbox-grid">
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Grammar Breakdown Videos" checked />
+                  <span>Grammar explanations & sentence breakdowns</span>
+                </label>
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Goethe & telc Exam Preparation" checked />
+                  <span>Goethe & telc exam formats & timed modules</span>
+                </label>
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Vocabulary Lists & Flashcards" checked />
+                  <span>Curated vocabulary lists & flashcards</span>
+                </label>
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Speaking & Pronunciation Training" />
+                  <span>Speaking templates & pronunciation audio</span>
+                </label>
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Homework with Answer Keys" />
+                  <span>Interactive homework & detailed answer keys</span>
+                </label>
+                <label class="modal-checkbox-card">
+                  <input type="checkbox" name="features" value="Teacher Doubt Resolution" />
+                  <span>Dedicated teacher Q&A / doubt resolution</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 7. Optional comments -->
+            <div class="field">
+              <label for="self-paced-comments">Additional Comments / Learning Goals (Optional)</label>
+              <textarea id="self-paced-comments" name="comments" rows="3" placeholder="Target exam date, specific topics you need help with, or questions..."></textarea>
+            </div>
+
+            <!-- Error message container -->
+            <p id="self-paced-form-error" class="error" style="display: none; margin: 0;"></p>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button class="button button-light" type="button" id="self-paced-cancel-btn">Cancel</button>
+              <button class="button button-primary" type="submit" id="self-paced-submit-btn">
+                ${icon("send")} Submit Response
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+  const backdrop = document.querySelector("#self-paced-modal-backdrop");
+  requestAnimationFrame(() => {
+    backdrop.classList.add("active");
+  });
+
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+
+  const closeBtn = backdrop.querySelector("#self-paced-modal-close");
+  const cancelBtn = backdrop.querySelector("#self-paced-cancel-btn");
+  if (closeBtn) closeBtn.addEventListener("click", closeSelfPacedModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeSelfPacedModal);
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeSelfPacedModal();
+  });
+
+  const escHandler = (e) => {
+    if (e.key === "Escape") {
+      closeSelfPacedModal();
+      window.removeEventListener("keydown", escHandler);
+    }
+  };
+  window.addEventListener("keydown", escHandler);
+
+  const professionSelect = backdrop.querySelector("#self-paced-profession");
+  const otherWrap = backdrop.querySelector("#self-paced-other-profession-wrap");
+  const otherInput = backdrop.querySelector("#self-paced-other-profession");
+  if (professionSelect && otherWrap) {
+    professionSelect.addEventListener("change", () => {
+      if (professionSelect.value === "Other") {
+        otherWrap.style.display = "flex";
+        if (otherInput) otherInput.setAttribute("required", "required");
+      } else {
+        otherWrap.style.display = "none";
+        if (otherInput) {
+          otherInput.removeAttribute("required");
+          otherInput.value = "";
+        }
+      }
+    });
+  }
+
+  const reopenBtn = backdrop.querySelector("#self-paced-reopen-form-btn");
+  const form = backdrop.querySelector("#self-paced-interest-form");
+  if (reopenBtn && form) {
+    reopenBtn.addEventListener("click", () => {
+      reopenBtn.parentElement.style.display = "none";
+      form.style.display = "flex";
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", handleSelfPacedSubmit);
+  }
+}
+
+function closeSelfPacedModal() {
+  const backdrop = document.querySelector("#self-paced-modal-backdrop");
+  if (!backdrop) return;
+  backdrop.classList.remove("active");
+  setTimeout(() => {
+    backdrop.remove();
+  }, 260);
+}
+
+async function handleSelfPacedSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submitBtn = form.querySelector("#self-paced-submit-btn");
+  const errorMsg = form.querySelector("#self-paced-form-error");
+
+  if (!currentUser) {
+    if (errorMsg) {
+      errorMsg.style.display = "block";
+      errorMsg.textContent = "Please log in to submit your response.";
+    }
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `${icon("loader")} Submitting...`;
+  }
+  if (errorMsg) {
+    errorMsg.style.display = "none";
+  }
+
+  try {
+    const formData = new FormData(form);
+    const joinSelfPaced = formData.get("joinSelfPaced") || "Yes";
+    const germanLevel = formData.get("germanLevel") || "A1";
+    const profession = formData.get("profession") || "";
+    const otherProfession = (formData.get("otherProfession") || "").trim();
+    const finalProfession = profession === "Other" && otherProfession ? `Other: ${otherProfession}` : profession;
+    const dailyStudyTime = formData.get("dailyStudyTime") || "";
+    const maxBudget = formData.get("maxBudget") || "";
+    const featuresInterested = formData.getAll("features");
+    const comments = (formData.get("comments") || "").trim();
+
+    const tools = await getFirebaseTools();
+    if (!tools || !tools.firestoreModule || !tools.db) {
+      throw new Error("Unable to connect to database. Please check your internet connection.");
+    }
+
+    const docPayload = {
+      uid: currentUser.uid,
+      userEmail: currentUser.email || (currentUserProfile && currentUserProfile.email) || "",
+      userName: currentUser.displayName || (currentUserProfile && currentUserProfile.name) || "",
+      joinSelfPaced,
+      germanLevel,
+      profession: finalProfession,
+      dailyStudyTime,
+      maxBudget,
+      featuresInterested,
+      comments,
+      submittedAt: tools.firestoreModule.serverTimestamp(),
+      submittedAtLocal: new Date().toISOString(),
+      source: "home_page_self_paced",
+    };
+
+    // Submit to Firestore in new table 'selfPacedInterest'
+    await tools.firestoreModule.addDoc(
+      tools.firestoreModule.collection(tools.db, "selfPacedInterest"),
+      docPayload
+    );
+
+    // Save flag to prevent duplicate accidental submissions
+    localStorage.setItem(`coco_self_paced_submitted_${currentUser.uid}`, "true");
+
+    // Render success state inside modal
+    const modalBody = document.querySelector("#self-paced-modal-body");
+    if (modalBody) {
+      modalBody.innerHTML = html`
+        <div class="modal-success-card">
+          <div class="modal-success-icon">${icon("check-circle")}</div>
+          <h3>Thank you for your interest!</h3>
+          <p>
+            Your response has been saved. We're finalizing the self-paced German classes and curriculum. You'll receive priority early access at <strong>${docPayload.userEmail || "your email"}</strong> as soon as enrollment opens.
+          </p>
+          <button class="button button-primary" type="button" id="self-paced-success-close-btn" style="margin-top: 12px;">
+            ${icon("check")} Done
+          </button>
+        </div>
+      `;
+      const doneBtn = modalBody.querySelector("#self-paced-success-close-btn");
+      if (doneBtn) doneBtn.addEventListener("click", closeSelfPacedModal);
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
+    }
+  } catch (err) {
+    console.error("Failed to submit self-paced interest form:", err);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `${icon("send")} Submit Response`;
+    }
+    if (errorMsg) {
+      errorMsg.style.display = "block";
+      errorMsg.textContent = err.message || "Failed to submit. Please try again.";
+    }
+  }
+}
+
+function attachSelfPacedActions() {
+  const joinBtn = document.querySelector("#join-self-paced-btn");
+  if (!joinBtn) return;
+
+  joinBtn.addEventListener("click", () => {
+    if (!currentUser) {
+      localStorage.setItem("loginRedirect", "#/");
+      sessionStorage.setItem("coco_pending_action", "join-self-paced");
+      location.hash = "#/login";
+      return;
+    }
+    openSelfPacedModal();
+  });
+
+  // Handle returning user after login
+  if (currentUser && sessionStorage.getItem("coco_pending_action") === "join-self-paced") {
+    sessionStorage.removeItem("coco_pending_action");
+    setTimeout(() => {
+      openSelfPacedModal();
+    }, 150);
+  }
 }
 
 function updateAuthNavigation() {
@@ -3465,6 +3812,7 @@ async function executeRoute() {
   attachFreeDownloads();
   attachLoginPriceLinks();
   attachHomeScrollNavigation();
+  attachSelfPacedActions();
   renderIcons();
   window.scrollTo(0, 0);
   app.focus();

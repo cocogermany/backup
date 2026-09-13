@@ -968,3 +968,275 @@ textarea {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   13. MODAL & DIALOG SYSTEM
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 18, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0.24s ease;
+}
+
+.modal-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-container {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(54, 62, 124, 0.12);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.28s var(--ease-spring), opacity 0.24s ease;
+}
+
+.modal-backdrop.active .modal-container {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+  background: var(--soft);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 4px;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.modal-header p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.modal-body {
+  padding: 24px 28px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Radio Pill Group (e.g. Yes/No, Levels) */
+.modal-pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal-pill-group label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid rgba(54, 62, 124, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.modal-pill-group input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-pill-group label:has(input[type="radio"]:checked) {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--white);
+  box-shadow: 0 3px 12px rgba(97, 88, 223, 0.28);
+}
+
+.modal-pill-group label:hover:not(:has(input[type="radio"]:checked)) {
+  border-color: var(--brand-light);
+  background: var(--soft);
+}
+
+/* Checkbox Grid (e.g. What they would like included) */
+.modal-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.modal-checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(54, 62, 124, 0.14);
+  background: var(--surface-muted);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.modal-checkbox-card:hover {
+  border-color: var(--brand-light);
+  background: var(--soft);
+}
+
+.modal-checkbox-card:has(input[type="checkbox"]:checked) {
+  border-color: var(--brand);
+  background: rgba(240, 239, 255, 0.8);
+  color: var(--brand-dark);
+}
+
+.modal-checkbox-card input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+  margin-top: 1px;
+  accent-color: var(--brand);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Success State in Modal */
+.modal-success-card {
+  text-align: center;
+  padding: 36px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-success-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.18);
+}
+
+.modal-success-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.modal-success-card h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.modal-success-card p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 440px;
+  margin: 0;
+}
+
+@media (max-width: 639px) {
+  .modal-container {
+    max-height: 94dvh;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-header {
+    padding: 18px 20px 14px;
+  }
+
+  .modal-header h2 {
+    font-size: 18px;
+  }
+
+  .modal-body {
+    padding: 18px 20px 24px;
+  }
+
+  .modal-checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
