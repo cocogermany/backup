@@ -231,18 +231,18 @@ const starterVideos = [
     id: "a1-pronunciation-intro",
     title: "Module 1 - Chapter 1: Pronunciation",
     category: "A1",
-    embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
     description: "A short A1 pronunciation warmup for new German learners.",
-    imageLinks: ["public/images/a1-foundations.png", "public/images/hero-study.jpg"],
+    imageLinks: ["https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"],
     publishedDate: "2026-03-18",
   },
   {
     id: "b1-speaking-frames",
     title: "Module 2 - Chapter 3: Speaking Frames",
     category: "B1",
-    embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
     description: "B1 exam speaking prompts with calmer response structure.",
-    imageLinks: ["public/images/b1-companion.png", "public/images/hero-study.jpg"],
+    imageLinks: ["https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"],
     publishedDate: "2026-04-02",
   },
 ];
@@ -426,20 +426,20 @@ function mediaImages(item) {
   return images.length ? images : [fallbackProductImage];
 }
 
+function extractYouTubeId(url) {
+  if (!url) return "";
+  const match = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)|youtube-nocookie\.com\/embed\/)([\w-]{11})/);
+  return match ? match[1] : "";
+}
+
 function normalizeYouTubeEmbedUrl(value) {
   const url = String(value || "").trim();
   if (!url) return "";
 
   try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes("youtu.be")) {
-      const id = parsed.pathname.replace("/", "");
-      return id ? `https://www.youtube.com/embed/${id}` : url;
-    }
-    if (parsed.hostname.includes("youtube.com")) {
-      if (parsed.pathname.startsWith("/embed/")) return url;
-      const id = parsed.searchParams.get("v");
-      if (id) return `https://www.youtube.com/embed/${id}`;
+    const id = extractYouTubeId(url);
+    if (id) {
+      return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
     }
   } catch {
     return url;
@@ -1283,18 +1283,21 @@ function renderHome() {
 
         <div class="home-block-grid two">
           ${featuredVideos
-            .map(
-              (video) => html`
+            .map((video) => {
+              const ytid = extractYouTubeId(video.embedUrl);
+              const thumb = ytid
+                ? `https://img.youtube.com/vi/${ytid}/hqdefault.jpg`
+                : (video.imageLinks && video.imageLinks[0]) || fallbackProductImage;
+              const safeEmbed = video.embedUrl || (ytid ? `https://www.youtube-nocookie.com/embed/${ytid}?rel=0&modestbranding=1` : "");
+              return html`
                 <div class="home-feature-subcard home-video-card">
-                  <div class="home-video-frame">
-                    <iframe
-                      src="${video.embedUrl}"
-                      title="${video.title}"
-                      frameborder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen
-                      loading="lazy"
-                    ></iframe>
+                  <div class="home-video-frame" data-embed-url="${safeEmbed}" data-title="${video.title}">
+                    <button class="home-video-preview" type="button" aria-label="Play ${video.title}">
+                      <img src="${thumb}" alt="${video.title}" loading="lazy" />
+                      <div class="home-video-play-btn">
+                        ${icon("play")}
+                      </div>
+                    </button>
                   </div>
                   <div class="home-video-body">
                     <div class="badges">
@@ -1305,8 +1308,8 @@ function renderHome() {
                     <p>${video.description}</p>
                   </div>
                 </div>
-              `,
-            )
+              `;
+            })
             .join("")}
         </div>
         <div style="margin-top: 24px; text-align: center;">
@@ -3697,8 +3700,60 @@ function attachSelfPacedActions() {
   }
 }
 
-// Global delegated click interceptor to guarantee modal opens even if cached DOM is present
+function attachHomeVideoPreviews() {
+  document.querySelectorAll(".home-video-frame").forEach((frame) => {
+    const previewBtn = frame.querySelector(".home-video-preview");
+    if (!previewBtn) return;
+    previewBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const embedUrl = frame.getAttribute("data-embed-url");
+      const title = frame.getAttribute("data-title") || "Preview Lesson";
+      if (!embedUrl) return;
+      const autoplayUrl = embedUrl.includes("?")
+        ? `${embedUrl}&autoplay=1`
+        : `${embedUrl}?autoplay=1`;
+      frame.innerHTML = `
+        <iframe
+          src="${autoplayUrl}"
+          title="${title}"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      `;
+    });
+  });
+}
+
+// Global delegated click interceptor to guarantee modal opens and video previews work
 document.addEventListener("click", (e) => {
+  const previewBtn = e.target.closest(".home-video-preview");
+  if (previewBtn) {
+    const frame = previewBtn.closest(".home-video-frame");
+    if (frame) {
+      e.preventDefault();
+      e.stopPropagation();
+      const embedUrl = frame.getAttribute("data-embed-url");
+      const title = frame.getAttribute("data-title") || "Preview Lesson";
+      if (embedUrl) {
+        const autoplayUrl = embedUrl.includes("?")
+          ? `${embedUrl}&autoplay=1`
+          : `${embedUrl}?autoplay=1`;
+        frame.innerHTML = `
+          <iframe
+            src="${autoplayUrl}"
+            title="${title}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        `;
+      }
+      return;
+    }
+  }
+
   const trigger = e.target.closest(
     '#join-self-paced-btn, [data-action="self-paced-modal"], #videos .button, #videos a[href="#/videos"]'
   );
@@ -3836,6 +3891,7 @@ async function executeRoute() {
   attachLoginPriceLinks();
   attachHomeScrollNavigation();
   attachSelfPacedActions();
+  attachHomeVideoPreviews();
   renderIcons();
   window.scrollTo(0, 0);
   app.focus();
