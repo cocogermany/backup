@@ -1310,7 +1310,7 @@ function renderHome() {
             .join("")}
         </div>
         <div style="margin-top: 24px; text-align: center;">
-          <button class="button button-primary" type="button" id="join-self-paced-btn">${icon("sparkles")} Join Self-Paced Learning</button>
+          <button class="button button-primary" type="button" id="join-self-paced-btn" data-action="self-paced-modal">${icon("sparkles")} Join Self-Paced Learning</button>
         </div>
       </div>
 
@@ -3670,17 +3670,22 @@ async function handleSelfPacedSubmit(event) {
 }
 
 function attachSelfPacedActions() {
-  const joinBtn = document.querySelector("#join-self-paced-btn");
-  if (!joinBtn) return;
+  const triggers = document.querySelectorAll(
+    '#join-self-paced-btn, [data-action="self-paced-modal"], #videos .button, #videos a[href="#/videos"]'
+  );
 
-  joinBtn.addEventListener("click", () => {
-    if (!currentUser) {
-      localStorage.setItem("loginRedirect", "#/");
-      sessionStorage.setItem("coco_pending_action", "join-self-paced");
-      location.hash = "#/login";
-      return;
-    }
-    openSelfPacedModal();
+  triggers.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!currentUser) {
+        localStorage.setItem("loginRedirect", "#/");
+        sessionStorage.setItem("coco_pending_action", "join-self-paced");
+        location.hash = "#/login";
+        return;
+      }
+      openSelfPacedModal();
+    });
   });
 
   // Handle returning user after login
@@ -3691,6 +3696,24 @@ function attachSelfPacedActions() {
     }, 150);
   }
 }
+
+// Global delegated click interceptor to guarantee modal opens even if cached DOM is present
+document.addEventListener("click", (e) => {
+  const trigger = e.target.closest(
+    '#join-self-paced-btn, [data-action="self-paced-modal"], #videos .button, #videos a[href="#/videos"]'
+  );
+  if (trigger && (trigger.id === "join-self-paced-btn" || trigger.closest("#videos"))) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentUser) {
+      localStorage.setItem("loginRedirect", "#/");
+      sessionStorage.setItem("coco_pending_action", "join-self-paced");
+      location.hash = "#/login";
+      return;
+    }
+    openSelfPacedModal();
+  }
+});
 
 function updateAuthNavigation() {
   document.querySelectorAll("[data-admin-link]").forEach((link) => {
