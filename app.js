@@ -1119,7 +1119,7 @@ function renderHome() {
         
         <div class="home-hero-actions">
           <a class="button button-primary" href="#/practice">${icon("pen-tool")} Start Practice</a>
-          <a class="button button-secondary" href="#/practice">${icon("award")} Explore Mock Exams</a>
+          <button class="button button-secondary" type="button" id="explore-services-btn" data-action="explore-services-modal">${icon("layers")} Explore Services</button>
         </div>
 
         <!-- FLOATING VISUAL INFOGRAPHIC CARDS -->
@@ -1253,7 +1253,8 @@ function renderHome() {
       </div>
 
       <!-- BLOCK 3: SELF-PACED LEARNING -->
-      <div class="home-feature-block" id="videos">
+      <div class="home-feature-block" id="videos" data-section="self-paced-learning">
+        <span id="self-paced-learning" style="position: absolute; top: -30px; visibility: hidden;" aria-hidden="true"></span>
         <div class="home-block-header">
           <div class="home-block-icon">${icon("video")}</div>
           <div>
@@ -3242,7 +3243,10 @@ function setActiveNavigation(path) {
 }
 
 function scrollToHomeSection(sectionId) {
-  const section = document.getElementById(sectionId);
+  let section = document.getElementById(sectionId);
+  if (!section && (sectionId === "self-paced-learning" || sectionId === "self-paced")) {
+    section = document.getElementById("videos");
+  }
   if (!section) return false;
   section.scrollIntoView({ behavior: "smooth", block: "start" });
   return true;
@@ -3340,6 +3344,143 @@ function attachHomeScrollNavigation() {
     { rootMargin: "-20% 0px -58% 0px", threshold: [0.05, 0.3, 0.6] },
   );
   sections.forEach((section) => homeSectionObserver.observe(section));
+}
+
+/* ==========================================================================
+   EXPLORE SERVICES MODAL
+   ========================================================================== */
+
+function openServicesModal() {
+  const existing = document.querySelector("#services-modal-backdrop");
+  if (existing) existing.remove();
+
+  const modalHtml = html`
+    <div class="modal-backdrop" id="services-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="services-modal-title">
+      <div class="modal-container" style="max-width: 520px;">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <span class="modal-header-badge">${icon("layers")} Learning Hub</span>
+            <h2 id="services-modal-title">Explore Services</h2>
+            <p>Select a learning program, exam practice, or study materials to begin.</p>
+          </div>
+          <button class="modal-close-btn" type="button" id="services-modal-close" aria-label="Close dialog">
+            ${icon("x")}
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 20px 24px 24px;">
+          <div class="modal-services-list">
+            <a class="modal-service-link" href="practice/index.html">
+              <div class="modal-service-icon">
+                ${icon("pen-tool")}
+              </div>
+              <div class="modal-service-content">
+                <span class="modal-service-title">Practice German</span>
+                <p class="modal-service-desc">Interactive reading, listening, grammar, and writing drills.</p>
+              </div>
+              <div class="modal-service-arrow">${icon("arrow-right")}</div>
+            </a>
+
+            <a class="modal-service-link" href="practice/index.html#mock-exams">
+              <div class="modal-service-icon" style="color: var(--gold); background: rgba(217, 119, 6, 0.1);">
+                ${icon("award")}
+              </div>
+              <div class="modal-service-content">
+                <span class="modal-service-title">Start Mock Exam</span>
+                <p class="modal-service-desc">Official Goethe & telc timed simulation exams with scoring.</p>
+              </div>
+              <div class="modal-service-arrow">${icon("arrow-right")}</div>
+            </a>
+
+            <a class="modal-service-link" href="index.html#self-paced-learning" data-service-scroll="videos">
+              <div class="modal-service-icon" style="color: #2563eb; background: rgba(37, 99, 235, 0.1);">
+                ${icon("video")}
+              </div>
+              <div class="modal-service-content">
+                <span class="modal-service-title">Complete German Course (A1–B2)</span>
+                <p class="modal-service-desc">Structured self-paced modules, video lessons, and guidance.</p>
+              </div>
+              <div class="modal-service-arrow">${icon("arrow-right")}</div>
+            </a>
+
+            <a class="modal-service-link" href="index.html#/resources/study-materials">
+              <div class="modal-service-icon" style="color: #059669; background: rgba(5, 150, 105, 0.1);">
+                ${icon("book-marked")}
+              </div>
+              <div class="modal-service-content">
+                <span class="modal-service-title">Free & Paid Study Materials</span>
+                <p class="modal-service-desc">Curated vocabulary lists, grammar notes, and workbooks.</p>
+              </div>
+              <div class="modal-service-arrow">${icon("arrow-right")}</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+  const backdrop = document.querySelector("#services-modal-backdrop");
+  requestAnimationFrame(() => {
+    backdrop.classList.add("active");
+  });
+
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+
+  const closeBtn = backdrop.querySelector("#services-modal-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeServicesModal);
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeServicesModal();
+  });
+
+  const escHandler = (e) => {
+    if (e.key === "Escape") {
+      closeServicesModal();
+      window.removeEventListener("keydown", escHandler);
+    }
+  };
+  window.addEventListener("keydown", escHandler);
+
+  backdrop.querySelectorAll(".modal-service-link").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const scrollTarget = link.getAttribute("data-service-scroll");
+      if (scrollTarget) {
+        e.preventDefault();
+        closeServicesModal();
+        const currentPath = location.hash.replace("#", "") || "/";
+        if (currentPath === "/") {
+          scrollToHomeSection(scrollTarget);
+        } else {
+          location.hash = "#/";
+          setTimeout(() => scrollToHomeSection(scrollTarget), 150);
+        }
+      } else {
+        closeServicesModal();
+      }
+    });
+  });
+}
+
+function closeServicesModal() {
+  const backdrop = document.querySelector("#services-modal-backdrop");
+  if (!backdrop) return;
+  backdrop.classList.remove("active");
+  setTimeout(() => {
+    backdrop.remove();
+  }, 260);
+}
+
+function attachExploreServices() {
+  document.querySelectorAll('#explore-services-btn, [data-action="explore-services-modal"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openServicesModal();
+    });
+  });
 }
 
 /* ==========================================================================
@@ -3749,6 +3890,16 @@ document.addEventListener("click", (e) => {
     }
   }
 
+  const servicesBtn = e.target.closest(
+    '#explore-services-btn, [data-action="explore-services-modal"]'
+  );
+  if (servicesBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openServicesModal();
+    return;
+  }
+
   const trigger = e.target.closest(
     '#join-self-paced-btn, [data-action="self-paced-modal"], #videos .button, #videos a[href="#/videos"]'
   );
@@ -3885,6 +4036,7 @@ async function executeRoute() {
   attachFreeDownloads();
   attachLoginPriceLinks();
   attachHomeScrollNavigation();
+  attachExploreServices();
   attachSelfPacedActions();
   attachHomeVideoPreviews();
   renderIcons();
