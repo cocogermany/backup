@@ -226,27 +226,8 @@ const starterProducts = [
 ];
 products = [...starterProducts];
 
-const starterVideos = [
-  {
-    id: "a1-pronunciation-intro",
-    title: "Module 1 - Chapter 1: Pronunciation",
-    category: "A1",
-    embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
-    description: "A short A1 pronunciation warmup for new German learners.",
-    imageLinks: ["https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"],
-    publishedDate: "2026-03-18",
-  },
-  {
-    id: "b1-speaking-frames",
-    title: "Module 2 - Chapter 3: Speaking Frames",
-    category: "B1",
-    embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
-    description: "B1 exam speaking prompts with calmer response structure.",
-    imageLinks: ["https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"],
-    publishedDate: "2026-04-02",
-  },
-];
-videos = [...starterVideos];
+const starterVideos = [];
+videos = [];
 
 const app = document.querySelector("#app");
 const levels = ["A1", "A2", "B1", "B2"];
@@ -740,7 +721,7 @@ async function loadProducts() {
 async function loadVideos() {
   const tools = await getFirebaseTools();
   if (!tools) {
-    videos = [...starterVideos];
+    videos = [];
     return;
   }
 
@@ -749,10 +730,10 @@ async function loadVideos() {
     const firestoreVideos = snapshot.docs
       .map((doc) => normalizeVideo(doc.id, doc.data()))
       .filter((video) => !video.deleted);
-    videos = snapshot.docs.length ? firestoreVideos : [...starterVideos];
+    videos = firestoreVideos;
   } catch (error) {
-    console.error(error);
-    videos = [...starterVideos];
+    console.error("Failed to load videos from Firestore:", error);
+    videos = [];
   }
 }
 
@@ -1122,7 +1103,7 @@ function renderFaq() {
 }
 
 function renderHome() {
-  const featuredVideos = videos && videos.length ? videos.slice(0, 2) : starterVideos;
+  const featuredVideos = videos && videos.length ? videos.slice(0, 2) : [];
 
   app.innerHTML = html`
     <!-- 1. FULL VIEWPORT IMMERSIVE HERO SECTION -->
@@ -1281,37 +1262,51 @@ function renderHome() {
           </div>
         </div>
 
-        <div class="home-block-grid two">
-          ${featuredVideos
-            .map((video) => {
-              const ytid = extractYouTubeId(video.embedUrl);
-              const thumb = ytid
-                ? `https://img.youtube.com/vi/${ytid}/hqdefault.jpg`
-                : (video.imageLinks && video.imageLinks[0]) || fallbackProductImage;
-              const safeEmbed = video.embedUrl || (ytid ? `https://www.youtube-nocookie.com/embed/${ytid}?rel=0&modestbranding=1` : "");
-              return html`
-                <div class="home-feature-subcard home-video-card">
-                  <div class="home-video-frame" data-embed-url="${safeEmbed}" data-title="${video.title}">
-                    <button class="home-video-preview" type="button" aria-label="Play ${video.title}">
-                      <img src="${thumb}" alt="${video.title}" loading="lazy" />
-                      <div class="home-video-play-btn">
-                        ${icon("play")}
+        ${featuredVideos.length
+          ? html`
+              <div class="home-block-grid two">
+                ${featuredVideos
+                  .map((video) => {
+                    const ytid = extractYouTubeId(video.embedUrl);
+                    const thumb = ytid
+                      ? `https://img.youtube.com/vi/${ytid}/hqdefault.jpg`
+                      : (video.imageLinks && video.imageLinks[0]) || fallbackProductImage;
+                    const safeEmbed = video.embedUrl || (ytid ? `https://www.youtube-nocookie.com/embed/${ytid}?rel=0&modestbranding=1` : "");
+                    return html`
+                      <div class="home-feature-subcard home-video-card">
+                        <div class="home-video-frame" data-embed-url="${safeEmbed}" data-title="${video.title}">
+                          <button class="home-video-preview" type="button" aria-label="Play ${video.title}">
+                            <img src="${thumb}" alt="${video.title}" loading="lazy" />
+                            <div class="home-video-play-btn">
+                              ${icon("play")}
+                            </div>
+                          </button>
+                        </div>
+                        <div class="home-video-body">
+                          <div class="badges">
+                            <span class="badge badge-gold">${video.category || video.level || "A1"}</span>
+                            <span class="badge">${icon("play-circle")} Preview Lesson</span>
+                          </div>
+                          <h3>${video.title}</h3>
+                          <p>${video.description}</p>
+                        </div>
                       </div>
-                    </button>
-                  </div>
-                  <div class="home-video-body">
-                    <div class="badges">
-                      <span class="badge badge-gold">${video.category || video.level || "A1"}</span>
-                      <span class="badge">${icon("play-circle")} Preview Lesson</span>
-                    </div>
-                    <h3>${video.title}</h3>
-                    <p>${video.description}</p>
-                  </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+          : html`
+              <div class="home-no-videos-card">
+                <div class="home-no-videos-icon">
+                  ${icon("video")}
                 </div>
-              `;
-            })
-            .join("")}
-        </div>
+                <h3>No videos yet</h3>
+                <p>
+                  Self-paced video lessons and walkthroughs will appear here as soon as they are published. Join below to register your interest and receive early access when classes launch.
+                </p>
+              </div>
+            `}
         <div style="margin-top: 24px; text-align: center;">
           <button class="button button-primary" type="button" id="join-self-paced-btn" data-action="self-paced-modal">${icon("sparkles")} Join Self-Paced Learning</button>
         </div>
@@ -3820,7 +3815,7 @@ async function loadRouteData(path, parts) {
     path === "/purchase" ||
     (parts[0] === "purchase" && parts[1]) ||
     path === "/admin/products";
-  const opensVideos = path === "/videos" || path === "/admin/videos";
+  const opensVideos = path === "/" || path === "/videos" || path === "/admin/videos";
   const opensOrders =
     path === "/account" ||
     path === "/admin/orders" ||
