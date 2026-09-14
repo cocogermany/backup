@@ -267,6 +267,44 @@ const testimonials = [
   ],
 ];
 
+const learnerReviews = [
+  {
+    name: "Aarav Sharma",
+    level: "Goethe B1 Passed",
+    rating: 5,
+    review: "The grammar breakdowns and targeted practice tests took away all my exam anxiety. The vocabulary lists with genders and plural forms are an absolute lifesaver!",
+    initials: "AS",
+  },
+  {
+    name: "Sophia Martinez",
+    level: "telc B2 Candidate",
+    rating: 5,
+    review: "Finding authentic telc B2 prep materials was tough until I discovered CocoGermany. The mock exams match the real test timing and structure with incredible accuracy.",
+    initials: "SM",
+  },
+  {
+    name: "Maximilian Weber",
+    level: "A2 Working Professional",
+    rating: 5,
+    review: "Balancing German study with a 9-to-5 job felt impossible, but CocoGermany's bite-sized exercises and instant practice feedback make daily progress effortless.",
+    initials: "MW",
+  },
+  {
+    name: "Priya Nair",
+    level: "A1 Distinction (94%)",
+    rating: 5,
+    review: "Started from absolute zero. The curriculum workbooks and clear pronunciation guidance gave me the exact foundation I needed to clear A1 with distinction.",
+    initials: "PN",
+  },
+  {
+    name: "Lucas Dubois",
+    level: "Goethe B2 Medical",
+    rating: 5,
+    review: "The structured writing templates and formal speaking frames helped me clear my exam requirements for medical licensing in Germany. Truly exceptional quality.",
+    initials: "LD",
+  },
+];
+
 const countryOptions = [
   "India",
   "Australia",
@@ -1500,6 +1538,62 @@ function renderHome() {
         <div class="home-cta-actions">
           <a class="button button-primary" href="#/membership">${icon("crown")} View Membership Plans</a>
           <a class="button button-secondary" href="#/practice">${icon("pen-tool")} Start Practice Now</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. WHAT LEARNERS SAY (REVIEW CAROUSEL) -->
+    ${renderHomeReviews()}
+  `;
+}
+
+function renderHomeReviews() {
+  return html`
+    <section class="section home-reviews-section" id="home-reviews" data-section="home-reviews">
+      <div class="home-reviews-header">
+        <span class="eyebrow">${icon("message-square")} Real Experiences</span>
+        <h2>What Learners Say</h2>
+        <p class="home-reviews-subtitle">Feedback from learners mastering German and preparing for certification with CocoGermany.</p>
+      </div>
+
+      <div class="home-reviews-carousel" data-reviews-carousel>
+        <div class="home-reviews-viewport">
+          <div class="home-reviews-track" data-reviews-track>
+            ${learnerReviews
+              .map(
+                (rev) => html`
+                  <article class="home-review-card">
+                    <div class="home-review-card-top">
+                      <div class="home-review-stars" aria-label="${rev.rating} out of 5 stars">
+                        ${Array.from({ length: rev.rating }, () => icon("star")).join("")}
+                      </div>
+                      <div class="home-review-quote-icon" aria-hidden="true">
+                        ${icon("quote")}
+                      </div>
+                    </div>
+                    <p class="home-review-text">“${rev.review}”</p>
+                    <div class="home-review-author">
+                      <div class="home-review-avatar" aria-hidden="true">${rev.initials}</div>
+                      <div class="home-review-author-info">
+                        <h4 class="home-review-name">${rev.name}</h4>
+                        <span class="home-review-level">${rev.level}</span>
+                      </div>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="home-reviews-controls">
+          <button class="home-reviews-btn home-reviews-prev" type="button" aria-label="Previous review" data-reviews-prev>
+            ${icon("chevron-left")}
+          </button>
+          <div class="home-reviews-dots" data-reviews-dots role="tablist" aria-label="Review carousel pagination"></div>
+          <button class="home-reviews-btn home-reviews-next" type="button" aria-label="Next review" data-reviews-next>
+            ${icon("chevron-right")}
+          </button>
         </div>
       </div>
     </section>
@@ -3987,6 +4081,182 @@ function attachSelfPacedActions() {
   }
 }
 
+function attachReviewCarousel() {
+  const container = document.querySelector("[data-reviews-carousel]");
+  if (!container) return;
+
+  const track = container.querySelector("[data-reviews-track]");
+  const cards = [...container.querySelectorAll(".home-review-card")];
+  const dotsContainer = container.querySelector("[data-reviews-dots]");
+  const prevBtn = container.querySelector("[data-reviews-prev]");
+  const nextBtn = container.querySelector("[data-reviews-next]");
+  if (!track || !cards.length) return;
+
+  let currentIndex = 0;
+  let autoTimer = null;
+
+  function getVisibleCount() {
+    const w = window.innerWidth;
+    if (w < 640) return 1;
+    if (w < 1024) return 2;
+    return 3;
+  }
+
+  function getMaxIndex() {
+    const visible = getVisibleCount();
+    return Math.max(0, cards.length - visible);
+  }
+
+  function updateSlide(animate = true) {
+    if (!document.body.contains(container)) {
+      stopAutoPlay();
+      return;
+    }
+    const maxIdx = getMaxIndex();
+    if (currentIndex > maxIdx) currentIndex = maxIdx;
+    if (currentIndex < 0) currentIndex = 0;
+
+    const cardRect = cards[0].getBoundingClientRect();
+    const cardWidth = cardRect.width;
+    const trackStyle = window.getComputedStyle(track);
+    const gap = parseFloat(trackStyle.gap) || 20;
+    const offset = currentIndex * (cardWidth + gap);
+
+    track.style.transition = animate ? "transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
+    track.style.transform = `translateX(-${offset}px)`;
+
+    if (dotsContainer) {
+      const dots = [...dotsContainer.querySelectorAll(".review-dot")];
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle("active", idx === currentIndex);
+        dot.setAttribute("aria-selected", idx === currentIndex ? "true" : "false");
+      });
+    }
+  }
+
+  function renderDots() {
+    if (!dotsContainer) return;
+    const maxIdx = getMaxIndex();
+    const totalDots = maxIdx + 1;
+    dotsContainer.innerHTML = Array.from({ length: totalDots }, (_, i) => `
+      <button class="review-dot ${i === currentIndex ? "active" : ""}" 
+              type="button" 
+              data-dot-index="${i}" 
+              aria-label="Go to review slide ${i + 1}"
+              aria-selected="${i === currentIndex ? "true" : "false"}"
+              role="tab"></button>
+    `).join("");
+
+    dotsContainer.querySelectorAll(".review-dot").forEach((dot) => {
+      dot.addEventListener("click", () => {
+        const idx = parseInt(dot.getAttribute("data-dot-index"), 10);
+        goToSlide(idx);
+      });
+    });
+  }
+
+  function goToSlide(index) {
+    const maxIdx = getMaxIndex();
+    if (index > maxIdx) {
+      currentIndex = 0;
+    } else if (index < 0) {
+      currentIndex = maxIdx;
+    } else {
+      currentIndex = index;
+    }
+    updateSlide(true);
+    restartAutoPlay();
+  }
+
+  function nextSlide() {
+    const maxIdx = getMaxIndex();
+    if (currentIndex >= maxIdx) {
+      goToSlide(0);
+    } else {
+      goToSlide(currentIndex + 1);
+    }
+  }
+
+  function prevSlide() {
+    const maxIdx = getMaxIndex();
+    if (currentIndex <= 0) {
+      goToSlide(maxIdx);
+    } else {
+      goToSlide(currentIndex - 1);
+    }
+  }
+
+  function startAutoPlay() {
+    stopAutoPlay();
+    autoTimer = setInterval(() => {
+      if (!document.body.contains(container)) {
+        stopAutoPlay();
+        return;
+      }
+      nextSlide();
+    }, 5000);
+  }
+
+  function stopAutoPlay() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
+
+  function restartAutoPlay() {
+    stopAutoPlay();
+    startAutoPlay();
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      prevSlide();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      nextSlide();
+    });
+  }
+
+  container.addEventListener("mouseenter", stopAutoPlay);
+  container.addEventListener("mouseleave", startAutoPlay);
+  container.addEventListener("touchstart", stopAutoPlay, { passive: true });
+  container.addEventListener("touchend", startAutoPlay, { passive: true });
+
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  track.addEventListener("touchstart", (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  track.addEventListener("touchend", (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const diffX = touchStartX - touchEndX;
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) nextSlide();
+      else prevSlide();
+    }
+  }, { passive: true });
+
+  let resizeTimeout;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      if (!document.body.contains(container)) return;
+      renderDots();
+      updateSlide(false);
+    }, 150);
+  });
+
+  renderDots();
+  requestAnimationFrame(() => updateSlide(false));
+  startAutoPlay();
+}
+
 function attachHomeVideoPreviews() {
   document.querySelectorAll(".home-video-frame").forEach((frame) => {
     const previewBtn = frame.querySelector(".home-video-preview");
@@ -4191,6 +4461,7 @@ async function executeRoute() {
   attachExploreServices();
   attachSelfPacedActions();
   attachHomeVideoPreviews();
+  attachReviewCarousel();
   renderIcons();
   window.scrollTo(0, 0);
   app.focus();

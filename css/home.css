@@ -1332,3 +1332,336 @@
     min-height: 48px;
   }
 }
+
+/* ==========================================================================
+   8. WHAT LEARNERS SAY (REVIEW CAROUSEL)
+   ========================================================================== */
+.home-reviews-section {
+  padding: 10px 0 72px;
+  position: relative;
+}
+
+.home-reviews-header {
+  text-align: center;
+  max-width: 580px;
+  margin: 0 auto 36px;
+}
+
+.home-reviews-header .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--brand-indigo);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.home-reviews-header .eyebrow svg,
+.home-reviews-header .eyebrow i {
+  width: 14px;
+  height: 14px;
+}
+
+.home-reviews-header h2 {
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.home-reviews-subtitle {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Carousel Outer Shell */
+.home-reviews-carousel {
+  position: relative;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+/* Track Viewport */
+.home-reviews-viewport {
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  padding: 8px 4px 16px;
+}
+
+/* Sliding Track */
+.home-reviews-track {
+  display: flex;
+  gap: 20px;
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+/* Review Card */
+.home-review-card {
+  flex: 0 0 calc((100% - 40px) / 3);
+  max-width: calc((100% - 40px) / 3);
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-xl);
+  padding: 26px 24px 22px;
+  box-shadow: 0 6px 20px rgba(25, 31, 70, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.home-review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lifted);
+  border-color: rgba(97, 88, 223, 0.28);
+}
+
+/* Review Card Top: Stars & Quote Icon */
+.home-review-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.home-review-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #f59e0b;
+}
+
+.home-review-stars svg,
+.home-review-stars i {
+  width: 15px;
+  height: 15px;
+  fill: #f59e0b;
+  color: #f59e0b;
+}
+
+.home-review-quote-icon {
+  color: rgba(97, 88, 223, 0.22);
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-review-quote-icon svg,
+.home-review-quote-icon i {
+  width: 100%;
+  height: 100%;
+}
+
+/* Review Body Text */
+.home-review-text {
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--ink);
+  margin: 0 0 20px;
+  flex: 1;
+}
+
+/* Learner Profile Info */
+.home-review-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-light);
+}
+
+.home-review-avatar {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6158df 0%, #352c80 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 10px rgba(76, 68, 199, 0.25);
+  letter-spacing: 0.02em;
+}
+
+.home-review-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-review-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-review-level {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--brand-indigo);
+  background: rgba(97, 88, 223, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  width: fit-content;
+}
+
+/* Controls: Chevrons & Dots */
+.home-reviews-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.home-reviews-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: 0 2px 8px rgba(25, 31, 70, 0.06);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+
+.home-reviews-btn:hover {
+  background: #ffffff;
+  color: var(--brand-indigo);
+  border-color: var(--brand-indigo);
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(76, 68, 199, 0.16);
+}
+
+.home-reviews-btn svg,
+.home-reviews-btn i {
+  width: 18px;
+  height: 18px;
+}
+
+.home-reviews-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.home-reviews-dots .review-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(54, 62, 124, 0.20);
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+}
+
+.home-reviews-dots .review-dot:hover {
+  background: rgba(97, 88, 223, 0.50);
+}
+
+.home-reviews-dots .review-dot.active {
+  background: var(--brand);
+  width: 22px;
+  border-radius: var(--radius-pill);
+}
+
+/* Responsive Breakpoints */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .home-review-card {
+    flex: 0 0 calc((100% - 20px) / 2);
+    max-width: calc((100% - 20px) / 2);
+  }
+}
+
+@media (max-width: 639px) {
+  .home-reviews-section {
+    padding: 6px 0 44px;
+  }
+
+  .home-reviews-header {
+    margin-bottom: 20px;
+  }
+
+  .home-reviews-header h2 {
+    font-size: 22px;
+  }
+
+  .home-reviews-subtitle {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .home-reviews-track {
+    gap: 14px;
+  }
+
+  .home-review-card {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding: 20px 18px 18px;
+    border-radius: 18px;
+  }
+
+  .home-review-text {
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+
+  .home-review-avatar {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    font-size: 12.5px;
+  }
+
+  .home-review-name {
+    font-size: 13.5px;
+  }
+
+  .home-review-level {
+    font-size: 11px;
+  }
+
+  .home-reviews-controls {
+    margin-top: 18px;
+    gap: 12px;
+  }
+
+  .home-reviews-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .home-reviews-btn svg,
+  .home-reviews-btn i {
+    width: 16px;
+    height: 16px;
+  }
+}

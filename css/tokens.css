@@ -28,6 +28,7 @@
 
   /* Semantic Aliases & Backward Compatibility */
   --primary:          var(--brand);
+  --brand-indigo:     #4d44c7;
   --brown:            #6158df;
   --brown-dark:       #282253;
 
