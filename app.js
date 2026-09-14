@@ -421,10 +421,14 @@ function friendlyError(error) {
 }
 
 function redirectAfterLogin() {
-  const destination = localStorage.getItem("loginRedirect") || "#/account";
+  const destination = localStorage.getItem("loginRedirect") || "account/index.html";
   localStorage.removeItem("loginRedirect");
   if (destination.includes("practice") || destination.startsWith("http")) {
     window.location.href = destination;
+    return;
+  }
+  if (destination.includes("account")) {
+    window.location.href = "account/index.html";
     return;
   }
   location.hash = profileIsComplete() ? destination.replace("#", "") : "/profile-setup";
@@ -4484,8 +4488,7 @@ async function executeRoute() {
   else if (path === "/login") renderLogin("login");
   else if (path === "/register") renderLogin("register");
   else if (path === "/forgot-password") renderLogin("forgot");
-  else if (path === "/profile-setup") renderProfileSetup();
-  else if (path === "/account") renderAccount();
+  else if (path === "/profile-setup" || path === "/account" || path === "/account/") { window.location.href = "account/index.html"; }
   else if (parts[0] === "admin" && parts[1] === "orders" && parts[2]) renderAdminOrderDetail(parts[2]);
   else if (path === "/admin" || path === "/admin/" || path === "/admin/dashboard") renderAdminDashboard();
   else if (path === "/admin/orders") renderAdminOrders();
