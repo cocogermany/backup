@@ -1338,12 +1338,6 @@ function renderHome() {
             <h3>Speaking</h3>
             <p>Partner practice & study group prompts.</p>
           </div>
-
-          <div class="home-feature-subcard">
-            <div class="home-subcard-icon">${icon("user-check")}</div>
-            <h3>Vocabulary</h3>
-            <p>Personal guidance & classroom support.</p>
-          </div>
         </div>
         <div style="margin-top: 24px; text-align: center;">
           <a class="button button-primary" href="#/practice">${icon("pen-tool")} Explore Practice Centre</a>
@@ -3559,7 +3553,6 @@ function attachHomeScrollNavigation() {
     else if (title === "Grammar") mod = "?module=Grammatik";
     else if (title === "Writing") mod = "?module=Schreiben";
     else if (title === "Speaking") mod = "?module=Sprechen";
-    else if (title === "Vocabulary") mod = "?module=Grammatik";
 
     const openPractice = () => { window.location.href = `practice/index.html#practice${mod}`; };
     card.addEventListener("click", openPractice);
