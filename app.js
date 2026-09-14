@@ -1484,11 +1484,11 @@ function renderHome() {
             <a class="home-subcard-btn" href="#/resources/study-materials">${icon("arrow-right")} Access Downloads</a>
           </div>
 
-          <div class="home-feature-subcard">
+          <div class="home-feature-subcard" data-blog-target="true">
             <div class="home-subcard-icon">${icon("lightbulb")}</div>
             <h3>Exam Tips</h3>
             <p>Proven strategies for Goethe & telc success.</p>
-            <a class="home-subcard-btn" href="#/resources/study-materials">${icon("arrow-right")} Read Exam Tips</a>
+            <a class="home-subcard-btn" href="blog/index.html">${icon("arrow-right")} Read Exam Tips</a>
           </div>
         </div>
       </div>
@@ -3583,6 +3583,25 @@ function attachHomeScrollNavigation() {
     if (card.dataset.bound) return;
     card.dataset.bound = "true";
     const query = card.dataset.studyQuery;
+    const isBlog = card.dataset.blogTarget === "true" || card.querySelector("h3")?.textContent?.trim() === "Exam Tips";
+
+    if (isBlog) {
+      card.setAttribute("role", "link");
+      card.setAttribute("tabindex", "0");
+      const openBlog = (event) => {
+        if (event) event.preventDefault();
+        window.location.href = "blog/index.html";
+      };
+      card.addEventListener("click", openBlog);
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openBlog();
+        }
+      });
+      return;
+    }
+
     if (!query) return;
 
     card.setAttribute("role", "link");

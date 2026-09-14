@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="chk-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="60%" stop-color="#172554"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="blue-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#chk-bg)"/>
+
+  <!-- Checklist clipboard -->
+  <g transform="translate(100, 70)">
+    <rect width="380" height="360" rx="18" fill="#ffffff" fill-opacity="0.08" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    
+    <rect x="28" y="28" width="130" height="26" rx="13" fill="#3b82f6" fill-opacity="0.3" stroke="#60a5fa" stroke-width="1"/>
+    <text x="93" y="45" fill="#bfdbfe" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="middle">MINDSET &amp; PACING</text>
+
+    <text x="28" y="96" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800">Exam Day Checklist</text>
+    <text x="28" y="122" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Prüfungstag Blueprint</text>
+
+    <!-- Checklist items -->
+    <g transform="translate(28, 150)">
+      <circle cx="10" cy="12" r="8" fill="#10b981"/>
+      <path d="M7 12 L9 14 L13 10" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="28" y="16" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Passport &amp; Admission Receipt</text>
+
+      <circle cx="10" cy="52" r="8" fill="#10b981"/>
+      <path d="M7 52 L9 54 L13 50" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="28" y="56" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Pre-Exam Breathing &amp; Focus</text>
+
+      <circle cx="10" cy="92" r="8" fill="#10b981"/>
+      <path d="M7 92 L9 94 L13 90" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="28" y="96" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Hören Acoustic Scan &amp; Notes</text>
+
+      <circle cx="10" cy="132" r="8" fill="#10b981"/>
+      <path d="M7 132 L9 134 L13 130" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="28" y="136" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Strict Antwortbogen Timing</text>
+    </g>
+  </g>
+
+  <!-- Right side: Success badge -->
+  <g transform="translate(530, 140)">
+    <circle cx="100" cy="100" r="85" fill="#172554" stroke="url(#blue-glow)" stroke-width="4"/>
+    <text x="100" y="85" fill="#dbeafe" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" text-anchor="middle">EXAM DAY</text>
+    <text x="100" y="126" fill="#60a5fa" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="900" text-anchor="middle">READY</text>
+    <text x="100" y="150" fill="#93c5fd" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Calm &amp; Confident</text>
+  </g>
+</svg>

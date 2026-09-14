@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="schr-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c1d95"/>
+      <stop offset="60%" stop-color="#2e1065"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="purple-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#schr-bg)"/>
+
+  <!-- Writing document preview -->
+  <g transform="translate(100, 70)">
+    <rect width="380" height="360" rx="18" fill="#ffffff" fill-opacity="0.08" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    
+    <rect x="28" y="28" width="120" height="26" rx="13" fill="#a855f7" fill-opacity="0.3" stroke="#c084fc" stroke-width="1"/>
+    <text x="88" y="45" fill="#e9d5ff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="middle">SCHREIBEN</text>
+
+    <text x="28" y="96" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800">Redemittel &amp; Frames</text>
+    <text x="28" y="122" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">High-Scoring Writing Connectors</text>
+
+    <!-- Simulated letter lines -->
+    <g transform="translate(28, 150)">
+      <rect x="0" y="0" width="160" height="14" rx="4" fill="#a855f7" fill-opacity="0.4"/>
+      <rect x="0" y="24" width="320" height="10" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+      <rect x="0" y="42" width="290" height="10" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+      <rect x="0" y="60" width="310" height="10" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+      <rect x="0" y="78" width="220" height="10" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+
+      <!-- Mandatory bullet points checklist -->
+      <g transform="translate(0, 110)">
+        <circle cx="8" cy="8" r="6" fill="#34d399"/>
+        <text x="24" y="12" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Leitpunkt 1: Grund des Schreibens</text>
+        
+        <circle cx="8" cy="32" r="6" fill="#34d399"/>
+        <text x="24" y="36" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Leitpunkt 2: Eigene Situation</text>
+
+        <circle cx="8" cy="56" r="6" fill="#34d399"/>
+        <text x="24" y="60" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Leitpunkt 3: Lösungsvorschlag</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Right side: Score badge -->
+  <g transform="translate(530, 140)">
+    <circle cx="100" cy="100" r="85" fill="#2e1065" stroke="url(#purple-glow)" stroke-width="4"/>
+    <text x="100" y="85" fill="#f3e8ff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" text-anchor="middle">RUBRIC SCORE</text>
+    <text x="100" y="126" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="42" font-weight="900" text-anchor="middle">100/100</text>
+    <text x="100" y="150" fill="#a855f7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Grammar &amp; Cohesion</text>
+  </g>
+</svg>
