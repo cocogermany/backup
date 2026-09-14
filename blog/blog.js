@@ -111,7 +111,7 @@ function initBlogSearchAndFilter() {
     grid.innerHTML = filtered
       .map(
         (article) => `
-        <article class="article-card">
+        <article class="article-card" data-url="${article.url}">
           <a class="article-card-image" href="${article.url}" aria-label="${article.title}">
             <img src="${article.coverImage}" alt="${article.title}" loading="lazy" />
           </a>
@@ -135,6 +135,15 @@ function initBlogSearchAndFilter() {
       `
       )
       .join("");
+
+    grid.querySelectorAll(".article-card").forEach((card) => {
+      card.style.cursor = "pointer";
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("a")) return;
+        const url = card.dataset.url;
+        if (url) window.location.href = url;
+      });
+    });
 
     initIcons();
   };

@@ -43,7 +43,7 @@ const BLOG_ARTICLES = [
     },
     coverImage: "assets/cover-goethe-telc.svg",
     featured: false,
-    url: "why-practice-mock-exams-matter-before-german-exam.html", // Links to main comprehensive guide
+    url: "goethe-vs-telc-b1-exam-differences.html",
     tags: ["Goethe", "telc", "B1 Level", "Certification"]
   },
   {
@@ -64,7 +64,7 @@ const BLOG_ARTICLES = [
     },
     coverImage: "assets/cover-schreiben.svg",
     featured: false,
-    url: "why-practice-mock-exams-matter-before-german-exam.html",
+    url: "mastering-schreiben-time-pressure-guide.html",
     tags: ["Schreiben", "Writing", "Redemittel", "Grammar"]
   },
   {
@@ -75,7 +75,7 @@ const BLOG_ARTICLES = [
       "Avoid common test-day pitfalls. From what identification documents to bring, to managing adrenaline during the Hören section and speaking with your examination partner.",
     category: "Mock Preparation",
     level: "A1–B2",
-    readTime: "4 min read",
+    readTime: "5 min read",
     publishedDate: "August 28, 2026",
     isoDate: "2026-08-28",
     author: {
@@ -85,7 +85,7 @@ const BLOG_ARTICLES = [
     },
     coverImage: "assets/cover-exam-day.svg",
     featured: false,
-    url: "why-practice-mock-exams-matter-before-german-exam.html",
+    url: "essential-exam-day-checklist-german-exams.html",
     tags: ["Exam Day", "Mindset", "Goethe", "telc"]
   }
 ];
