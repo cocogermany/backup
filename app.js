@@ -568,9 +568,14 @@ function matchesProductFilter(resource, filter) {
 
 function filterResources(query = "", filter = "All") {
   const normalizedQuery = query.trim().toLowerCase();
+  const queryWords = normalizedQuery ? normalizedQuery.split(/\s+/).filter(Boolean) : [];
   return activeProducts().filter((resource) => {
     const searchable = `${resource.title} ${resource.summary} ${resource.description} ${resource.level} ${resource.format} ${resource.sku}`.toLowerCase();
-    return matchesProductFilter(resource, filter) && (!normalizedQuery || searchable.includes(normalizedQuery));
+    const matchesQuery =
+      !normalizedQuery ||
+      searchable.includes(normalizedQuery) ||
+      (queryWords.length > 1 && queryWords.every((word) => searchable.includes(word)));
+    return matchesProductFilter(resource, filter) && matchesQuery;
   });
 }
 
@@ -1458,18 +1463,18 @@ function renderHome() {
         </div>
 
         <div class="home-block-grid two">
-          <div class="home-feature-subcard">
+          <div class="home-feature-subcard" data-study-query="Vocabulary">
             <div class="home-subcard-icon">${icon("list")}</div>
             <h3>Vocabulary</h3>
             <p>Essential word lists & thematic flashcards.</p>
-            <a class="home-subcard-btn" href="#/resources/study-materials">${icon("arrow-right")} View Vocabulary</a>
+            <a class="home-subcard-btn" href="#/resources/study-materials?search=Vocabulary">${icon("arrow-right")} View Vocabulary</a>
           </div>
 
-          <div class="home-feature-subcard">
+          <div class="home-feature-subcard" data-study-query="Grammar Notes">
             <div class="home-subcard-icon">${icon("notebook")}</div>
             <h3>Grammar Notes</h3>
             <p>Concise summaries covering A1 through B2.</p>
-            <a class="home-subcard-btn" href="#/resources/study-materials">${icon("arrow-right")} View Grammar Notes</a>
+            <a class="home-subcard-btn" href="#/resources/study-materials?search=Grammar%20Notes">${icon("arrow-right")} View Grammar Notes</a>
           </div>
 
           <div class="home-feature-subcard">
@@ -1600,13 +1605,14 @@ function renderResourceStore(items) {
     : `<div class="notice store-empty">No resources match this search. Try another level, product type, or format.</div>`;
 }
 
-function renderStoreFilters() {
+function renderStoreFilters(initialQuery = "") {
   const filters = ["All", "A1", "A2", "B1", "B2", "Free", "Paid", "Digital", "Printed"];
+  const safeQuery = initialQuery ? String(initialQuery).replace(/"/g, "&quot;") : "";
   return html`
     <div class="store-toolbar" data-store-toolbar>
       <label class="store-search">
         ${icon("search")}
-        <input type="search" data-resource-search placeholder="Search resources, level, format, or SKU" />
+        <input type="search" data-resource-search value="${safeQuery}" placeholder="Search resources, level, format, or SKU" />
       </label>
       <div class="store-filters" role="list" aria-label="Resource filters">
         ${filters.map((filter) => `<button class="${filter === "All" ? "active" : ""}" type="button" data-resource-filter="${filter}">${filter}</button>`).join("")}
@@ -1714,8 +1720,8 @@ function renderResourcesHub() {
   `;
 }
 
-function renderResources() {
-  const visibleProducts = filterResources();
+function renderResources(initialQuery = "") {
+  const visibleProducts = filterResources(initialQuery);
 
   app.innerHTML = html`
     <section class="section resources-store-section">
@@ -1727,7 +1733,7 @@ function renderResources() {
         "Study Materials",
         "Browse Coco Germany resources like a compact bookstore, with quick filters for level, price type, and format.",
       )}
-      ${renderStoreFilters()}
+      ${renderStoreFilters(initialQuery)}
       <div class="store-results-meta"><strong>${visibleProducts.length}</strong> resource${visibleProducts.length === 1 ? "" : "s"} available</div>
       <div class="store-grid" data-store-results>${renderResourceStore(visibleProducts)}</div>
     </section>
@@ -3573,6 +3579,27 @@ function attachHomeScrollNavigation() {
     });
   });
 
+  document.querySelectorAll("#study-materials .home-feature-subcard").forEach((card) => {
+    if (card.dataset.bound) return;
+    card.dataset.bound = "true";
+    const query = card.dataset.studyQuery;
+    if (!query) return;
+
+    card.setAttribute("role", "link");
+    card.setAttribute("tabindex", "0");
+    const openStudySearch = (event) => {
+      if (event) event.preventDefault();
+      window.location.hash = `#/resources/study-materials?search=${encodeURIComponent(query)}`;
+    };
+    card.addEventListener("click", openStudySearch);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openStudySearch();
+      }
+    });
+  });
+
   if (homeSectionObserver) homeSectionObserver.disconnect();
   const sections = document.querySelectorAll("#hero, #mock-exams, #practice, #home-study-materials, #videos, #study-materials, #membership, #home-reviews");
   if (!sections.length) return;
@@ -4403,8 +4430,12 @@ async function loadRouteData(path, parts) {
 }
 
 async function executeRoute() {
-  const path = location.hash.replace("#", "") || "/";
+  const fullPath = location.hash.replace("#", "") || "/";
+  const [pathOnly, queryString] = fullPath.split("?");
+  const path = pathOnly || "/";
   const parts = path.split("/").filter(Boolean);
+  const searchParams = new URLSearchParams(queryString || "");
+  const initialSearch = searchParams.get("search") || searchParams.get("q") || "";
   document.body.classList.remove("account-chrome-hidden");
 
   if (currentUser && !profileIsComplete() && path !== "/profile-setup") {
@@ -4412,20 +4443,20 @@ async function executeRoute() {
     setActiveNavigation(path);
     updateAuthNavigation();
     renderIcons();
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     app.focus();
     return;
   }
 
   await loadRouteData(path, parts);
-  if ((location.hash.replace("#", "") || "/") !== path) return;
+  if ((location.hash.replace("#", "") || "/") !== fullPath) return;
 
   if (path === "/") renderHome();
   else if (path === "/practice" || path === "/mock-exams") { window.location.href = "practice/index.html"; }
   else if (path === "/ai-writing") renderAIWriting();
   else if (path === "/speaking") renderSpeaking();
   else if (path === "/resources") renderResourcesHub();
-  else if (path === "/resources/study-materials" || path === "/study-materials" || (parts[0] === "resources" && parts[1] === "study-materials")) renderResources();
+  else if (path === "/resources/study-materials" || path === "/study-materials" || (parts[0] === "resources" && parts[1] === "study-materials")) renderResources(initialSearch);
   else if (parts[0] === "resources" && parts[1]) renderResourceDetail(decodeURIComponent(parts[1]));
   else if (path === "/videos") renderVideos();
   else if (path === "/about") renderAbout();
