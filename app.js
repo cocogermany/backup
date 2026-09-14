@@ -3484,6 +3484,8 @@ function scrollToHomeSection(sectionId) {
     section = document.getElementById("home-study-materials") || document.getElementById("study-materials");
   } else if (sectionId === "self-paced-learning" || sectionId === "self-paced") {
     section = document.getElementById("videos");
+  } else if (sectionId === "reviews" || sectionId === "home-reviews") {
+    section = document.getElementById("home-reviews");
   } else {
     section = document.getElementById(sectionId);
   }
@@ -3493,7 +3495,7 @@ function scrollToHomeSection(sectionId) {
 }
 
 function updateNavScrollControl() {
-  const nav = document.querySelector(".desktop-nav");
+  const nav = document.querySelector(".site-header .nav") || document.querySelector(".nav");
   const control = document.querySelector(".nav-scroll-control");
   if (!nav || !control) return;
   control.hidden = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 2;
@@ -3502,6 +3504,8 @@ function updateNavScrollControl() {
 function attachHomeScrollNavigation() {
   const links = document.querySelectorAll("[data-scroll-section]");
   links.forEach((link) => {
+    if (link.dataset.bound) return;
+    link.dataset.bound = "true";
     link.addEventListener("click", (event) => {
       event.preventDefault();
       const sectionId = link.dataset.scrollSection;
@@ -3527,15 +3531,15 @@ function attachHomeScrollNavigation() {
   if (navScrollControl && !navScrollControl.dataset.bound) {
     navScrollControl.dataset.bound = "true";
     navScrollControl.addEventListener("click", () => {
-      const nav = document.querySelector(".desktop-nav");
+      const nav = document.querySelector(".site-header .nav") || document.querySelector(".nav");
       nav?.scrollBy({ top: 170, behavior: "smooth" });
       window.setTimeout(updateNavScrollControl, 220);
     });
   }
-  const desktopNav = document.querySelector(".desktop-nav");
-  if (desktopNav && !desktopNav.dataset.scrollBound) {
-    desktopNav.dataset.scrollBound = "true";
-    desktopNav.addEventListener("scroll", updateNavScrollControl, { passive: true });
+  const siteNav = document.querySelector(".site-header .nav") || document.querySelector(".nav");
+  if (siteNav && !siteNav.dataset.scrollBound) {
+    siteNav.dataset.scrollBound = "true";
+    siteNav.addEventListener("scroll", updateNavScrollControl, { passive: true });
   }
   requestAnimationFrame(updateNavScrollControl);
   if (!document.body.dataset.navScrollResizeBound) {
@@ -3544,6 +3548,8 @@ function attachHomeScrollNavigation() {
   }
 
   document.querySelectorAll("#practice .home-feature-subcard").forEach((card) => {
+    if (card.dataset.bound) return;
+    card.dataset.bound = "true";
     card.setAttribute("role", "link");
     card.setAttribute("tabindex", "0");
     const title = card.querySelector("h3")?.textContent?.trim() || "";
@@ -3563,6 +3569,8 @@ function attachHomeScrollNavigation() {
   });
 
   document.querySelectorAll("#mock-exams .home-feature-subcard").forEach((card) => {
+    if (card.dataset.bound) return;
+    card.dataset.bound = "true";
     card.setAttribute("role", "link");
     card.setAttribute("tabindex", "0");
     const openMock = () => { window.location.href = "practice/index.html#mock-exams"; };
@@ -3573,7 +3581,7 @@ function attachHomeScrollNavigation() {
   });
 
   if (homeSectionObserver) homeSectionObserver.disconnect();
-  const sections = document.querySelectorAll("#hero, #mock-exams, #practice, #home-study-materials, #videos, #study-materials, #membership");
+  const sections = document.querySelectorAll("#hero, #mock-exams, #practice, #home-study-materials, #videos, #study-materials, #membership, #home-reviews");
   if (!sections.length) return;
   homeSectionObserver = new IntersectionObserver(
     (entries) => {
@@ -3586,7 +3594,7 @@ function attachHomeScrollNavigation() {
         link.classList.toggle("active", isActive);
       });
     },
-    { rootMargin: "-20% 0px -58% 0px", threshold: [0.05, 0.3, 0.6] },
+    { rootMargin: "-10% 0px -40% 0px", threshold: [0.05, 0.25, 0.5] },
   );
   sections.forEach((section) => homeSectionObserver.observe(section));
 }
@@ -4463,7 +4471,7 @@ async function executeRoute() {
   attachHomeVideoPreviews();
   attachReviewCarousel();
   renderIcons();
-  window.scrollTo(0, 0);
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   app.focus();
   if (pendingHomeSection) {
     const sectionId = pendingHomeSection;

@@ -11,29 +11,76 @@
 }
 
 html {
-  scroll-behavior: smooth;
   background: var(--paper);
   -webkit-text-size-adjust: 100%;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
   overflow-x: hidden;
-  background:
-    radial-gradient(72rem 38rem at 100% -10%, rgba(113, 103, 235, 0.14), transparent 58%),
-    radial-gradient(54rem 36rem at -8% 42%, rgba(37, 179, 165, 0.10), transparent 55%),
-    linear-gradient(180deg, #fafbff 0%, #f5f7ff 54%, #f9fbff 100%);
-  background-attachment: fixed;
+  overflow-x: clip;
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* GPU-accelerated fixed background canvas — eliminates scroll repaint lag */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(72rem 38rem at 100% -10%, rgba(113, 103, 235, 0.14), transparent 58%),
+    radial-gradient(54rem 36rem at -8% 42%, rgba(37, 179, 165, 0.10), transparent 55%),
+    linear-gradient(180deg, #fafbff 0%, #f5f7ff 54%, #f9fbff 100%);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Fluid scroll margin for sections so headers and titles are never clipped */
+[data-section],
+.section,
+.home-feature-block,
+.home-why-section,
+.home-final-cta,
+.home-reviews-section,
+#hero,
+#mock-exams,
+#practice,
+#home-study-materials,
+#videos,
+#membership,
+#home-reviews {
+  scroll-margin-top: calc(var(--header-height-mobile) + 16px);
+}
+
+@media (min-width: 1024px) {
+  [data-section],
+  .section,
+  .home-feature-block,
+  .home-why-section,
+  .home-final-cta,
+  .home-reviews-section,
+  #hero,
+  #mock-exams,
+  #practice,
+  #home-study-materials,
+  #videos,
+  #membership,
+  #home-reviews {
+    scroll-margin-top: 28px;
+  }
 }
 
 ::selection {
