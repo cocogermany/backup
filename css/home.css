@@ -621,12 +621,6 @@
   }
 }
 
-@media (max-width: 380px) {
-  .home-block-grid.four {
-    grid-template-columns: 1fr;
-  }
-}
-
 .home-product-card {
   padding: 0;
   overflow: hidden;
@@ -1061,6 +1055,62 @@
   #practice .home-subcard-btn,
   #practice .subcard-link {
     display: none;
+  }
+
+  /* Compact Products section on smartphone view */
+  #home-study-materials {
+    padding: 20px 14px;
+  }
+
+  #home-study-materials .home-block-header {
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+
+  #home-study-materials .home-block-icon {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  #home-study-materials .home-block-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  #home-study-materials .home-block-header h2 {
+    font-size: 19px;
+  }
+
+  #home-study-materials .home-block-subtitle {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  #home-study-materials .home-block-grid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+  }
+
+  #home-study-materials .home-product-card {
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(25, 31, 70, 0.04);
+  }
+
+  #home-study-materials .home-product-image-wrap {
+    aspect-ratio: 4 / 3;
+    max-height: 105px;
+  }
+
+  #home-study-materials div[style*="margin-top: 24px"] {
+    margin-top: 14px !important;
+  }
+
+  #home-study-materials .button-primary {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 13px;
   }
 }
 

@@ -1317,7 +1317,7 @@ function renderHome() {
         <div class="home-block-header">
           <div class="home-block-icon">${icon("book-open")}</div>
           <div>
-            <h2>Study Materials</h2>
+            <h2>Products</h2>
             <p class="home-block-subtitle">Curated curriculum workbooks and exam preparation guides for serious German learners.</p>
           </div>
         </div>
