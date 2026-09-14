@@ -1148,8 +1148,22 @@ function renderFaq() {
   `;
 }
 
+function selectRandomProducts(items, count = 4) {
+  const pool = activeProducts().length ? activeProducts() : (Array.isArray(items) && items.length ? items : starterProducts);
+  const unarchived = pool.filter((item) => !item.archived && !item.deleted);
+  const candidates = unarchived.length ? unarchived : pool;
+  if (!candidates.length) return [];
+  const copy = [...candidates];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
+
 function renderHome() {
   const featuredVideos = videos && videos.length ? videos.slice(0, 2) : [];
+  const randomStudyProducts = selectRandomProducts(products, 4);
 
   app.innerHTML = html`
     <!-- 1. FULL VIEWPORT IMMERSIVE HERO SECTION -->
@@ -1295,6 +1309,48 @@ function renderHome() {
         </div>
         <div style="margin-top: 24px; text-align: center;">
           <a class="button button-primary" href="#/practice">${icon("pen-tool")} Explore Practice Centre</a>
+        </div>
+      </div>
+
+      <!-- STUDY MATERIALS SECTION -->
+      <div class="home-feature-block" id="home-study-materials" data-section="study-materials">
+        <div class="home-block-header">
+          <div class="home-block-icon">${icon("book-open")}</div>
+          <div>
+            <h2>Study Materials</h2>
+            <p class="home-block-subtitle">Curated curriculum workbooks and exam preparation guides for serious German learners.</p>
+          </div>
+        </div>
+
+        ${randomStudyProducts.length
+          ? html`
+              <div class="home-block-grid four">
+                ${randomStudyProducts
+                  .map((product) => {
+                    const images = productImages(product);
+                    const cover = images[0] || fallbackProductImage;
+                    const detailUrl = `#/resources/${encodeURIComponent(product.id)}`;
+                    return html`
+                      <article class="home-product-card">
+                        <a href="${detailUrl}" class="home-product-card-link" aria-label="${product.title}">
+                          <div class="home-product-image-wrap">
+                            <img class="home-product-img" src="${cover}" alt="${product.title}" loading="lazy" />
+                          </div>
+                        </a>
+                      </article>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+          : html`
+              <div class="notice home-study-empty">
+                No study materials available at the moment.
+              </div>
+            `}
+
+        <div style="margin-top: 24px; text-align: center;">
+          <a class="button button-primary" href="#/resources/study-materials">${icon("book-open")} More Products ${icon("arrow-right")}</a>
         </div>
       </div>
 
@@ -3329,9 +3385,13 @@ function setActiveNavigation(path) {
 }
 
 function scrollToHomeSection(sectionId) {
-  let section = document.getElementById(sectionId);
-  if (!section && (sectionId === "self-paced-learning" || sectionId === "self-paced")) {
+  let section = null;
+  if (sectionId === "study-materials" || sectionId === "home-study-materials") {
+    section = document.getElementById("home-study-materials") || document.getElementById("study-materials");
+  } else if (sectionId === "self-paced-learning" || sectionId === "self-paced") {
     section = document.getElementById("videos");
+  } else {
+    section = document.getElementById(sectionId);
   }
   if (!section) return false;
   section.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3419,13 +3479,18 @@ function attachHomeScrollNavigation() {
   });
 
   if (homeSectionObserver) homeSectionObserver.disconnect();
-  const sections = document.querySelectorAll("#hero, #mock-exams, #practice, #videos, #study-materials, #membership");
+  const sections = document.querySelectorAll("#hero, #mock-exams, #practice, #home-study-materials, #videos, #study-materials, #membership");
   if (!sections.length) return;
   homeSectionObserver = new IntersectionObserver(
     (entries) => {
       const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (!visible) return;
-      links.forEach((link) => link.classList.toggle("active", link.dataset.scrollSection === visible.target.id));
+      links.forEach((link) => {
+        const isActive =
+          link.dataset.scrollSection === visible.target.id ||
+          (visible.target.id === "home-study-materials" && link.dataset.scrollSection === "study-materials");
+        link.classList.toggle("active", isActive);
+      });
     },
     { rootMargin: "-20% 0px -58% 0px", threshold: [0.05, 0.3, 0.6] },
   );
@@ -4044,6 +4109,7 @@ function renderSpeaking() {
 
 async function loadRouteData(path, parts) {
   const opensResources =
+    path === "/" ||
     path === "/resources" ||
     path === "/resources/study-materials" ||
     path === "/study-materials" ||

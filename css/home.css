@@ -594,12 +594,17 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.home-block-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .home-feature-subcards {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 @media (max-width: 1023px) {
-  .home-block-grid.three {
+  .home-block-grid.three,
+  .home-block-grid.four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -609,6 +614,78 @@
   .home-block-grid.three {
     grid-template-columns: 1fr;
   }
+
+  .home-block-grid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .home-block-grid.four {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-product-card {
+  padding: 0;
+  overflow: hidden;
+  display: block;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  box-shadow: 0 4px 18px rgba(25, 31, 70, 0.05);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.home-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lifted);
+  border-color: var(--brand-indigo);
+}
+
+.home-product-card-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.home-product-image-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: linear-gradient(135deg, #171b3e, #30366f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.5s var(--ease-smooth);
+}
+
+.home-product-card:hover .home-product-img {
+  transform: scale(1.05);
+}
+
+.home-study-empty {
+  text-align: center;
+  padding: 32px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line-light);
 }
 
 /* ==========================================================================
