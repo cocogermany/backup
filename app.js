@@ -233,6 +233,40 @@ const app = document.querySelector("#app");
 const levels = ["A1", "A2", "B1", "B2"];
 const orderStatuses = ["Pending", "Payment Requested", "Paid", "Processing", "Shipped", "Completed", "Cancelled"];
 
+const faqs = [
+  [
+    "How do I receive digital resources?",
+    "Free digital materials can be downloaded immediately after login. Paid resources are delivered to your registered email address following manual payment verification.",
+  ],
+  [
+    "How does payment and verification work?",
+    "When you place a purchase request, instructions are displayed. Once you complete the payment and provide the transfer details, our team verifies it and grants immediate access.",
+  ],
+  [
+    "Which format are the study materials in?",
+    "Digital resources are provided as high-quality PDF files that can be annotated, printed, or viewed on any tablet, computer, or phone.",
+  ],
+  [
+    "Can I access the materials across all my devices?",
+    "Yes. All digital downloads and purchases are linked to your Coco Germany account and can be accessed from any compatible device.",
+  ],
+];
+
+const testimonials = [
+  [
+    "The structured syllabus and clear grammar breakdowns made my Goethe B1 preparation completely manageable.",
+    "B1 Goethe Candidate",
+  ],
+  [
+    "Very clean, distraction-free study materials. Having curated vocabulary with articles saved me hours each week.",
+    "A2 Working Professional",
+  ],
+  [
+    "Coco Germany's resources give you the exact exam rhythm and precision required to pass telc B2.",
+    "telc B2 Medical Student",
+  ],
+];
+
 const countryOptions = [
   "India",
   "Australia",
@@ -672,6 +706,16 @@ function normalizeProduct(id, data) {
   const image = previewImages[0] || normalizeCdnImageUrl(data.image || data.imageUrl || fallbackProductImage);
   const productType = normalizeProductType(data.productType || data.type);
 
+  const benefits = Array.isArray(data.benefits) && data.benefits.length
+    ? data.benefits.filter(Boolean)
+    : typeof data.benefits === "string" && data.benefits.trim()
+      ? data.benefits.split("\n").map((b) => b.trim()).filter(Boolean)
+      : [
+          "Structured learning support.",
+          "Clear editorial sequence.",
+          "Practical study material.",
+        ];
+
   return {
     id,
     title: data.title || data.name || "Untitled resource",
@@ -690,11 +734,7 @@ function normalizeProduct(id, data) {
     audience: data.audience || `${data.category || data.level || "A1"} learners`,
     includes: data.includes || data.deliveryType || "Study material",
     description: data.description || data.summary || "A Coco Germany resource for structured German learning.",
-    benefits: data.benefits || [
-      "Structured learning support.",
-      "Clear editorial sequence.",
-      "Practical study material.",
-    ],
+    benefits,
     delivery: data.delivery || data.deliveryType || (productType === "free" ? "Instant download after login." : "Delivery after manual payment verification."),
     deliveryType: data.deliveryType || data.delivery || (productType === "free" ? "Instant digital download" : "Email or courier"),
     previewImages: previewImages.length ? previewImages : [image],
@@ -838,7 +878,8 @@ function resourceCard(resource) {
 
 function renderProductGallery(resource, options = {}) {
   const images = productImages(resource);
-  const label = options.label || `${resource.title} product images`;
+  const title = resource && resource.title ? resource.title : "Product";
+  const label = options.label || `${title} product images`;
   const className = options.className || "";
 
   return html`
@@ -850,7 +891,7 @@ function renderProductGallery(resource, options = {}) {
         ${images
           .map(
             (image, index) => html`
-              <img src="${image}" alt="${resource.title} product image ${index + 1}" loading="${index ? "lazy" : "eager"}" />
+              <img src="${image}" alt="${title} product image ${index + 1}" loading="${index ? "lazy" : "eager"}" />
             `,
           )
           .join("")}
@@ -868,6 +909,7 @@ function renderProductGallery(resource, options = {}) {
 function attachProductGalleries() {
   document.querySelectorAll("[data-product-gallery]").forEach((gallery) => {
     const track = gallery.querySelector("[data-gallery-track]");
+    if (!track) return;
     const slides = [...track.querySelectorAll("img")];
     const dots = [...gallery.querySelectorAll(".gallery-dots span")];
     const updateDots = () => {
@@ -878,8 +920,10 @@ function attachProductGalleries() {
       track.scrollBy({ left: direction * track.clientWidth, behavior: "smooth" });
     };
 
-    gallery.querySelector("[data-gallery-prev]").addEventListener("click", () => scrollBySlide(-1));
-    gallery.querySelector("[data-gallery-next]").addEventListener("click", () => scrollBySlide(1));
+    const prevBtn = gallery.querySelector("[data-gallery-prev]");
+    const nextBtn = gallery.querySelector("[data-gallery-next]");
+    if (prevBtn) prevBtn.addEventListener("click", () => scrollBySlide(-1));
+    if (nextBtn) nextBtn.addEventListener("click", () => scrollBySlide(1));
     track.addEventListener("scroll", updateDots, { passive: true });
     gallery.classList.toggle("single-image", slides.length < 2);
   });
@@ -1037,12 +1081,13 @@ function renderDeliveryTimeline() {
 }
 
 function renderTestimonials() {
+  const list = typeof testimonials !== "undefined" && Array.isArray(testimonials) ? testimonials : [];
   return html`
     <section class="section">
       <p class="eyebrow">Learner confidence</p>
       <h2>Clear material, calm experience.</h2>
       <div class="grid three">
-        ${testimonials
+        ${list
           .map(
             (item) => html`
               <blockquote class="testimonial">
@@ -1082,18 +1127,19 @@ function renderFounderStory() {
 }
 
 function renderFaq() {
+  const list = typeof faqs !== "undefined" && Array.isArray(faqs) ? faqs : [];
   return html`
     <section class="section">
       <p class="eyebrow">Questions</p>
       <h2>FAQ</h2>
       <div class="faq">
-        ${faqs
+        ${list
           .map(
             (item) => html`
               <details>
                 <summary>${item[0]} ${icon("chevron-down")}</summary>
                 <p>${item[1]}</p>
-          </details>
+              </details>
             `,
           )
           .join("")}
@@ -1572,29 +1618,65 @@ function attachResourceStore() {
 }
 
 function renderResourceDetail(id) {
-  const resource = activeProducts().find((item) => item.id === id) || activeProducts()[0] || products[0];
+  const cleanId = decodeURIComponent(String(id || "")).trim();
+  const allAvailable = products && products.length ? products : starterProducts;
+  const activeList = activeProducts().length ? activeProducts() : allAvailable.filter((p) => !p.archived);
+
+  const resource =
+    activeList.find((item) => item.id === cleanId || item.id === id) ||
+    allAvailable.find((item) => item.id === cleanId || item.id === id) ||
+    activeList.find((item) => String(item.title).toLowerCase() === cleanId.toLowerCase()) ||
+    allAvailable.find((item) => String(item.title).toLowerCase() === cleanId.toLowerCase()) ||
+    activeList[0] ||
+    allAvailable[0];
+
+  if (!resource) {
+    app.innerHTML = html`
+      <section class="section">
+        <p class="eyebrow">Study Materials</p>
+        <h1>Resource not found</h1>
+        <p class="lead">The requested study material could not be found.</p>
+        <div class="actions" style="margin-top: 24px;">
+          <a class="button" href="#/resources/study-materials">${icon("arrow-left")} Back to Study Materials</a>
+        </div>
+      </section>
+    `;
+    renderIcons();
+    return;
+  }
+
+  const benefitsList = Array.isArray(resource.benefits) && resource.benefits.length
+    ? resource.benefits
+    : [
+        "Structured learning support.",
+        "Clear editorial sequence.",
+        "Practical study material.",
+      ];
+
+  const detailHash = `#/resources/${encodeURIComponent(resource.id)}`;
+
   app.innerHTML = html`
     <section class="section split">
       ${renderProductGallery(resource, { className: "detail-gallery" })}
       <div>
-        <p class="eyebrow">${resource.level} resource</p>
+        <p class="eyebrow">${resource.level || "Curriculum"} resource</p>
         <h1>${resource.title}</h1>
-        <p class="lead">${resource.description}</p>
+        <p class="lead">${resource.description || resource.summary || "A Coco Germany resource for structured German learning."}</p>
         ${priceAccessMarkup(resource)}
         <div class="badges">
-          <span class="badge badge-gold">${icon("graduation-cap")}${resource.level}</span>
-          <span class="badge">${icon(isDigitalProduct(resource) ? "file-text" : "package")}${resource.format}</span>
+          <span class="badge badge-gold">${icon("graduation-cap")}${resource.level || "All"}</span>
+          <span class="badge">${icon(isDigitalProduct(resource) ? "file-text" : "package")}${resource.format || "Digital PDF"}</span>
           <span class="badge">${productTypeLabel(resource)}</span>
-          <span class="badge">${icon("eye")}${resource.pages}</span>
+          <span class="badge">${icon("eye")}${resource.pages || "Pages TBC"}</span>
         </div>
         <div class="metadata detail-meta">
-          <span>${icon("users")} ${resource.audience}</span>
-          <span>${icon("list-checks")} ${resource.includes}</span>
-          <span>${icon("barcode")} ${resource.sku}</span>
-          <span>${icon("truck")} ${resource.delivery}</span>
+          <span>${icon("users")} ${resource.audience || `${resource.level || "A1"} learners`}</span>
+          <span>${icon("list-checks")} ${resource.includes || "Study material"}</span>
+          <span>${icon("barcode")} ${resource.sku || "CG-ITEM"}</span>
+          <span>${icon("truck")} ${resource.delivery || "Digital download"}</span>
         </div>
         <div class="actions">
-          ${actionMarkup(resource, `#/resources/${resource.id}`)}
+          ${actionMarkup(resource, detailHash)}
           <a class="button-light" href="#/resources/study-materials">Back to study materials</a>
         </div>
       </div>
@@ -1604,7 +1686,7 @@ function renderResourceDetail(id) {
       <p class="eyebrow">Benefits</p>
       <h2>What this resource supports</h2>
       <div class="grid three">
-        ${resource.benefits
+        ${benefitsList
           .map(
             (benefit) => html`
               <div class="card card-body icon-card">${icon("check-circle-2")}<p>${benefit}</p></div>
@@ -1619,7 +1701,7 @@ function renderResourceDetail(id) {
       <h2>Swipe through product images</h2>
       <div class="preview-grid product-preview">
         ${renderProductGallery(resource, { className: "preview-gallery", label: `${resource.title} preview images` })}
-        <div class="notice">${resource.delivery}</div>
+        <div class="notice">${resource.delivery || "Instant download after login or manual verification."}</div>
       </div>
     </section>
 
@@ -1627,7 +1709,7 @@ function renderResourceDetail(id) {
     ${renderFaq()}
     <div class="mobile-purchase-cta">
       ${isFreeProduct(resource)
-        ? `<button class="button" type="button" data-free-download="${resource.id}" data-return-hash="#/resources/${resource.id}">${icon("download")}Download Free</button>`
+        ? `<button class="button" type="button" data-free-download="${resource.id}" data-return-hash="${detailHash}">${icon("download")}Download Free</button>`
         : currentUser
           ? `<a class="button" href="#/checkout/${resource.id}">${icon("shopping-bag")}Buy Now - ${displayPrice(resource)}</a>`
           : `<a class="button" href="#/login" data-login-price="${resource.id}">${icon("log-in")}Login to see price</a>`}
@@ -3181,7 +3263,11 @@ function renderAdminExamMaterials() {
 }
 
 function handleFreeDownload(productId) {
-  const resource = products.find((item) => item.id === productId);
+  const cleanId = decodeURIComponent(String(productId || "")).trim();
+  const resource =
+    activeProducts().find((item) => item.id === cleanId || item.id === productId) ||
+    products.find((item) => item.id === cleanId || item.id === productId) ||
+    products.find((item) => String(item.title).toLowerCase() === cleanId.toLowerCase());
   if (!resource) return;
 
   if (!resource.downloadUrl) {
@@ -4002,8 +4088,8 @@ async function executeRoute() {
   else if (path === "/ai-writing") renderAIWriting();
   else if (path === "/speaking") renderSpeaking();
   else if (path === "/resources") renderResourcesHub();
-  else if (path === "/resources/study-materials" || path === "/study-materials") renderResources();
-  else if (parts[0] === "resources" && parts[1]) renderResourceDetail(parts[1]);
+  else if (path === "/resources/study-materials" || path === "/study-materials" || (parts[0] === "resources" && parts[1] === "study-materials")) renderResources();
+  else if (parts[0] === "resources" && parts[1]) renderResourceDetail(decodeURIComponent(parts[1]));
   else if (path === "/videos") renderVideos();
   else if (path === "/about") renderAbout();
   else if (path === "/contact") renderContact();
