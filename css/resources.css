@@ -430,9 +430,9 @@
     bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-top: 1px solid var(--line-light);
     padding: 10px 16px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);

@@ -85,7 +85,7 @@
   color: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.18);
   margin-bottom: 24px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(6px);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.2);
 }
 
@@ -154,7 +154,7 @@
   background: rgba(255, 255, 255, 0.09);
   color: #ffffff;
   border: 1.5px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(6px);
 }
 
 .home-hero-actions .button-secondary:hover {
@@ -183,7 +183,7 @@
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 9px 24px rgba(4, 6, 30, 0.12);
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
@@ -356,9 +356,7 @@
   justify-content: center;
   gap: 10px 22px;
   padding: 11px 24px;
-  background: var(--surface-tint);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.90);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(54, 62, 124, 0.08);
   box-shadow: 0 4px 18px rgba(24, 30, 72, 0.04), 0 1px 3px rgba(24, 30, 72, 0.02);

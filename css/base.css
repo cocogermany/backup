@@ -45,7 +45,6 @@ body::before {
     radial-gradient(54rem 36rem at -8% 42%, rgba(37, 179, 165, 0.10), transparent 55%),
     linear-gradient(180deg, #fafbff 0%, #f5f7ff 54%, #f9fbff 100%);
   transform: translateZ(0);
-  will-change: transform;
 }
 
 /* Fluid scroll margin for sections so headers and titles are never clipped */
