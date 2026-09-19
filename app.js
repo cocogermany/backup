@@ -3777,7 +3777,7 @@ function openServicesModal() {
       if (scrollTarget) {
         e.preventDefault();
         closeServicesModal();
-        const currentPath = location.hash.replace("#", "") || "/";
+        const currentPath = getRouteFromHash(location.hash).split("?")[0];
         if (currentPath === "/") {
           scrollToHomeSection(scrollTarget);
         } else {
@@ -4703,14 +4703,38 @@ async function loadRouteData(path, parts) {
   if (tasks.length) await Promise.all(tasks);
 }
 
+function getRouteFromHash(hash) {
+  const rawHash = (typeof hash === "string" ? hash : location.hash) || "";
+  if (rawHash.startsWith("#/")) {
+    return rawHash.slice(1) || "/";
+  }
+  if (rawHash.startsWith("#") && rawHash.length > 1) {
+    return "/";
+  }
+  return rawHash.replace(/^#/, "") || "/";
+}
+
+function getSectionFromHash(hash) {
+  const rawHash = (typeof hash === "string" ? hash : location.hash) || "";
+  if (rawHash.startsWith("#") && !rawHash.startsWith("#/") && rawHash.length > 1) {
+    return decodeURIComponent(rawHash.slice(1).split("?")[0]);
+  }
+  return "";
+}
+
 async function executeRoute() {
-  const fullPath = location.hash.replace("#", "") || "/";
+  const fullPath = getRouteFromHash(location.hash);
+  const targetSection = getSectionFromHash(location.hash);
   const [pathOnly, queryString] = fullPath.split("?");
   const path = pathOnly || "/";
   const parts = path.split("/").filter(Boolean);
   const searchParams = new URLSearchParams(queryString || "");
   const initialSearch = searchParams.get("search") || searchParams.get("q") || "";
   document.body.classList.remove("account-chrome-hidden");
+
+  if (targetSection) {
+    pendingHomeSection = targetSection;
+  }
 
   if (currentUser && !profileIsComplete() && path !== "/profile-setup") {
     renderProfileSetup();
@@ -4723,6 +4747,15 @@ async function executeRoute() {
   }
 
   if (path === "/") {
+    const isAlreadyOnHome = document.querySelector("#hero") && document.querySelector("#mock-exams");
+    if (isAlreadyOnHome && targetSection) {
+      pendingHomeSection = "";
+      if (scrollToHomeSection(targetSection)) {
+        setActiveNavigation(path);
+        return;
+      }
+    }
+
     renderHome();
     setActiveNavigation(path);
     updateAuthNavigation();
@@ -4745,12 +4778,16 @@ async function executeRoute() {
     if (pendingHomeSection) {
       const sectionId = pendingHomeSection;
       pendingHomeSection = "";
-      requestAnimationFrame(() => scrollToHomeSection(sectionId));
+      requestAnimationFrame(() => {
+        if (!scrollToHomeSection(sectionId)) {
+          setTimeout(() => scrollToHomeSection(sectionId), 100);
+        }
+      });
     }
 
     // Hydrate fresh products & videos asynchronously in the background
     loadRouteData(path, parts).then(() => {
-      const current = (location.hash.replace("#", "") || "/").split("?")[0];
+      const current = getRouteFromHash(location.hash).split("?")[0];
       if (current === "/" || current === "") {
         const scrollY = window.scrollY;
         renderHome();
@@ -4773,7 +4810,7 @@ async function executeRoute() {
   }
 
   await loadRouteData(path, parts);
-  if ((location.hash.replace("#", "") || "/") !== fullPath) return;
+  if (getRouteFromHash(location.hash) !== fullPath) return;
 
   if (path === "/practice" || path === "/mock-exams") { window.location.href = "practice/index.html"; }
   else if (path === "/ai-writing") renderAIWriting();
@@ -4835,7 +4872,7 @@ async function router() {
 
 // Cross-page auto-refresh listeners
 window.addEventListener("coco:target-changed", (e) => {
-  const path = location.hash.replace("#", "") || "/";
+  const path = getRouteFromHash(location.hash).split("?")[0];
   if (path === "/account" || path === "/profile-setup") {
     if (currentUserProfile && e.detail) {
       if (e.detail.level) currentUserProfile.level = e.detail.level;
@@ -4846,14 +4883,14 @@ window.addEventListener("coco:target-changed", (e) => {
 });
 
 window.addEventListener("coco:materials-changed", () => {
-  const path = location.hash.replace("#", "") || "/";
+  const path = getRouteFromHash(location.hash).split("?")[0];
   if (path === "/admin/exam-materials") {
     loadExamMaterials().then(() => renderAdminExamMaterials());
   }
 });
 
 window.addEventListener("storage", (e) => {
-  const path = location.hash.replace("#", "") || "/";
+  const path = getRouteFromHash(location.hash).split("?")[0];
   if (e.key === "coco_last_target_update" && (path === "/account" || path === "/profile-setup")) {
     const target = window.CocoStateSync.getTarget();
     if (currentUserProfile) {
@@ -4881,7 +4918,7 @@ async function startSite() {
       }
       updateAuthNavigation();
 
-      const fullPath = location.hash.replace("#", "") || "/";
+      const fullPath = getRouteFromHash(location.hash);
       const [pathOnly] = fullPath.split("?");
       const currentPath = pathOnly || "/";
 
