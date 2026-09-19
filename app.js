@@ -23,6 +23,7 @@ let pendingHomeSection = "";
 let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
 window.__setCurrentUserForTesting = (user, profile) => {
+  window.__isTesting = true;
   currentUser = user;
   if (profile) currentUserProfile = profile;
 };
@@ -230,9 +231,21 @@ const starterProducts = [
   },
 ];
 products = [...starterProducts];
+try {
+  const cachedProducts = JSON.parse(localStorage.getItem("coco_cached_products") || "null");
+  if (Array.isArray(cachedProducts) && cachedProducts.length) {
+    products = cachedProducts;
+  }
+} catch (e) {}
 
 const starterVideos = [];
 videos = [];
+try {
+  const cachedVideos = JSON.parse(localStorage.getItem("coco_cached_videos") || "null");
+  if (Array.isArray(cachedVideos) && cachedVideos.length) {
+    videos = cachedVideos;
+  }
+} catch (e) {}
 
 const app = document.querySelector("#app");
 const levels = ["A1", "A2", "B1", "B2"];
@@ -804,16 +817,19 @@ async function loadProducts() {
       .filter((item) => !item.data.deleted)
       .map((item) => normalizeProduct(item.id, item.data));
     products = snapshot.docs.length ? firestoreProducts : [...starterProducts];
+    try {
+      localStorage.setItem("coco_cached_products", JSON.stringify(products));
+    } catch (e) {}
   } catch (error) {
     console.error(error);
-    products = [...starterProducts];
+    if (!products.length) products = [...starterProducts];
   }
 }
 
 async function loadVideos() {
   const tools = await getFirebaseTools();
   if (!tools) {
-    videos = [];
+    if (!videos.length) videos = [];
     return;
   }
 
@@ -823,9 +839,12 @@ async function loadVideos() {
       .map((doc) => normalizeVideo(doc.id, doc.data()))
       .filter((video) => !video.deleted);
     videos = firestoreVideos;
+    try {
+      localStorage.setItem("coco_cached_videos", JSON.stringify(videos));
+    } catch (e) {}
   } catch (error) {
     console.error("Failed to load videos from Firestore:", error);
-    videos = [];
+    if (!videos.length) videos = [];
   }
 }
 
@@ -4619,7 +4638,8 @@ document.addEventListener("click", (e) => {
 
 function updateAuthNavigation() {
   document.querySelectorAll("[data-admin-link]").forEach((link) => {
-    if (!isAdmin()) link.remove();
+    link.hidden = !isAdmin();
+    link.style.display = isAdmin() ? "" : "none";
   });
 
   document.querySelectorAll("[data-account-link]").forEach((link) => {
@@ -4674,11 +4694,13 @@ async function loadRouteData(path, parts) {
     path === "/admin/orders" ||
     (parts[0] === "admin" && parts[1] === "orders" && parts[2]);
 
-  if (opensResources) await loadProducts();
-  if (opensVideos) await loadVideos();
-  if (opensOrders) await loadOrders();
-  if (path === "/admin/exam-materials") await loadExamMaterials();
-  if (path === "/admin/analytics") await loadAnalyticsEvents();
+  const tasks = [];
+  if (opensResources) tasks.push(loadProducts());
+  if (opensVideos) tasks.push(loadVideos());
+  if (opensOrders) tasks.push(loadOrders());
+  if (path === "/admin/exam-materials") tasks.push(loadExamMaterials());
+  if (path === "/admin/analytics") tasks.push(loadAnalyticsEvents());
+  if (tasks.length) await Promise.all(tasks);
 }
 
 async function executeRoute() {
@@ -4700,11 +4722,60 @@ async function executeRoute() {
     return;
   }
 
+  if (path === "/") {
+    renderHome();
+    setActiveNavigation(path);
+    updateAuthNavigation();
+    attachCategoryTabs();
+    attachResourceStore();
+    attachVideoTabs();
+    attachProductGalleries();
+    attachFreeDownloads();
+    attachLoginPriceLinks();
+    attachHomeScrollNavigation();
+    attachExploreServices();
+    attachSelfPacedActions();
+    attachHomeVideoPreviews();
+    attachReviewCarousel();
+    renderIcons();
+    if (!pendingHomeSection) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    app.focus();
+    if (pendingHomeSection) {
+      const sectionId = pendingHomeSection;
+      pendingHomeSection = "";
+      requestAnimationFrame(() => scrollToHomeSection(sectionId));
+    }
+
+    // Hydrate fresh products & videos asynchronously in the background
+    loadRouteData(path, parts).then(() => {
+      const current = (location.hash.replace("#", "") || "/").split("?")[0];
+      if (current === "/" || current === "") {
+        const scrollY = window.scrollY;
+        renderHome();
+        attachCategoryTabs();
+        attachResourceStore();
+        attachVideoTabs();
+        attachProductGalleries();
+        attachFreeDownloads();
+        attachLoginPriceLinks();
+        attachHomeScrollNavigation();
+        attachExploreServices();
+        attachSelfPacedActions();
+        attachHomeVideoPreviews();
+        attachReviewCarousel();
+        renderIcons();
+        window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+      }
+    }).catch(() => {});
+    return;
+  }
+
   await loadRouteData(path, parts);
   if ((location.hash.replace("#", "") || "/") !== fullPath) return;
 
-  if (path === "/") renderHome();
-  else if (path === "/practice" || path === "/mock-exams") { window.location.href = "practice/index.html"; }
+  if (path === "/practice" || path === "/mock-exams") { window.location.href = "practice/index.html"; }
   else if (path === "/ai-writing") renderAIWriting();
   else if (path === "/speaking") renderSpeaking();
   else if (path === "/resources") renderResourcesHub();
@@ -4800,14 +4871,47 @@ async function startSite() {
 
   if (tools) {
     tools.authModule.onAuthStateChanged(tools.auth, async (user) => {
+      if (window.__isTesting) return;
+      const prevUid = currentUser ? currentUser.uid : null;
       currentUser = user;
-      await ensureUserProfile(user);
-      await router();
+      if (user) {
+        await ensureUserProfile(user);
+      } else {
+        currentUserProfile = null;
+      }
+      updateAuthNavigation();
+
+      const fullPath = location.hash.replace("#", "") || "/";
+      const [pathOnly] = fullPath.split("?");
+      const currentPath = pathOnly || "/";
+
+      if (user && !profileIsComplete() && currentPath !== "/profile-setup") {
+        await router();
+      } else if (prevUid !== (user ? user.uid : null)) {
+        if (currentPath === "/" || currentPath === "") {
+          const scrollY = window.scrollY;
+          renderHome();
+          attachCategoryTabs();
+          attachResourceStore();
+          attachVideoTabs();
+          attachProductGalleries();
+          attachFreeDownloads();
+          attachLoginPriceLinks();
+          attachHomeScrollNavigation();
+          attachExploreServices();
+          attachSelfPacedActions();
+          attachHomeVideoPreviews();
+          attachReviewCarousel();
+          renderIcons();
+          window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+        } else {
+          await router();
+        }
+      }
     });
-  } else {
-    await router();
   }
 }
 
 window.addEventListener("hashchange", router);
+router();
 startSite();
