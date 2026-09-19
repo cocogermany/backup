@@ -14,11 +14,7 @@
       rel="stylesheet"
     />
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-    <!-- Supabase Service Integration -->
-    <script src="../supabase.js" type="module"></script>
+    <link rel="preconnect" href="https://unpkg.com" />
 
     <!-- App Styles -->
     <link rel="stylesheet" href="practice.css" />
@@ -381,15 +377,19 @@
       </div>
     </div>
 
+    <!-- Vendor & Core Service Dependencies -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+    <script src="../supabase.js" defer></script>
+
     <!-- Component Scripts -->
-    <script src="components/dashboard.js"></script>
-    <script src="components/mock-exams.js"></script>
-    <script src="components/practice-hub.js"></script>
-    <script src="components/interactive-player.js"></script>
-    <script src="components/schreiben-player.js"></script>
-    <script src="components/progress-tracker.js"></script>
+    <script src="components/dashboard.js" defer></script>
+    <script src="components/mock-exams.js" defer></script>
+    <script src="components/practice-hub.js" defer></script>
+    <script src="components/interactive-player.js" defer></script>
+    <script src="components/schreiben-player.js" defer></script>
+    <script src="components/progress-tracker.js" defer></script>
 
     <!-- Core App Router and Controller -->
-    <script src="practice-app.js"></script>
+    <script src="practice-app.js" defer></script>
   </body>
 </html>

@@ -256,10 +256,12 @@
     async loadUserProfile() {
       const fetchSupabaseProfile = async (uid) => {
         if (!uid) return;
-        let retries = 0;
-        while ((!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") && retries < 25) {
-          await new Promise(r => setTimeout(r, 100));
-          retries++;
+        if (!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") {
+          let retries = 0;
+          while ((!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") && retries < 25) {
+            await new Promise(r => setTimeout(r, 10));
+            retries++;
+          }
         }
         if (!window.SupabaseService || typeof window.SupabaseService.getSupabaseClient !== "function") return;
         try {
@@ -352,13 +354,12 @@
     }
 
     async loadCreditsFromWorker(user) {
-      // supabase.js is a module and can finish loading after the regular app
-      // script. Wait for it instead of silently skipping the only authoritative
-      // profile request during that small startup window.
-      let retries = 0;
-      while ((!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") && retries < 50) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        retries += 1;
+      if (!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") {
+        let retries = 0;
+        while ((!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") && retries < 50) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          retries += 1;
+        }
       }
 
       if (!window.SupabaseService || typeof window.SupabaseService.checkLearningCredits !== "function") {
@@ -1233,8 +1234,16 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    window.PracticeApp = new PracticeApp();
-  });
+  const initApp = () => {
+    if (!window.PracticeApp) {
+      window.PracticeApp = new PracticeApp();
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+  } else {
+    initApp();
+  }
 
 })();
