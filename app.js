@@ -9,7 +9,7 @@ const firebaseConfig = {
 
 const firebaseReady = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
 const adminEmail = "cocogermany.ytd@gmail.com";
-const fallbackProductImage = "public/images/hero-study.jpg";
+const fallbackProductImage = "public/images/cocoLogo.jpg";
 let firebaseTools = null;
 let currentUser = null;
 let products = [];
@@ -188,7 +188,7 @@ const starterProducts = [
     prices: { INR: 1599, USD: 19, EUR: 18, GBP: 15, CAD: 25, AUD: 29 },
     productType: "paid",
     downloadUrl: "",
-    image: "public/images/a1-foundations.png",
+    image: "public/images/cocoLogo.jpg",
     summary: "A carefully sequenced workbook for learners beginning serious German study.",
     sku: "CG-A1-01",
     pages: "84 pages",
@@ -202,7 +202,7 @@ const starterProducts = [
       "Cultural notes that connect language patterns to real German life.",
     ],
     delivery: "PDF delivery by email after manual payment verification.",
-    previewImages: ["public/images/a1-foundations.png", "public/images/hero-study.jpg"],
+    previewImages: ["public/images/cocoLogo.jpg"],
   },
   {
     id: "b1-exam-companion",
@@ -213,7 +213,7 @@ const starterProducts = [
     prices: { INR: 2799, USD: 34, EUR: 31, GBP: 27, CAD: 46, AUD: 52 },
     productType: "paid",
     downloadUrl: "",
-    image: "public/images/b1-companion.png",
+    image: "public/images/cocoLogo.jpg",
     summary: "A premium exam preparation guide with writing frames and speaking prompts.",
     sku: "CG-B1-01",
     pages: "116 pages",
@@ -227,7 +227,7 @@ const starterProducts = [
       "Printed format for annotation, review, and classroom use.",
     ],
     delivery: "Printed orders are shipped by courier after manual payment verification.",
-    previewImages: ["public/images/b1-companion.png", "public/images/hero-study.jpg"],
+    previewImages: ["public/images/cocoLogo.jpg"],
   },
 ];
 products = [...starterProducts];
@@ -2058,7 +2058,7 @@ function renderAbout() {
           carefully sequenced, and designed for calm progress.
         </p>
       </div>
-      <img class="detail-cover" src="public/images/hero-study.jpg" alt="Coco Germany editorial desk" />
+      <img class="detail-cover" src="public/images/cocoLogo.jpg" alt="Coco Germany" />
     </section>
     ${renderFounderStory()}
     ${renderTrustStrip()}
