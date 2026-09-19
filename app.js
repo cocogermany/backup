@@ -22,6 +22,11 @@ let homeSectionObserver = null;
 let pendingHomeSection = "";
 let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
+window.__setCurrentUserForTesting = (user, profile) => {
+  currentUser = user;
+  if (profile) currentUserProfile = profile;
+};
+
 // Shared Real AppLoader tied to actual async operations
 window.AppLoader = window.AppLoader || {
   activeCount: 0,
@@ -1451,9 +1456,16 @@ function renderHome() {
                 </p>
               </div>
             `}
-        <div style="margin-top: 24px; text-align: center;">
-          <button class="button button-primary" type="button" id="join-self-paced-btn" data-action="self-paced-modal">${icon("sparkles")} Join Self-Paced Learning</button>
-        </div>
+        ${(() => {
+          const isSelfPacedSubmitted = currentUser && localStorage.getItem(`coco_self_paced_submitted_${currentUser.uid}`) === "true";
+          return html`
+            <div style="margin-top: 24px; text-align: center;">
+              <button class="button ${isSelfPacedSubmitted ? "button-secondary" : "button-primary"}" type="button" id="join-self-paced-btn" data-action="self-paced-modal" ${isSelfPacedSubmitted ? 'data-submitted="true" style="background: rgba(34, 197, 94, 0.12); color: #15803d; border-color: rgba(34, 197, 94, 0.3);"' : ""}>
+                ${isSelfPacedSubmitted ? `${icon("check-circle")} Form Submitted` : `${icon("sparkles")} Join Self-Paced Learning`}
+              </button>
+            </div>
+          `;
+        })()}
       </div>
 
       <!-- BLOCK 4: STUDY MATERIALS -->
@@ -3783,12 +3795,147 @@ function attachExploreServices() {
    SELF-PACED LEARNING SURVEY MODAL & FIRESTORE INTEGRATION
    ========================================================================== */
 
-function openSelfPacedModal() {
+async function fetchUserSelfPacedSubmission(user) {
+  if (!user || !user.uid) return null;
+  if (window.__mockSelfPacedSubmission !== undefined) {
+    return window.__mockSelfPacedSubmission;
+  }
+  try {
+    const tools = await getFirebaseTools();
+    if (!tools || !tools.firestoreModule || !tools.db) return null;
+
+    const { doc, getDoc, collection, query, where, getDocs } = tools.firestoreModule;
+
+    // 1. Direct lookup by user UID doc
+    try {
+      const userDocRef = doc(tools.db, "selfPacedInterest", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap && userDocSnap.exists()) {
+        return { id: userDocSnap.id, ...userDocSnap.data() };
+      }
+    } catch (e) {
+      console.warn("Direct lookup by UID in selfPacedInterest failed:", e);
+    }
+
+    // 2. Query collection where uid == user.uid (handles auto-ID submissions)
+    try {
+      if (typeof query === "function" && typeof where === "function" && typeof collection === "function" && typeof getDocs === "function") {
+        const qUid = query(
+          collection(tools.db, "selfPacedInterest"),
+          where("uid", "==", user.uid)
+        );
+        const snapUid = await getDocs(qUid);
+        if (!snapUid.empty) {
+          return { id: snapUid.docs[0].id, ...snapUid.docs[0].data() };
+        }
+
+        // 3. Fallback: Query collection where userEmail == user.email
+        const email = user.email || (currentUserProfile && currentUserProfile.email);
+        if (email) {
+          const qEmail = query(
+            collection(tools.db, "selfPacedInterest"),
+            where("userEmail", "==", email)
+          );
+          const snapEmail = await getDocs(qEmail);
+          if (!snapEmail.empty) {
+            return { id: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Collection query for selfPacedInterest failed:", e);
+    }
+
+    return null;
+  } catch (err) {
+    console.error("fetchUserSelfPacedSubmission error:", err);
+    return null;
+  }
+}
+
+function updateJoinSelfPacedButtons(isSubmitted) {
+  const triggers = document.querySelectorAll(
+    '#join-self-paced-btn, [data-action="self-paced-modal"]'
+  );
+  triggers.forEach((btn) => {
+    if (btn.tagName === "BUTTON") {
+      if (isSubmitted) {
+        btn.innerHTML = `${icon("check-circle")} Form Submitted`;
+        btn.classList.remove("button-primary");
+        btn.classList.add("button-secondary");
+        btn.setAttribute("data-submitted", "true");
+        btn.style.background = "rgba(34, 197, 94, 0.12)";
+        btn.style.color = "#15803d";
+        btn.style.borderColor = "rgba(34, 197, 94, 0.3)";
+      } else {
+        btn.innerHTML = `${icon("sparkles")} Join Self-Paced Learning`;
+        btn.classList.remove("button-secondary");
+        btn.classList.add("button-primary");
+        btn.removeAttribute("data-submitted");
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.borderColor = "";
+      }
+    }
+  });
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+}
+
+async function handleJoinSelfPacedClick(triggerBtn) {
+  if (!currentUser) {
+    localStorage.setItem("loginRedirect", "#/");
+    sessionStorage.setItem("coco_pending_action", "join-self-paced");
+    location.hash = "#/login";
+    return;
+  }
+
+  // Visual loading indicator on the clicked button while checking Firestore
+  const origHtml = triggerBtn ? triggerBtn.innerHTML : "";
+  const origDisabled = triggerBtn ? triggerBtn.disabled : false;
+  if (triggerBtn && triggerBtn.tagName === "BUTTON") {
+    triggerBtn.disabled = true;
+    triggerBtn.innerHTML = `<i data-lucide="loader" class="spin" aria-hidden="true"></i> Checking status...`;
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
+  }
+
+  try {
+    const submissionData = await fetchUserSelfPacedSubmission(currentUser);
+    if (submissionData) {
+      localStorage.setItem(`coco_self_paced_submitted_${currentUser.uid}`, "true");
+      updateJoinSelfPacedButtons(true);
+      openSelfPacedModal(submissionData);
+    } else {
+      localStorage.removeItem(`coco_self_paced_submitted_${currentUser.uid}`);
+      updateJoinSelfPacedButtons(false);
+      openSelfPacedModal(null);
+    }
+  } catch (err) {
+    console.error("Error verifying self-paced status from DB:", err);
+    const cached = localStorage.getItem(`coco_self_paced_submitted_${currentUser.uid}`) === "true";
+    openSelfPacedModal(cached ? {} : null);
+  } finally {
+    if (triggerBtn && triggerBtn.tagName === "BUTTON") {
+      triggerBtn.disabled = origDisabled;
+      if (triggerBtn.innerHTML.includes("Checking status...")) {
+        triggerBtn.innerHTML = origHtml;
+      }
+    }
+  }
+}
+
+function openSelfPacedModal(submissionData) {
   const existing = document.querySelector("#self-paced-modal-backdrop");
   if (existing) existing.remove();
 
   const userEmail = (currentUser && currentUser.email) || (currentUserProfile && currentUserProfile.email) || "";
-  const alreadySubmitted = currentUser && localStorage.getItem(`coco_self_paced_submitted_${currentUser.uid}`) === "true";
+  const alreadySubmitted = Boolean(
+    submissionData ||
+    (currentUser && localStorage.getItem(`coco_self_paced_submitted_${currentUser.uid}`) === "true")
+  );
 
   const modalHtml = html`
     <div class="modal-backdrop" id="self-paced-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="self-paced-modal-title">
@@ -3806,13 +3953,45 @@ function openSelfPacedModal() {
 
         <div class="modal-body" id="self-paced-modal-body">
           ${alreadySubmitted ? html`
-            <div class="modal-success-card" style="padding: 16px 12px 24px;">
+            <div class="modal-success-card" id="self-paced-already-card" style="padding: 24px 16px 20px;">
               <div class="modal-success-icon">${icon("check-circle")}</div>
               <h3>You're on the priority waitlist!</h3>
-              <p>We already have your preferences recorded for <strong>${userEmail || "your account"}</strong>. Would you like to submit an updated response?</p>
-              <button class="button button-secondary" type="button" id="self-paced-reopen-form-btn" style="margin-top: 8px;">
-                ${icon("edit-3")} Update My Preferences
-              </button>
+              <p>We already have your preferences recorded for <strong>${userEmail || "your account"}</strong>.</p>
+              ${submissionData && (submissionData.germanLevel || submissionData.profession || submissionData.dailyStudyTime) ? html`
+                <div class="self-paced-summary-card">
+                  <div class="self-paced-summary-grid">
+                    <div class="self-paced-summary-item">
+                      <span>Target Level</span>
+                      <strong>${submissionData.germanLevel || "A1"}</strong>
+                    </div>
+                    <div class="self-paced-summary-item">
+                      <span>Daily Study Time</span>
+                      <strong>${submissionData.dailyStudyTime || "Flexible"}</strong>
+                    </div>
+                    <div class="self-paced-summary-item" style="grid-column: 1 / -1;">
+                      <span>Profession</span>
+                      <strong>${submissionData.profession || "Not specified"}</strong>
+                    </div>
+                    ${submissionData.maxBudget ? html`
+                      <div class="self-paced-summary-item" style="grid-column: 1 / -1;">
+                        <span>Budget Preference</span>
+                        <strong>${submissionData.maxBudget}</strong>
+                      </div>
+                    ` : ""}
+                  </div>
+                </div>
+              ` : ""}
+              <p style="font-size: 0.88rem; color: var(--muted); margin-bottom: 8px;">
+                You'll receive priority early access as soon as enrollment opens. Would you like to update your response?
+              </p>
+              <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 6px;">
+                <button class="button button-secondary" type="button" id="self-paced-reopen-form-btn">
+                  ${icon("edit-3")} Update My Preferences
+                </button>
+                <button class="button button-primary" type="button" id="self-paced-already-close-btn">
+                  ${icon("check")} Done
+                </button>
+              </div>
             </div>
           ` : ""}
 
@@ -3950,8 +4129,10 @@ function openSelfPacedModal() {
 
   const closeBtn = backdrop.querySelector("#self-paced-modal-close");
   const cancelBtn = backdrop.querySelector("#self-paced-cancel-btn");
+  const alreadyCloseBtn = backdrop.querySelector("#self-paced-already-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", closeSelfPacedModal);
   if (cancelBtn) cancelBtn.addEventListener("click", closeSelfPacedModal);
+  if (alreadyCloseBtn) alreadyCloseBtn.addEventListener("click", closeSelfPacedModal);
 
   backdrop.addEventListener("click", (e) => {
     if (e.target === backdrop) closeSelfPacedModal();
@@ -3960,35 +4141,82 @@ function openSelfPacedModal() {
   const escHandler = (e) => {
     if (e.key === "Escape") {
       closeSelfPacedModal();
-      window.removeEventListener("keydown", escHandler);
+      document.removeEventListener("keydown", escHandler);
     }
   };
-  window.addEventListener("keydown", escHandler);
+  document.addEventListener("keydown", escHandler);
 
+  // Toggle other profession field
   const professionSelect = backdrop.querySelector("#self-paced-profession");
   const otherWrap = backdrop.querySelector("#self-paced-other-profession-wrap");
   const otherInput = backdrop.querySelector("#self-paced-other-profession");
-  if (professionSelect && otherWrap) {
-    professionSelect.addEventListener("change", () => {
-      if (professionSelect.value === "Other") {
-        otherWrap.style.display = "flex";
-        if (otherInput) otherInput.setAttribute("required", "required");
+  if (professionSelect && otherWrap && otherInput) {
+    professionSelect.addEventListener("change", (e) => {
+      if (e.target.value === "Other") {
+        otherWrap.style.display = "block";
+        otherInput.required = true;
+        otherInput.focus();
       } else {
         otherWrap.style.display = "none";
-        if (otherInput) {
-          otherInput.removeAttribute("required");
-          otherInput.value = "";
-        }
+        otherInput.required = false;
+        otherInput.value = "";
       }
     });
   }
 
   const reopenBtn = backdrop.querySelector("#self-paced-reopen-form-btn");
+  const alreadyCard = backdrop.querySelector("#self-paced-already-card");
   const form = backdrop.querySelector("#self-paced-interest-form");
   if (reopenBtn && form) {
     reopenBtn.addEventListener("click", () => {
-      reopenBtn.parentElement.style.display = "none";
+      if (alreadyCard) alreadyCard.style.display = "none";
       form.style.display = "flex";
+
+      if (submissionData) {
+        if (submissionData.germanLevel) {
+          const r = form.querySelector(`input[name="germanLevel"][value="${submissionData.germanLevel}"]`);
+          if (r) r.checked = true;
+        }
+        if (submissionData.joinSelfPaced) {
+          const r = form.querySelector(`input[name="joinSelfPaced"][value="${submissionData.joinSelfPaced}"]`);
+          if (r) r.checked = true;
+        }
+        if (submissionData.profession) {
+          const prof = submissionData.profession;
+          if (prof.startsWith("Other: ")) {
+            if (professionSelect) professionSelect.value = "Other";
+            if (otherWrap && otherInput) {
+              otherWrap.style.display = "block";
+              otherInput.required = true;
+              otherInput.value = prof.replace("Other: ", "");
+            }
+          } else if (professionSelect) {
+            professionSelect.value = prof;
+          }
+        }
+        if (submissionData.dailyStudyTime && form.elements["dailyStudyTime"]) {
+          form.elements["dailyStudyTime"].value = submissionData.dailyStudyTime;
+        }
+        if (submissionData.maxBudget && form.elements["maxBudget"]) {
+          form.elements["maxBudget"].value = submissionData.maxBudget;
+        }
+        if (Array.isArray(submissionData.featuresInterested)) {
+          const cbs = form.querySelectorAll('input[name="features"]');
+          cbs.forEach((cb) => {
+            cb.checked = submissionData.featuresInterested.includes(cb.value);
+          });
+        }
+        if (submissionData.comments && form.elements["comments"]) {
+          form.elements["comments"].value = submissionData.comments;
+        }
+        const submitBtn = form.querySelector("#self-paced-submit-btn");
+        if (submitBtn) {
+          submitBtn.innerHTML = `${icon("check")} Save Updated Preferences`;
+          if (window.lucide && typeof window.lucide.createIcons === "function") {
+            window.lucide.createIcons();
+          }
+        }
+      }
     });
   }
 
@@ -4023,6 +4251,9 @@ async function handleSelfPacedSubmit(event) {
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = `${icon("loader")} Submitting...`;
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
   }
   if (errorMsg) {
     errorMsg.style.display = "none";
@@ -4056,19 +4287,23 @@ async function handleSelfPacedSubmit(event) {
       maxBudget,
       featuresInterested,
       comments,
-      submittedAt: tools.firestoreModule.serverTimestamp(),
+      updatedAt: tools.firestoreModule.serverTimestamp(),
       submittedAtLocal: new Date().toISOString(),
       source: "home_page_self_paced",
     };
 
-    // Submit to Firestore in new table 'selfPacedInterest'
-    await tools.firestoreModule.addDoc(
-      tools.firestoreModule.collection(tools.db, "selfPacedInterest"),
-      docPayload
+    // Save with user.uid as document ID in 'selfPacedInterest'
+    await tools.firestoreModule.setDoc(
+      tools.firestoreModule.doc(tools.db, "selfPacedInterest", currentUser.uid),
+      docPayload,
+      { merge: true }
     );
 
-    // Save flag to prevent duplicate accidental submissions
+    // Save flag to localStorage cache
     localStorage.setItem(`coco_self_paced_submitted_${currentUser.uid}`, "true");
+
+    // Update all buttons on page to show submitted state
+    updateJoinSelfPacedButtons(true);
 
     // Render success state inside modal
     const modalBody = document.querySelector("#self-paced-modal-body");
@@ -4078,11 +4313,13 @@ async function handleSelfPacedSubmit(event) {
           <div class="modal-success-icon">${icon("check-circle")}</div>
           <h3>Thank you for your interest!</h3>
           <p>
-            Your response has been saved. We're finalizing the self-paced German classes and curriculum. You'll receive priority early access at <strong>${docPayload.userEmail || "your email"}</strong> as soon as enrollment opens.
+            Your preferences have been saved. We're finalizing the self-paced German classes and curriculum. You'll receive priority early access at <strong>${docPayload.userEmail || "your email"}</strong> as soon as enrollment opens.
           </p>
-          <button class="button button-primary" type="button" id="self-paced-success-close-btn" style="margin-top: 12px;">
-            ${icon("check")} Done
-          </button>
+          <div style="display: flex; gap: 10px; margin-top: 12px;">
+            <button class="button button-primary" type="button" id="self-paced-success-close-btn">
+              ${icon("check")} Done
+            </button>
+          </div>
         </div>
       `;
       const doneBtn = modalBody.querySelector("#self-paced-success-close-btn");
@@ -4096,6 +4333,9 @@ async function handleSelfPacedSubmit(event) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `${icon("send")} Submit Response`;
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
     }
     if (errorMsg) {
       errorMsg.style.display = "block";
@@ -4113,13 +4353,7 @@ function attachSelfPacedActions() {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!currentUser) {
-        localStorage.setItem("loginRedirect", "#/");
-        sessionStorage.setItem("coco_pending_action", "join-self-paced");
-        location.hash = "#/login";
-        return;
-      }
-      openSelfPacedModal();
+      handleJoinSelfPacedClick(btn);
     });
   });
 
@@ -4127,7 +4361,8 @@ function attachSelfPacedActions() {
   if (currentUser && sessionStorage.getItem("coco_pending_action") === "join-self-paced") {
     sessionStorage.removeItem("coco_pending_action");
     setTimeout(() => {
-      openSelfPacedModal();
+      const btn = document.querySelector("#join-self-paced-btn");
+      handleJoinSelfPacedClick(btn);
     }, 150);
   }
 }
@@ -4378,13 +4613,7 @@ document.addEventListener("click", (e) => {
   if (trigger && (trigger.id === "join-self-paced-btn" || trigger.closest("#videos"))) {
     e.preventDefault();
     e.stopPropagation();
-    if (!currentUser) {
-      localStorage.setItem("loginRedirect", "#/");
-      sessionStorage.setItem("coco_pending_action", "join-self-paced");
-      location.hash = "#/login";
-      return;
-    }
-    openSelfPacedModal();
+    handleJoinSelfPacedClick(trigger);
   }
 });
 
