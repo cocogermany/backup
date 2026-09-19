@@ -806,46 +806,78 @@ function normalizeProduct(id, data) {
   };
 }
 
-async function loadProducts() {
-  const tools = await getFirebaseTools();
-  if (!tools) return;
+const COLLECTION_CACHE_TTL_MS = 5 * 60 * 1000;
+let productsLastFetchedAt = 0;
+let videosLastFetchedAt = 0;
+let productsFetchPromise = null;
+let videosFetchPromise = null;
 
-  try {
-    const snapshot = await tools.firestoreModule.getDocs(tools.firestoreModule.collection(tools.db, "products"));
-    const firestoreProducts = snapshot.docs
-      .map((doc) => ({ id: doc.id, data: doc.data() }))
-      .filter((item) => !item.data.deleted)
-      .map((item) => normalizeProduct(item.id, item.data));
-    products = snapshot.docs.length ? firestoreProducts : [...starterProducts];
-    try {
-      localStorage.setItem("coco_cached_products", JSON.stringify(products));
-    } catch (e) {}
-  } catch (error) {
-    console.error(error);
-    if (!products.length) products = [...starterProducts];
+async function loadProducts(force = false) {
+  if (!force && productsLastFetchedAt > 0 && (Date.now() - productsLastFetchedAt < COLLECTION_CACHE_TTL_MS)) {
+    return products;
   }
+  if (!force && productsFetchPromise) return productsFetchPromise;
+
+  productsFetchPromise = (async () => {
+    const tools = await getFirebaseTools();
+    if (!tools) return products;
+
+    try {
+      const snapshot = await tools.firestoreModule.getDocs(tools.firestoreModule.collection(tools.db, "products"));
+      const firestoreProducts = snapshot.docs
+        .map((doc) => ({ id: doc.id, data: doc.data() }))
+        .filter((item) => !item.data.deleted)
+        .map((item) => normalizeProduct(item.id, item.data));
+      products = snapshot.docs.length ? firestoreProducts : [...starterProducts];
+      productsLastFetchedAt = Date.now();
+      try {
+        localStorage.setItem("coco_cached_products", JSON.stringify(products));
+      } catch (e) {}
+    } catch (error) {
+      console.error(error);
+      if (!products.length) products = [...starterProducts];
+    }
+    return products;
+  })().finally(() => {
+    productsFetchPromise = null;
+  });
+
+  return productsFetchPromise;
 }
 
-async function loadVideos() {
-  const tools = await getFirebaseTools();
-  if (!tools) {
-    if (!videos.length) videos = [];
-    return;
+async function loadVideos(force = false) {
+  if (!force && videosLastFetchedAt > 0 && (Date.now() - videosLastFetchedAt < COLLECTION_CACHE_TTL_MS)) {
+    return videos;
   }
+  if (!force && videosFetchPromise) return videosFetchPromise;
 
-  try {
-    const snapshot = await tools.firestoreModule.getDocs(tools.firestoreModule.collection(tools.db, "videos"));
-    const firestoreVideos = snapshot.docs
-      .map((doc) => normalizeVideo(doc.id, doc.data()))
-      .filter((video) => !video.deleted);
-    videos = firestoreVideos;
+  videosFetchPromise = (async () => {
+    const tools = await getFirebaseTools();
+    if (!tools) {
+      if (!videos.length) videos = [];
+      return videos;
+    }
+
     try {
-      localStorage.setItem("coco_cached_videos", JSON.stringify(videos));
-    } catch (e) {}
-  } catch (error) {
-    console.error("Failed to load videos from Firestore:", error);
-    if (!videos.length) videos = [];
-  }
+      const snapshot = await tools.firestoreModule.getDocs(tools.firestoreModule.collection(tools.db, "videos"));
+      const firestoreVideos = snapshot.docs
+        .map((doc) => normalizeVideo(doc.id, doc.data()))
+        .filter((video) => !video.deleted);
+      videos = firestoreVideos;
+      videosLastFetchedAt = Date.now();
+      try {
+        localStorage.setItem("coco_cached_videos", JSON.stringify(videos));
+      } catch (e) {}
+    } catch (error) {
+      console.error("Failed to load videos from Firestore:", error);
+      if (!videos.length) videos = [];
+    }
+    return videos;
+  })().finally(() => {
+    videosFetchPromise = null;
+  });
+
+  return videosFetchPromise;
 }
 
 async function loadOrders() {
@@ -2553,7 +2585,7 @@ async function saveVideo(event) {
 
     message.textContent = "Video saved.";
     form.reset();
-    await loadVideos();
+    await loadVideos(true);
     renderAdminVideos();
   } catch (error) {
     message.className = "error";
@@ -2572,7 +2604,7 @@ async function deleteVideo(event) {
       { deleted: true, updatedAt: tools.firestoreModule.serverTimestamp() },
       { merge: true },
     );
-    await loadVideos();
+    await loadVideos(true);
     renderAdminVideos();
   } catch (error) {
     alert(friendlyError(error));
@@ -2875,7 +2907,7 @@ async function saveProduct(event) {
 
     message.textContent = "Product saved.";
     form.reset();
-    await loadProducts();
+    await loadProducts(true);
     renderAdminProducts();
   } catch (error) {
     message.className = "error";
@@ -2894,7 +2926,7 @@ async function deleteProduct(event) {
       { deleted: true, updatedAt: tools.firestoreModule.serverTimestamp() },
       { merge: true },
     );
-    await loadProducts();
+    await loadProducts(true);
     renderAdminProducts();
   } catch (error) {
     alert(friendlyError(error));
@@ -2914,7 +2946,7 @@ async function archiveProduct(event) {
       { archived: !product.archived, updatedAt: tools.firestoreModule.serverTimestamp() },
       { merge: true },
     );
-    await loadProducts();
+    await loadProducts(true);
     renderAdminProducts();
   } catch (error) {
     alert(friendlyError(error));
