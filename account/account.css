@@ -728,30 +728,72 @@ body::before {
 /* Unauthenticated Card */
 .auth-notice-card {
   text-align: center;
-  padding: 60px 24px;
+  padding: 50px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
+  margin: 0 auto;
+  max-width: 520px;
+}
+
+.auth-notice-icon-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-circle);
+  background: rgba(97, 88, 223, 0.12);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+}
+
+.auth-notice-icon-circle svg {
+  width: 28px;
+  height: 28px;
 }
 
 .auth-notice-card svg {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   color: var(--brand);
 }
 
 .auth-notice-card h2 {
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   margin: 0;
+  color: var(--ink);
 }
 
 .auth-notice-card p {
   color: var(--muted);
-  max-width: 460px;
+  max-width: 440px;
   margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.auth-notice-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.account-modal-body .auth-notice-card {
+  padding: 28px 12px;
+  gap: 14px;
+}
+
+.account-modal-body .auth-notice-card h2 {
+  font-size: 19px;
+}
+
+.account-modal-body .auth-notice-card p {
+  font-size: 14px;
 }
 
 /* 11. Footer */

@@ -83,6 +83,123 @@ const currencyOptions = [
 let firebaseTools = null;
 let currentAccountUser = null;
 let currentAccountProfile = null;
+let authResolved = false;
+let authReadyResolve;
+const authReadyPromise = new Promise((resolve) => {
+  authReadyResolve = resolve;
+});
+
+const defaultTabTemplates = {
+  orders: `
+    <div class="account-section-header">
+      <h2>Order History</h2>
+      <p>Review the fulfillment status of your workbook and mock exam orders.</p>
+    </div>
+    <div id="account-orders-container">
+      <div class="account-empty-state">
+        <i data-lucide="loader"></i>
+        <p>Loading your orders...</p>
+      </div>
+    </div>
+  `,
+  purchased: `
+    <div class="account-section-header">
+      <h2>Purchased Resources</h2>
+      <p>Access your unlocked digital workbooks, practice papers, and answer keys.</p>
+    </div>
+    <div id="account-purchased-container">
+      <div class="account-empty-state">
+        <i data-lucide="loader"></i>
+        <p>Loading your materials...</p>
+      </div>
+    </div>
+  `,
+  billing: `
+    <div class="account-section-header">
+      <h2>Billing &amp; Subscriptions</h2>
+      <p>Manage membership tiers, preferred billing currency, and payment history.</p>
+    </div>
+    <div class="doc-prose">
+      <h3>Current Membership Status</h3>
+      <p>
+        Your account is currently active on the standard customer tier. If you have subscribed to interactive practice packs or individual workbooks, your invoices and fulfillment records are stored under <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a>.
+      </p>
+      <div class="account-empty-state" style="margin: 28px 0;">
+        <i data-lucide="crown"></i>
+        <h3>Explore Premium Membership</h3>
+        <p>Unlock unlimited Goethe &amp; telc mock exams, automated grammar evaluation, and full access to our digital publishing library.</p>
+        <a class="button-primary" href="../index.html#/membership">
+          <i data-lucide="sparkles"></i> View Membership Plans
+        </a>
+      </div>
+      <h3>Payment Methods &amp; Invoicing</h3>
+      <p>
+        Payments for digital study guides and mock preparation kits are processed securely via Stripe or verified UPI transfer with invoice confirmation delivered to your registered email address.
+      </p>
+    </div>
+  `,
+  help: `
+    <div class="account-section-header">
+      <h2>Help &amp; Customer Support</h2>
+      <p>Find answers to frequent inquiries or contact the Coco Germany team.</p>
+    </div>
+    <div class="doc-prose">
+      <h3>Frequently Asked Questions</h3>
+      <h4>How do I receive my purchased digital PDF workbooks?</h4>
+      <p>
+        Digital books and practice papers are unlocked automatically under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> once manual payment verification is confirmed by our editorial desk (typically within 2 to 6 hours).
+      </p>
+      <h4>How does the Practice App synchronize my target German level?</h4>
+      <p>
+        When you update your Exam Format (Goethe or telc) and CEFR Level (A1–B2) in <a href="index.html" style="color: var(--brand); font-weight: 600;">Profile Settings</a>, your target curriculum is automatically synchronized with the interactive Practice App and your learning analytics.
+      </p>
+      <h4>Need direct assistance with an order?</h4>
+      <p>
+        For order modifications, invoice receipts, or technical questions, please visit our <a href="../index.html#/contact" style="color: var(--brand); font-weight: 600;">Contact Page</a> or write directly to our editorial team at <code>cocogermany.ytd@gmail.com</code>.
+      </p>
+    </div>
+  `,
+  terms: `
+    <div class="account-section-header">
+      <h2>Terms &amp; Conditions</h2>
+      <p>Last updated: September 2026 • Platform usage &amp; digital publication agreements.</p>
+    </div>
+    <div class="doc-prose">
+      <h3>1. Educational Scope &amp; Usage</h3>
+      <p>
+        Coco Germany provides educational software, practice simulations, and digital study publications. All exam-preparation kits and mock tests are engineered for independent study and are not officially endorsed by Goethe-Institut e.V. or telc gGmbH unless explicitly noted.
+      </p>
+      <h3>2. Digital Products &amp; Intellectual Property</h3>
+      <p>
+        All PDF workbooks, curated exercise frames, audio recordings, and editorial analyses are protected by international copyright laws. When you purchase or download materials from Coco Germany, you receive a single-user personal license for your individual study. Reproduction, resale, or unauthorized redistribution is strictly prohibited.
+      </p>
+      <h3>3. Account Security</h3>
+      <p>
+        You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your registered account.
+      </p>
+    </div>
+  `,
+  privacy: `
+    <div class="account-section-header">
+      <h2>Privacy Policy</h2>
+      <p>Last updated: September 2026 • How we collect, safeguard, and process your data.</p>
+    </div>
+    <div class="doc-prose">
+      <h3>1. Data We Collect</h3>
+      <p>
+        We collect your email address upon registration and your selected learning preferences (target German exam format, CEFR level, country, and preferred currency). We use this information strictly to customize your interactive practice exercises, mock exam timers, and order fulfillments.
+      </p>
+      <h3>2. Storage &amp; Security</h3>
+      <p>
+        Your account data is stored in enterprise-grade Google Firebase Firestore and Supabase databases utilizing end-to-end transport layer security (TLS 1.3). We never sell your personal data or email address to third parties or marketing brokers.
+      </p>
+      <h3>3. Your Rights Under GDPR</h3>
+      <p>
+        As a learner, you maintain the right to access your stored profile information, request corrections, or request complete deletion of your customer record at any time by contacting <code>cocogermany.ytd@gmail.com</code>.
+      </p>
+    </div>
+  `
+};
 
 function initIcons() {
   if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -190,7 +307,7 @@ function initMobileTabModal() {
     highlightActiveNavTab();
   }
 
-  function openTabInModal(tabEl) {
+  async function openTabInModal(tabEl) {
     if (!tabEl || !modal || !modalBody) return;
     const href = (tabEl.getAttribute("href") || "").split("/").pop() || "index.html";
     const tabName = tabEl.textContent.trim();
@@ -210,6 +327,49 @@ function initMobileTabModal() {
     }
     modalBody.innerHTML = "";
 
+    // Highlight clicked tab
+    document.querySelectorAll(".account-tab").forEach((t) => t.classList.toggle("active", t === tabEl));
+
+    // Open modal
+    modal.classList.add("active");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("account-modal-open");
+
+    // The 4 protected tabs that require authentication
+    const protectedPages = ["index.html", "orders.html", "purchased.html", "billing.html"];
+    const isProtected = protectedPages.includes(href);
+
+    if (isProtected) {
+      if (!authResolved) {
+        modalBody.innerHTML = `
+          <div class="account-empty-state" style="padding: 48px 16px;">
+            <i data-lucide="loader"></i>
+            <p>Checking login status...</p>
+          </div>
+        `;
+        initIcons();
+        await authReadyPromise;
+      }
+
+      if (!currentAccountUser) {
+        modalBody.innerHTML = `
+          <div class="auth-notice-card">
+            <div class="auth-notice-icon-circle">
+              <i data-lucide="lock"></i>
+            </div>
+            <h2>You are not logged in</h2>
+            <p>Please log in with your email or Google account to access your ${tabName.toLowerCase()}.</p>
+            <div class="auth-notice-actions">
+              <a class="button-primary" href="../index.html#/login" onclick="localStorage.setItem('loginRedirect', window.location.href);"><i data-lucide="log-in"></i> Log In</a>
+              <a class="button-secondary" href="../index.html"><i data-lucide="home"></i> Return Home</a>
+            </div>
+          </div>
+        `;
+        initIcons();
+        return;
+      }
+    }
+
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
     const isCurrentPage = href === currentPage || (currentPage === "" && href === "index.html");
 
@@ -221,6 +381,8 @@ function initMobileTabModal() {
       const tmpl = document.getElementById(`tmpl-${tmplKey}`);
       if (tmpl) {
         modalBody.appendChild(tmpl.content.cloneNode(true));
+      } else if (defaultTabTemplates[tmplKey]) {
+        modalBody.innerHTML = defaultTabTemplates[tmplKey];
       } else if (inlineView && href === "index.html") {
         inlineView.classList.add("in-modal");
         modalBody.appendChild(inlineView);
@@ -244,17 +406,13 @@ function initMobileTabModal() {
         initOrdersList(currentAccountUser);
       } else if (href === "purchased.html") {
         initPurchasedList(currentAccountUser);
+      } else if (href === "index.html") {
+        initProfileForm(currentAccountUser);
       }
     }
-
-    // Highlight clicked tab
-    document.querySelectorAll(".account-tab").forEach((t) => t.classList.toggle("active", t === tabEl));
-
-    // Open modal
-    modal.classList.add("active");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("account-modal-open");
   }
+
+  window.openTabInModalInstance = openTabInModal;
 
   // Bind clicks on sub-navigation tabs (Smartphone & Tablet only)
   document.querySelectorAll(".account-tab").forEach((tab) => {
@@ -299,14 +457,26 @@ function initMobileTabModal() {
 
 async function initAccountAuth() {
   const tools = await getFirebaseTools();
-  if (!tools) return;
+  if (!tools) {
+    authResolved = true;
+    if (authReadyResolve) authReadyResolve(null);
+    updateUserHeader(null);
+    updateAccountNavAuth(null);
+    handleUnauthenticatedState();
+    return;
+  }
 
   tools.authModule.onAuthStateChanged(tools.auth, async (user) => {
     currentAccountUser = user;
+    authResolved = true;
+    if (authReadyResolve) authReadyResolve(user);
+
     updateUserHeader(user);
+    updateAccountNavAuth(user);
 
     if (!user) {
       handleUnauthenticatedState();
+      refreshModalIfActive();
       return;
     }
 
@@ -317,7 +487,45 @@ async function initAccountAuth() {
     initOrdersList(user);
     initPurchasedList(user);
     initIcons();
+    refreshModalIfActive();
   });
+}
+
+function refreshModalIfActive() {
+  const modal = document.getElementById("account-tab-modal");
+  if (modal && modal.classList.contains("active")) {
+    const activeTab = document.querySelector(".account-tab.active");
+    if (activeTab && window.openTabInModalInstance) {
+      window.openTabInModalInstance(activeTab);
+    }
+  }
+}
+
+function updateAccountNavAuth(user) {
+  const isAuth = !!user;
+  const labelText = isAuth ? "Account" : "Login";
+  const iconName = isAuth ? "user" : "log-in";
+  const targetHref = isAuth ? "index.html" : "../index.html#/login";
+
+  // Desktop navigation Account/Login link
+  document.querySelectorAll(".desktop-nav a").forEach((link) => {
+    const text = link.textContent.trim().toLowerCase();
+    if (text === "account" || text === "login" || link.hasAttribute("data-nav-account")) {
+      link.setAttribute("href", targetHref);
+      link.innerHTML = `<i data-lucide="${iconName}"></i>${labelText}`;
+    }
+  });
+
+  // Mobile bottom navigation Account/Login link
+  document.querySelectorAll(".bottom-nav a").forEach((link) => {
+    const text = link.textContent.trim().toLowerCase();
+    if (text === "account" || text === "login" || link.hasAttribute("data-nav-account")) {
+      link.setAttribute("href", targetHref);
+      link.innerHTML = `<i data-lucide="${iconName}"></i><span>${labelText}</span>`;
+    }
+  });
+
+  initIcons();
 }
 
 function updateUserHeader(user) {
@@ -325,6 +533,17 @@ function updateUserHeader(user) {
   const emailEl = document.getElementById("account-user-email");
   const adminBtn = document.getElementById("account-admin-btn");
   const logoutBtn = document.getElementById("account-logout-btn");
+  let loginBtn = document.getElementById("account-login-btn");
+
+  if (!loginBtn && logoutBtn && logoutBtn.parentElement) {
+    loginBtn = document.createElement("a");
+    loginBtn.id = "account-login-btn";
+    loginBtn.className = "button-primary";
+    loginBtn.href = "../index.html#/login";
+    loginBtn.onclick = () => localStorage.setItem("loginRedirect", window.location.href);
+    loginBtn.innerHTML = '<i data-lucide="log-in"></i> Log In';
+    logoutBtn.parentElement.insertBefore(loginBtn, logoutBtn);
+  }
 
   if (user) {
     const email = user.email || "Customer";
@@ -340,15 +559,29 @@ function updateUserHeader(user) {
       logoutBtn.style.display = "inline-flex";
       logoutBtn.addEventListener("click", handleLogout);
     }
+
+    if (loginBtn) {
+      loginBtn.style.display = "none";
+    }
   } else {
     if (avatarEl) avatarEl.textContent = "?";
-    if (emailEl) emailEl.textContent = "Guest";
+    if (emailEl) emailEl.textContent = "Not logged in";
     if (adminBtn) adminBtn.style.display = "none";
     if (logoutBtn) logoutBtn.style.display = "none";
+    if (loginBtn) loginBtn.style.display = "inline-flex";
   }
+
+  initIcons();
 }
 
 function handleUnauthenticatedState() {
+  const currentPath = (window.location.pathname.split("/").pop() || "index.html").toLowerCase();
+  const protectedPages = ["index.html", "orders.html", "purchased.html", "billing.html", ""];
+
+  if (!protectedPages.includes(currentPath)) {
+    return;
+  }
+
   const contentArea = document.getElementById("account-content-view");
   if (!contentArea) return;
 
@@ -357,11 +590,13 @@ function handleUnauthenticatedState() {
 
   contentArea.innerHTML = `
     <div class="auth-notice-card">
-      <i data-lucide="lock"></i>
-      <h2>Sign in to view your account</h2>
-      <p>Log in with your email or Google account to view your preferences, orders, and study materials.</p>
-      <div style="display: flex; gap: 12px; margin-top: 8px;">
-        <a class="button-primary" href="../index.html#/login"><i data-lucide="log-in"></i> Log In</a>
+      <div class="auth-notice-icon-circle">
+        <i data-lucide="lock"></i>
+      </div>
+      <h2>You are not logged in</h2>
+      <p>Please log in with your email or Google account to access your account preferences, orders, and study materials.</p>
+      <div class="auth-notice-actions">
+        <a class="button-primary" href="../index.html#/login" onclick="localStorage.setItem('loginRedirect', window.location.href);"><i data-lucide="log-in"></i> Log In</a>
         <a class="button-secondary" href="../index.html"><i data-lucide="home"></i> Return Home</a>
       </div>
     </div>

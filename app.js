@@ -4675,12 +4675,17 @@ function updateAuthNavigation() {
   });
 
   document.querySelectorAll("[data-account-link]").forEach((link) => {
-    const labelText = currentUser ? "My Account" : "Account";
+    const isAuth = !!currentUser;
+    const labelText = isAuth ? "Account" : "Login";
+    const iconName = isAuth ? "user" : "log-in";
+    const targetHref = isAuth ? "account/index.html" : "#/login";
+    link.setAttribute("href", targetHref);
+
     const span = link.querySelector("span");
     if (span) {
-      span.textContent = labelText;
+      link.innerHTML = `<i data-lucide="${iconName}"></i><span>${labelText}</span>`;
     } else {
-      link.innerHTML = `<i data-lucide="user"></i>${labelText}`;
+      link.innerHTML = `<i data-lucide="${iconName}"></i>${labelText}`;
     }
   });
 }
