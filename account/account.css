@@ -48,6 +48,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -56,9 +57,11 @@ body {
   color: var(--ink);
   background-color: var(--paper);
   min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   position: relative;
+  overflow-x: hidden;
 }
 
 /* GPU Subtle Mesh Background */
@@ -93,6 +96,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .logo {
@@ -101,6 +105,7 @@ body::before {
   gap: 12px;
   text-decoration: none;
   color: var(--ink);
+  flex-shrink: 0;
 }
 
 .logo-mark {
@@ -109,6 +114,7 @@ body::before {
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 4px 14px rgba(97, 88, 223, 0.22);
+  flex-shrink: 0;
 }
 
 .logo span {
@@ -127,12 +133,14 @@ body::before {
   font-size: 11px;
   color: var(--muted);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .desktop-nav {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .desktop-nav a {
@@ -145,6 +153,7 @@ body::before {
   font-size: 14px;
   font-weight: 600;
   color: var(--ink-secondary);
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -162,6 +171,7 @@ body::before {
 .desktop-nav a svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 /* 3. Account Dashboard Container */
@@ -169,13 +179,15 @@ body::before {
   max-width: 1100px;
   margin: 36px auto 72px;
   padding: 0 24px;
+  width: 100%;
 }
 
 /* Breadcrumb Navigation */
 .breadcrumb-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
   font-size: 13px;
   color: var(--muted);
   margin-bottom: 24px;
@@ -233,6 +245,8 @@ body::before {
   display: flex;
   align-items: center;
   gap: 20px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .account-avatar {
@@ -254,6 +268,8 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .account-user-badge {
@@ -270,6 +286,7 @@ body::before {
 .account-user-badge svg {
   width: 13px;
   height: 13px;
+  flex-shrink: 0;
 }
 
 .account-user-name {
@@ -279,18 +296,22 @@ body::before {
   color: var(--ink);
   margin: 0;
   line-height: 1.2;
+  word-break: break-word;
 }
 
 .account-user-email {
   font-size: 14px;
   color: var(--muted);
   margin: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .account-hero-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 /* 4. Account Navigation Tabs / Pills */
@@ -307,6 +328,8 @@ body::before {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
 }
 
 .account-nav-bar::-webkit-scrollbar {
@@ -324,7 +347,11 @@ body::before {
   font-weight: 600;
   color: var(--ink-secondary);
   white-space: nowrap;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  min-height: 42px;
   transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .account-tab:hover {
@@ -387,6 +414,7 @@ body::before {
   grid-template-columns: repeat(2, 1fr);
   gap: 22px 28px;
   max-width: 800px;
+  width: 100%;
 }
 
 .field {
@@ -396,20 +424,33 @@ body::before {
   font-size: 13px;
   font-weight: 700;
   color: var(--ink-secondary);
+  width: 100%;
 }
 
 .field select,
 .field input {
+  width: 100%;
   height: 48px;
   padding: 0 16px;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--line);
-  background: var(--surface-subtle);
+  background-color: var(--surface-subtle);
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink);
   outline: none;
   transition: all var(--transition-fast);
+}
+
+.field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .field select:focus,
@@ -776,15 +817,17 @@ body::before {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--line);
-  height: 64px;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
   z-index: 1000;
-  justify-content: space-around;
+  box-shadow: 0 -4px 20px rgba(20, 25, 48, 0.06);
+  grid-template-columns: repeat(4, 1fr);
   align-items: center;
-  padding: 0 8px;
+  justify-content: space-around;
 }
 
 .bottom-nav a {
@@ -797,21 +840,79 @@ body::before {
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
-  flex: 1;
   height: 100%;
-  transition: color var(--transition-fast);
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav a:hover {
+  color: var(--brand);
+  background: var(--surface-muted);
 }
 
 .bottom-nav a.active {
   color: var(--brand);
+  background: rgba(97, 88, 223, 0.10);
+  font-weight: 700;
 }
 
 .bottom-nav a svg {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
 /* 13. Responsive Breakpoints */
+
+/* Tablet & Intermediate Screens (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .site-header {
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .nav {
+    padding: 0 18px;
+    gap: 12px;
+  }
+
+  .desktop-nav {
+    gap: 4px;
+  }
+
+  .desktop-nav a {
+    padding: 7px 11px;
+    font-size: 13px;
+    gap: 5px;
+  }
+
+  .desktop-nav a svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .account-container {
+    padding: 0 20px;
+    margin: 28px auto 60px;
+  }
+
+  .account-hero-card {
+    padding: 26px 28px;
+  }
+
+  .account-content-card {
+    padding: 28px 30px;
+  }
+
+  .footer-inner {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 28px;
+    padding: 0 20px;
+  }
+}
+
+/* Footer Breakpoint (<= 900px) */
 @media (max-width: 900px) {
   .footer-inner {
     grid-template-columns: 1fr;
@@ -819,17 +920,40 @@ body::before {
   }
 }
 
+/* Mobile & Small Tablet Shell (<= 768px) */
 @media (max-width: 768px) {
+  body {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .site-header {
+    height: 62px;
+  }
+
+  .nav {
+    height: 62px;
+    padding: 0 16px;
+  }
+
+  .logo-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .logo strong {
+    font-size: 15.5px;
+  }
+
+  .logo small {
+    font-size: 10px;
+  }
+
   .desktop-nav {
-    display: none;
+    display: none !important;
   }
 
   .bottom-nav {
-    display: flex;
-  }
-
-  body {
-    padding-bottom: 74px;
+    display: grid !important;
   }
 
   .account-container {
@@ -837,8 +961,15 @@ body::before {
     padding: 0 16px;
   }
 
+  .breadcrumb-nav {
+    font-size: 12.5px;
+    margin-bottom: 18px;
+  }
+
   .account-hero-card {
-    padding: 24px 20px;
+    padding: 22px 18px;
+    gap: 16px;
+    border-radius: var(--radius-lg);
   }
 
   .account-hero-actions {
@@ -846,8 +977,37 @@ body::before {
     justify-content: flex-start;
   }
 
+  .account-nav-bar {
+    margin-bottom: 20px;
+    padding: 5px;
+    gap: 6px;
+    border-radius: var(--radius-md);
+  }
+
+  .account-tab {
+    padding: 9px 14px;
+    font-size: 13px;
+    min-height: 40px;
+    gap: 6px;
+  }
+
+  .account-tab svg {
+    width: 15px;
+    height: 15px;
+  }
+
   .account-content-card {
     padding: 24px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .account-section-header {
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+  }
+
+  .account-section-header h2 {
+    font-size: 20px;
   }
 
   .profile-form {
@@ -855,13 +1015,189 @@ body::before {
     gap: 18px;
   }
 
+  /* Prevent iOS Safari automatic zoom-in on focus (requires >= 16px font-size) */
+  .field select,
+  .field input {
+    font-size: 16px;
+    height: 48px;
+  }
+
   .order-card {
     flex-direction: column;
     align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
   }
 
   .order-badges-group {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .footer {
+    padding: 40px 0 calc(84px + env(safe-area-inset-bottom, 0px));
+    margin-top: 48px;
+  }
+
+  .footer-inner {
+    padding: 0 16px;
+    gap: 28px;
+  }
+}
+
+/* Small Mobile (<= 480px) */
+@media (max-width: 480px) {
+  .nav {
+    padding: 0 12px;
+  }
+
+  .logo {
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .logo strong {
+    font-size: 14.5px;
+  }
+
+  .logo small {
+    font-size: 9.5px;
+  }
+
+  .account-container {
+    margin: 14px auto 32px;
+    padding: 0 12px;
+  }
+
+  .breadcrumb-nav {
+    font-size: 12px;
+    gap: 4px 6px;
+    margin-bottom: 14px;
+  }
+
+  .account-hero-card {
+    padding: 18px 14px;
+    gap: 14px;
+  }
+
+  .account-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+
+  .account-user-meta {
+    gap: 12px;
+  }
+
+  .account-user-name {
+    font-size: 18px;
+  }
+
+  .account-user-badge {
+    font-size: 10px;
+  }
+
+  .account-user-email {
+    font-size: 13px;
+  }
+
+  .account-hero-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .account-hero-actions .button-secondary,
+  .account-hero-actions .button-danger {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 16px;
+  }
+
+  .account-content-card {
+    padding: 18px 14px;
+  }
+
+  .account-section-header h2 {
+    font-size: 18px;
+  }
+
+  .account-section-header p {
+    font-size: 13px;
+  }
+
+  .form-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .form-actions-row .button-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+  }
+
+  #profile-message {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .auth-notice-card {
+    padding: 36px 12px;
+  }
+
+  .auth-notice-card div {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .auth-notice-card .button-primary,
+  .auth-notice-card .button-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bottom-nav a {
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  .bottom-nav a svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Extra Small Devices (<= 360px, e.g. iPhone SE, Galaxy Fold) */
+@media (max-width: 360px) {
+  .logo small {
+    display: none;
+  }
+
+  .account-container {
+    padding: 0 8px;
+  }
+
+  .account-hero-card,
+  .account-content-card {
+    padding: 16px 10px;
+  }
+
+  .account-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .account-tab {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }
