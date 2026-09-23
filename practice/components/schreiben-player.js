@@ -969,42 +969,11 @@ window.SchreibenPlayerComponent = {
           </div>
         ` : '')}
 
-        <!-- 2. Criteria -->
-        <div class="schreiben-section-block">
-          <h3 class="schreiben-section-title">
-            <i data-lucide="file-check-2" style="width:18px;height:18px; color:#0284c7;"></i>
-            <span>2. Evaluation Criteria & Report</span>
-          </h3>
-          <div class="schreiben-criteria-grid">
-            ${criteria.map(c => {
-              const critName = String(c.name || "").trim();
-              let critIcon = "check-circle";
-              if (/fulfillment|aufgabe/i.test(critName)) critIcon = "list-checks";
-              else if (/coherence|struktur|aufbau/i.test(critName)) critIcon = "align-left";
-              else if (/vocab|wortschatz/i.test(critName)) critIcon = "book-open";
-              else if (/grammar|grammatik|form/i.test(critName)) critIcon = "spell-check";
-
-              return `
-                <div class="schreiben-criteria-item">
-                  <div class="schreiben-criteria-row">
-                    <span class="schreiben-criteria-name" style="display:flex; align-items:center; gap:6px;">
-                      <i data-lucide="${critIcon}" style="width:16px;height:16px; color:#0284c7;"></i>
-                      <span>${this.escapeHtml(c.name)}</span>
-                    </span>
-                    <span class="schreiben-criteria-badge">Qualitative</span>
-                  </div>
-                  ${c.feedback ? `<p class="schreiben-criteria-sub" style="margin-top:6px; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(c.feedback)}</p>` : ''}
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-
-        <!-- 3. Key Mistakes -->
+        <!-- 2. Key Mistakes -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="spell-check" style="width:18px;height:18px; color:#f59e0b;"></i>
-            <span>3. Key Mistakes & Corrections</span>
+            <span>2. Key Mistakes & Corrections</span>
           </h3>
           ${mistakes.length > 0 ? `
             <div class="schreiben-mistakes-list">
@@ -1042,12 +1011,12 @@ window.SchreibenPlayerComponent = {
           `}
         </div>
 
-        <!-- 4. Word Usage -->
+        <!-- 3. Word Usage -->
         ${wordUsage.length > 0 || lockedFeatures.has_more_word_usage ? `
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="book-open" style="width:18px;height:18px; color:#0284c7;"></i>
-              <span>4. Word Choice & Vocabulary (Word Usage)</span>
+              <span>3. Word Choice & Vocabulary (Word Usage)</span>
             </h3>
             ${wordUsage.length > 0 ? `
               <div class="schreiben-word-usage-list">
@@ -1081,12 +1050,12 @@ window.SchreibenPlayerComponent = {
           </div>
         ` : ''}
 
-        <!-- 5. Unclear Sentences -->
+        <!-- 4. Unclear Sentences -->
         ${unclearSentences.length > 0 || lockedFeatures.has_more_unclear_sentences ? `
           <div class="schreiben-section-block">
             <h3 class="schreiben-section-title">
               <i data-lucide="help-circle" style="width:18px;height:18px; color:#d97706;"></i>
-              <span>5. Sentence Structure & Clarity (Unclear Sentences)</span>
+              <span>4. Sentence Structure & Clarity (Unclear Sentences)</span>
             </h3>
             ${unclearSentences.length > 0 ? `
               <div class="schreiben-unclear-sentences-list">
@@ -1120,128 +1089,11 @@ window.SchreibenPlayerComponent = {
           </div>
         ` : ''}
 
-        <!-- 6. Register Analysis -->
-        <div class="schreiben-section-block">
-          <h3 class="schreiben-section-title">
-            <i data-lucide="scale" style="width:18px;height:18px; color:#6366f1;"></i>
-            <span>6. Register & Tone Analysis</span>
-          </h3>
-          ${registerAnalysis ? `
-            <div class="schreiben-register-card">
-              <div class="schreiben-register-meta">
-                <span class="schreiben-badge-pill" style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;">
-                  Tone: <strong>${this.escapeHtml(registerAnalysis.tone || "Neutral")}</strong>
-                </span>
-                <span class="schreiben-badge-pill" style="${registerAnalysis.appropriate !== false ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">
-                  ${registerAnalysis.appropriate !== false ? '✓ Register appropriate for exam format' : '⚠ Register inappropriate'}
-                </span>
-              </div>
-              ${registerAnalysis.analysis ? `<p style="margin:10px 0 6px 0; font-size:0.9rem; line-height:1.6; color:#334155;">${this.escapeHtml(registerAnalysis.analysis)}</p>` : ''}
-              ${registerAnalysis.recommendation ? `<p style="margin:6px 0 0 0; font-size:0.86rem; color:#4f46e5; font-style:italic;">Recommendation: ${this.escapeHtml(registerAnalysis.recommendation)}</p>` : ''}
-            </div>
-          ` : `
-            <div class="schreiben-locked-feature-card">
-              <div class="schreiben-locked-feature-info">
-                <div class="schreiben-locked-feature-icon-wrap">
-                  <i data-lucide="scale" style="width:20px;height:20px; color:#6366f1;"></i>
-                </div>
-                <div>
-                  <h4 class="schreiben-locked-feature-title">Unlock Register & Tone Analysis</h4>
-                  <p class="schreiben-locked-feature-desc">Checks whether your form of address (Du vs. Sie), formality, and tone match the required exam conventions.</p>
-                </div>
-              </div>
-              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Register Analysis</a>
-            </div>
-          `}
-        </div>
-
-        <!-- 7. Sentence Optimizations -->
-        ${improvedSentences.length > 0 || lockedFeatures.has_more_improved_sentences ? `
-          <div class="schreiben-section-block">
-            <h3 class="schreiben-section-title">
-              <i data-lucide="refresh-cw" style="width:18px;height:18px; color:#059669;"></i>
-              <span>7. Sentence Optimizations (Better Phrasing)</span>
-            </h3>
-            ${improvedSentences.length > 0 ? `
-              <div class="schreiben-improved-sentences-list">
-                ${improvedSentences.map(s => `
-                  <div class="schreiben-sentence-card">
-                    <div class="schreiben-sentence-row">
-                      <div class="schreiben-sentence-before">
-                        <span class="schreiben-sentence-label">Original:</span>
-                        <span>${this.escapeHtml(s.original || "")}</span>
-                      </div>
-                      <div class="schreiben-sentence-arrow">➔</div>
-                      <div class="schreiben-sentence-after">
-                        <span class="schreiben-sentence-label">Better:</span>
-                        <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
-                      </div>
-                    </div>
-                    ${(s.explanation || s.reason) ? `<div class="schreiben-sentence-reason">${this.escapeHtml(s.explanation || s.reason)}</div>` : ''}
-                  </div>
-                `).join("")}
-              </div>
-            ` : ''}
-            ${lockedFeatures.has_more_improved_sentences ? `
-              <div class="schreiben-locked-teaser">
-                <div class="schreiben-locked-teaser-left">
-                  <div class="schreiben-locked-teaser-icon">
-                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
-                  </div>
-                  <div>
-                    <div class="schreiben-locked-teaser-title">More sentence optimizations available</div>
-                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.max_improved_sentences || 3} sentence optimizations. Higher plans offer unlimited improvements.</div>
-                  </div>
-                </div>
-                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <!-- 8. Redemittel -->
-        ${redemittel.length > 0 || lockedFeatures.has_more_redemittel ? `
-          <div class="schreiben-section-block">
-            <h3 class="schreiben-section-title">
-              <i data-lucide="bookmark" style="width:18px;height:18px; color:#0284c7;"></i>
-              <span>8. Recommended Phrases & Connectors (Redemittel)</span>
-            </h3>
-            ${redemittel.length > 0 ? `
-              <div class="schreiben-redemittel-grid">
-                ${redemittel.map(r => {
-                  const phrase = typeof r === "object" ? (r.phrase || r.text || "") : String(r || "");
-                  const usage = typeof r === "object" ? (r.usage || r.context || "") : "";
-                  return `
-                    <div class="schreiben-redemittel-card">
-                      <div class="schreiben-redemittel-phrase">„${this.escapeHtml(phrase)}“</div>
-                      ${usage ? `<div class="schreiben-redemittel-usage">${this.escapeHtml(usage)}</div>` : ''}
-                    </div>
-                  `;
-                }).join("")}
-              </div>
-            ` : ''}
-            ${lockedFeatures.has_more_redemittel ? `
-              <div class="schreiben-locked-teaser">
-                <div class="schreiben-locked-teaser-left">
-                  <div class="schreiben-locked-teaser-icon">
-                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
-                  </div>
-                  <div>
-                    <div class="schreiben-locked-teaser-title">More exam-relevant phrases available</div>
-                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.redemittel_limit || 2} phrases. Upgrade for unlimited task-specific expressions.</div>
-                  </div>
-                </div>
-                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <!-- 9. Improved Version -->
+        <!-- 5. Improved Version -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="sparkles" style="width:18px;height:18px; color:#8b5cf6;"></i>
-            <span>9. Model Revision (Improved Text)</span>
+            <span>5. Model Revision (Improved Text)</span>
           </h3>
           ${improvedVersion ? `
             <div class="schreiben-improved-version-box">
@@ -1284,6 +1136,154 @@ window.SchreibenPlayerComponent = {
                 </div>
               </div>
               <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade for Model Text</a>
+            </div>
+          `}
+        </div>
+
+        <!-- 6. Sentence Optimizations -->
+        ${improvedSentences.length > 0 || lockedFeatures.has_more_improved_sentences ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="refresh-cw" style="width:18px;height:18px; color:#059669;"></i>
+              <span>6. Sentence Optimizations (Better Phrasing)</span>
+            </h3>
+            ${improvedSentences.length > 0 ? `
+              <div class="schreiben-improved-sentences-list">
+                ${improvedSentences.map(s => `
+                  <div class="schreiben-sentence-card">
+                    <div class="schreiben-sentence-row">
+                      <div class="schreiben-sentence-before">
+                        <span class="schreiben-sentence-label">Original:</span>
+                        <span>${this.escapeHtml(s.original || "")}</span>
+                      </div>
+                      <div class="schreiben-sentence-arrow">➔</div>
+                      <div class="schreiben-sentence-after">
+                        <span class="schreiben-sentence-label">Better:</span>
+                        <span>${this.escapeHtml(s.improved || s.correction || "")}</span>
+                      </div>
+                    </div>
+                    ${(s.explanation || s.reason) ? `<div class="schreiben-sentence-reason">${this.escapeHtml(s.explanation || s.reason)}</div>` : ''}
+                  </div>
+                `).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_improved_sentences ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">More sentence optimizations available</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.max_improved_sentences || 3} sentence optimizations. Higher plans offer unlimited improvements.</div>
+                  </div>
+                </div>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- 7. Redemittel -->
+        ${redemittel.length > 0 || lockedFeatures.has_more_redemittel ? `
+          <div class="schreiben-section-block">
+            <h3 class="schreiben-section-title">
+              <i data-lucide="bookmark" style="width:18px;height:18px; color:#0284c7;"></i>
+              <span>7. Recommended Phrases & Connectors (Redemittel)</span>
+            </h3>
+            ${redemittel.length > 0 ? `
+              <div class="schreiben-redemittel-grid">
+                ${redemittel.map(r => {
+                  const phrase = typeof r === "object" ? (r.phrase || r.text || "") : String(r || "");
+                  const usage = typeof r === "object" ? (r.usage || r.context || "") : "";
+                  return `
+                    <div class="schreiben-redemittel-card">
+                      <div class="schreiben-redemittel-phrase">„${this.escapeHtml(phrase)}“</div>
+                      ${usage ? `<div class="schreiben-redemittel-usage">${this.escapeHtml(usage)}</div>` : ''}
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            ` : ''}
+            ${lockedFeatures.has_more_redemittel ? `
+              <div class="schreiben-locked-teaser">
+                <div class="schreiben-locked-teaser-left">
+                  <div class="schreiben-locked-teaser-icon">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i>
+                  </div>
+                  <div>
+                    <div class="schreiben-locked-teaser-title">More exam-relevant phrases available</div>
+                    <div class="schreiben-locked-teaser-desc">Your current plan displays up to ${planConfig.redemittel_limit || 2} phrases. Upgrade for unlimited task-specific expressions.</div>
+                  </div>
+                </div>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade Plan</a>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- 8. Criteria -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="file-check-2" style="width:18px;height:18px; color:#0284c7;"></i>
+            <span>8. Evaluation Criteria & Report</span>
+          </h3>
+          <div class="schreiben-criteria-grid">
+            ${criteria.map(c => {
+              const critName = String(c.name || "").trim();
+              let critIcon = "check-circle";
+              if (/fulfillment|aufgabe/i.test(critName)) critIcon = "list-checks";
+              else if (/coherence|struktur|aufbau/i.test(critName)) critIcon = "align-left";
+              else if (/vocab|wortschatz/i.test(critName)) critIcon = "book-open";
+              else if (/grammar|grammatik|form/i.test(critName)) critIcon = "spell-check";
+
+              return `
+                <div class="schreiben-criteria-item">
+                  <div class="schreiben-criteria-row">
+                    <span class="schreiben-criteria-name" style="display:flex; align-items:center; gap:6px;">
+                      <i data-lucide="${critIcon}" style="width:16px;height:16px; color:#0284c7;"></i>
+                      <span>${this.escapeHtml(c.name)}</span>
+                    </span>
+                    <span class="schreiben-criteria-badge">Qualitative</span>
+                  </div>
+                  ${c.feedback ? `<p class="schreiben-criteria-sub" style="margin-top:6px; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(c.feedback)}</p>` : ''}
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+
+        <!-- 9. Register Analysis -->
+        <div class="schreiben-section-block">
+          <h3 class="schreiben-section-title">
+            <i data-lucide="scale" style="width:18px;height:18px; color:#6366f1;"></i>
+            <span>9. Register & Tone Analysis</span>
+          </h3>
+          ${registerAnalysis ? `
+            <div class="schreiben-register-card">
+              <div class="schreiben-register-meta">
+                <span class="schreiben-badge-pill" style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;">
+                  Tone: <strong>${this.escapeHtml(registerAnalysis.tone || "Neutral")}</strong>
+                </span>
+                <span class="schreiben-badge-pill" style="${registerAnalysis.appropriate !== false ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">
+                  ${registerAnalysis.appropriate !== false ? '✓ Register appropriate for exam format' : '⚠ Register inappropriate'}
+                </span>
+              </div>
+              ${registerAnalysis.analysis ? `<p style="margin:10px 0 6px 0; font-size:0.9rem; line-height:1.6; color:#334155;">${this.escapeHtml(registerAnalysis.analysis)}</p>` : ''}
+              ${registerAnalysis.recommendation ? `<p style="margin:6px 0 0 0; font-size:0.86rem; color:#4f46e5; font-style:italic;">Recommendation: ${this.escapeHtml(registerAnalysis.recommendation)}</p>` : ''}
+            </div>
+          ` : `
+            <div class="schreiben-locked-feature-card">
+              <div class="schreiben-locked-feature-info">
+                <div class="schreiben-locked-feature-icon-wrap">
+                  <i data-lucide="scale" style="width:20px;height:20px; color:#6366f1;"></i>
+                </div>
+                <div>
+                  <h4 class="schreiben-locked-feature-title">Unlock Register & Tone Analysis</h4>
+                  <p class="schreiben-locked-feature-desc">Checks whether your form of address (Du vs. Sie), formality, and tone match the required exam conventions.</p>
+                </div>
+              </div>
+              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Register Analysis</a>
             </div>
           `}
         </div>
@@ -1331,91 +1331,11 @@ window.SchreibenPlayerComponent = {
           ` : ''}
         </div>
 
-        <!-- 11. Systematic Error Patterns -->
-        <div class="schreiben-section-block">
-          <h3 class="schreiben-section-title">
-            <i data-lucide="layers" style="width:18px;height:18px; color:#f59e0b;"></i>
-            <span>11. Systematic Error Patterns</span>
-          </h3>
-          ${errorPatterns.length > 0 ? `
-            <div class="schreiben-error-patterns-list">
-              ${errorPatterns.map(ep => `
-                <div class="schreiben-pattern-card">
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--schreiben-ink);">${this.escapeHtml(ep.pattern || "Pattern")}</h4>
-                    ${ep.frequency ? `<span class="schreiben-badge-pill" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${this.escapeHtml(ep.frequency)}</span>` : ''}
-                  </div>
-                  ${ep.description ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;">${this.escapeHtml(ep.description)}</p>` : ''}
-                  ${ep.examples && ep.examples.length > 0 ? `
-                    <div style="background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:0.82rem; color:#475569;">
-                      <strong>Examples from your text:</strong>
-                      <ul style="margin:4px 0 0 0; padding-left:18px; font-style:italic;">
-                        ${ep.examples.map(ex => `<li>„${this.escapeHtml(ex)}“</li>`).join("")}
-                      </ul>
-                    </div>
-                  ` : ''}
-                </div>
-              `).join("")}
-            </div>
-          ` : `
-            <div class="schreiben-locked-feature-card">
-              <div class="schreiben-locked-feature-info">
-                <div class="schreiben-locked-feature-icon-wrap">
-                  <i data-lucide="layers" style="width:20px;height:20px; color:#f59e0b;"></i>
-                </div>
-                <div>
-                  <h4 class="schreiben-locked-feature-title">Unlock Systematic Error Patterns</h4>
-                  <p class="schreiben-locked-feature-desc">Identifies recurring structural error patterns (e.g., subordinate clause word order, prepositional cases) across your entire text.</p>
-                </div>
-              </div>
-              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Error Patterns</a>
-            </div>
-          `}
-        </div>
-
-        <!-- 12. Long-Term Weaknesses -->
-        <div class="schreiben-section-block">
-          <h3 class="schreiben-section-title">
-            <i data-lucide="target" style="width:18px;height:18px; color:#ef4444;"></i>
-            <span>12. Long-Term Weaknesses (Diagnostic)</span>
-          </h3>
-          ${longTermWeaknesses.length > 0 ? `
-            <div class="schreiben-weaknesses-list">
-              ${longTermWeaknesses.map(w => `
-                <div class="schreiben-weakness-card">
-                  <h4 style="margin:0 0 6px 0; font-size:0.95rem; font-weight:700; color:#b91c1c;">
-                    ${this.escapeHtml(w.area || "Weakness Area")}
-                  </h4>
-                  ${w.diagnostic ? `<p style="margin:0 0 8px 0; font-size:0.88rem; line-height:1.55; color:#334155;"><strong>Diagnostic:</strong> ${this.escapeHtml(w.diagnostic)}</p>` : ''}
-                  ${w.remedy ? `
-                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px 12px; font-size:0.84rem; color:#166534;">
-                      <strong>Actionable Remedy:</strong> ${this.escapeHtml(w.remedy)}
-                    </div>
-                  ` : ''}
-                </div>
-              `).join("")}
-            </div>
-          ` : `
-            <div class="schreiben-locked-feature-card">
-              <div class="schreiben-locked-feature-info">
-                <div class="schreiben-locked-feature-icon-wrap">
-                  <i data-lucide="target" style="width:20px;height:20px; color:#ef4444;"></i>
-                </div>
-                <div>
-                  <h4 class="schreiben-locked-feature-title">Unlock Long-Term Weakness Analysis</h4>
-                  <p class="schreiben-locked-feature-desc">Identifies deeper grammatical and structural weaknesses with targeted strategies to overcome them for your exam.</p>
-                </div>
-              </div>
-              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn">Upgrade for Weakness Analysis</a>
-            </div>
-          `}
-        </div>
-
-        <!-- 13. Personalized Learning Plan -->
+        <!-- 11. Personalized Learning Plan -->
         <div class="schreiben-section-block">
           <h3 class="schreiben-section-title">
             <i data-lucide="compass" style="width:18px;height:18px; color:#10b981;"></i>
-            <span>13. Personalized Learning Plan</span>
+            <span>11. Personalized Learning Plan</span>
           </h3>
           ${learningPlan.length > 0 ? `
             <div class="schreiben-learning-plan-list">
