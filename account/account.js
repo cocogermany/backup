@@ -278,6 +278,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function highlightActiveNavTab() {
+  if (window.innerWidth <= 1024) {
+    document.querySelectorAll(".account-tab").forEach((tab) => {
+      tab.classList.remove("active");
+    });
+    return;
+  }
   const currentPath = window.location.pathname.split("/").pop() || "index.html";
   document.querySelectorAll(".account-tab").forEach((tab) => {
     const href = tab.getAttribute("href") || "";
@@ -482,6 +488,7 @@ function initMobileTabModal() {
 
   // Window resize handler: if resized to desktop, close modal and restore inline view
   window.addEventListener("resize", () => {
+    highlightActiveNavTab();
     if (window.innerWidth > 1024) {
       if (modal && modal.classList.contains("active")) {
         closeModal();

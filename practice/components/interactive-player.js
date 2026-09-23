@@ -771,6 +771,7 @@ window.InteractivePlayerComponent = {
       material = {
         ...material,
         ...content,
+        id: (material && material.id) || materialId || content?.id,
         teil: material?.teil || content?.teil || "",
         exam: material?.exam || content?.exam || "goethe",
         level: material?.level || content?.level || level,
@@ -1517,6 +1518,11 @@ window.InteractivePlayerComponent = {
             if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
               window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
             }
+            if (window.PracticeHubComponent && Array.isArray(window.PracticeHubComponent.loadedMaterials)) {
+              window.PracticeHubComponent.loadedMaterials = window.PracticeHubComponent.loadedMaterials.filter(
+                m => m && String(m.id || "").trim() !== String(material.id).trim()
+              );
+            }
           } catch (e) {}
           if (window.CocoStateSync) {
             window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: dbModule, scorePercent });
@@ -1533,6 +1539,11 @@ window.InteractivePlayerComponent = {
         localStorage.removeItem("coco_practice_hub_materials_cache");
         if (window.PracticeHubComponent && window.PracticeHubComponent.completedMaterialIds) {
           window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
+        }
+        if (window.PracticeHubComponent && Array.isArray(window.PracticeHubComponent.loadedMaterials)) {
+          window.PracticeHubComponent.loadedMaterials = window.PracticeHubComponent.loadedMaterials.filter(
+            m => m && String(m.id || "").trim() !== String(material.id).trim()
+          );
         }
       } catch (e) {}
 

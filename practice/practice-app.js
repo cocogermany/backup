@@ -1030,6 +1030,9 @@
       );
 
       if (isSchreiben) {
+        if (window.SchreibenPlayerComponent && material) {
+          window.SchreibenPlayerComponent.preloadedMaterial = material;
+        }
         window.location.hash = `#schreiben-player?id=${encodeURIComponent(materialId)}`;
         return;
       }
