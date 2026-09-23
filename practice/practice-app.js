@@ -389,6 +389,17 @@
           AppState.currentFormat = String(creditRes.format).toLowerCase();
           localStorage.setItem("coco_practice_format", AppState.currentFormat);
         }
+
+        // Fetch dynamic weekly Schreiben credits in background
+        if (window.SupabaseService && typeof window.SupabaseService.checkSchreibenCreditsWorker === "function") {
+          window.SupabaseService.checkSchreibenCreditsWorker(idToken).then((schreibenRes) => {
+            if (schreibenRes && typeof schreibenRes.schreiben_credits_remaining === "number") {
+              AppState.schreibenCreditsRemaining = schreibenRes.schreiben_credits_remaining;
+              AppState.weeklySchreibenLimit = schreibenRes.weekly_schreiben_limit;
+              AppState.schreibenEnabled = schreibenRes.schreiben_enabled;
+            }
+          }).catch(() => {});
+        }
       } catch (err) {
         // Keep the UI in its unloaded state rather than showing a fabricated
         // allowance. A later page load will retry the authenticated request.

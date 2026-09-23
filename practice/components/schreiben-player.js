@@ -25,6 +25,114 @@ window.SchreibenPlayerComponent = {
   isReviewMode: false,
   renderRequestId: 0,
 
+  getFirebaseIdToken: async function () {
+    if (window.PracticeApp && typeof window.PracticeApp.getFirebaseIdToken === "function") {
+      try {
+        const token = await window.PracticeApp.getFirebaseIdToken();
+        if (token) return token;
+      } catch (e) {}
+    }
+    if (window.PracticeApp?.currentFirebaseUser && typeof window.PracticeApp.currentFirebaseUser.getIdToken === "function") {
+      try {
+        const token = await window.PracticeApp.currentFirebaseUser.getIdToken();
+        if (token) return token;
+      } catch (e) {}
+    }
+    if (typeof firebase !== "undefined" && firebase.auth) {
+      try {
+        const cur = firebase.auth().currentUser;
+        if (cur) return await cur.getIdToken();
+        for (let i = 0; i < 15; i++) {
+          await new Promise((r) => setTimeout(r, 200));
+          const user = firebase.auth().currentUser || window.PracticeApp?.currentFirebaseUser;
+          if (user) return await user.getIdToken();
+        }
+      } catch (e) {}
+    }
+    return "";
+  },
+
+  formatWeeklyCredits: function (remaining, limit) {
+    const rem = (typeof remaining === "number")
+      ? remaining
+      : (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number"
+          ? window.AppState.schreibenCreditsRemaining
+          : null);
+    const lim = (typeof limit === "number")
+      ? limit
+      : (window.AppState && typeof window.AppState.weeklySchreibenLimit === "number"
+          ? window.AppState.weeklySchreibenLimit
+          : null);
+
+    if (rem === null || rem === undefined) {
+      return "Weekly Credits";
+    }
+    if (lim !== null && lim !== undefined && lim > 0) {
+      return `${rem} / ${lim} weekly credits available`;
+    }
+    return `${rem} weekly credit${rem === 1 ? "" : "s"} available`;
+  },
+
+  updateWeeklyCreditsDisplay: function (remaining, limit) {
+    const rem = (typeof remaining === "number")
+      ? remaining
+      : (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number"
+          ? window.AppState.schreibenCreditsRemaining
+          : null);
+    const lim = (typeof limit === "number")
+      ? limit
+      : (window.AppState && typeof window.AppState.weeklySchreibenLimit === "number"
+          ? window.AppState.weeklySchreibenLimit
+          : null);
+
+    if (rem !== null && window.AppState) {
+      window.AppState.schreibenCreditsRemaining = rem;
+      if (lim !== null) window.AppState.weeklySchreibenLimit = lim;
+    }
+
+    const formatted = this.formatWeeklyCredits(rem, lim);
+
+    const creditsEl = document.getElementById("schreiben-credits-text");
+    if (creditsEl) {
+      creditsEl.textContent = formatted;
+    }
+
+    const footnoteCredits = document.getElementById("schreiben-footnote-credits");
+    if (footnoteCredits) {
+      if (rem !== null) {
+        footnoteCredits.textContent = `(${formatted})`;
+        footnoteCredits.style.display = "inline";
+      } else {
+        footnoteCredits.style.display = "none";
+      }
+    }
+  },
+
+  refreshWeeklyCredits: async function () {
+    try {
+      const idToken = await this.getFirebaseIdToken();
+      if (!idToken) return null;
+
+      const checkFn = window.SupabaseService?.checkSchreibenCredits || window.SupabaseService?.checkSchreibenCreditsWorker;
+      if (typeof checkFn !== "function") return null;
+
+      const res = await checkFn(idToken);
+      if (res && typeof res.schreiben_credits_remaining === "number") {
+        if (window.AppState) {
+          window.AppState.schreibenCreditsRemaining = res.schreiben_credits_remaining;
+          if (typeof res.weekly_schreiben_limit === "number") {
+            window.AppState.weeklySchreibenLimit = res.weekly_schreiben_limit;
+          }
+        }
+        this.updateWeeklyCreditsDisplay(res.schreiben_credits_remaining, res.weekly_schreiben_limit);
+        return res;
+      }
+    } catch (err) {
+      console.warn("SchreibenPlayer: Unable to fetch dynamic weekly credits:", err);
+    }
+    return null;
+  },
+
   escapeHtml: function (value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -250,7 +358,7 @@ window.SchreibenPlayerComponent = {
           <div class="schreiben-header-right">
             <div class="schreiben-credits-indicator" id="schreiben-credits-indicator">
               <i data-lucide="award" style="width:15px;height:15px; color:#d97706;"></i>
-              <span id="schreiben-credits-text">Writing Module</span>
+              <span id="schreiben-credits-text">${this.escapeHtml(this.formatWeeklyCredits(appState?.schreibenCreditsRemaining, appState?.weeklySchreibenLimit))}</span>
             </div>
           </div>
         </header>
@@ -366,26 +474,9 @@ window.SchreibenPlayerComponent = {
       metaEl.textContent = `${exam} ${lvl} ${teil}`;
     }
 
-    const creditsEl = document.getElementById("schreiben-credits-text");
-    if (creditsEl) {
-      if (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number") {
-        creditsEl.textContent = `${window.AppState.schreibenCreditsRemaining} weekly credits`;
-      } else {
-        (async () => {
-          try {
-            const idToken = await (window.PracticeApp?.getFirebaseIdToken ? window.PracticeApp.getFirebaseIdToken() : null);
-            if (idToken && window.SupabaseService?.checkSchreibenCredits) {
-              const res = await window.SupabaseService.checkSchreibenCredits(idToken);
-              if (res && typeof res.schreiben_credits_remaining === "number") {
-                if (window.AppState) window.AppState.schreibenCreditsRemaining = res.schreiben_credits_remaining;
-                const el = document.getElementById("schreiben-credits-text");
-                if (el) el.textContent = `${res.schreiben_credits_remaining} weekly credits`;
-              }
-            }
-          } catch (e) {}
-        })();
-      }
-    }
+    // Synchronously update credits display with active AppState, then fetch latest live balance
+    this.updateWeeklyCreditsDisplay();
+    this.refreshWeeklyCredits();
   },
 
   renderWritingWorkspace: function () {
@@ -460,7 +551,7 @@ window.SchreibenPlayerComponent = {
           </button>
           <div class="schreiben-footnote">
             <i data-lucide="info" style="width:14px;height:14px; color:#64748b;"></i>
-            <span>${minWords ? `Guideline: ${minWords}–${maxWords} words` : `Maximum ${maxWords} words`} · 1 weekly credit deducted upon successful evaluation</span>
+            <span>${minWords ? `Guideline: ${minWords}–${maxWords} words` : `Maximum ${maxWords} words`} · 1 weekly credit deducted upon successful evaluation <span id="schreiben-footnote-credits" style="font-weight:600; color:#b45309;">(${this.escapeHtml(this.formatWeeklyCredits())})</span></span>
           </div>
         </div>
       </div>
@@ -570,6 +661,17 @@ window.SchreibenPlayerComponent = {
       return;
     }
 
+    if (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number" && window.AppState.schreibenCreditsRemaining <= 0) {
+      if (errorBanner) {
+        errorBanner.textContent = "You have used all your weekly Schreiben credits. Quota resets next week.";
+        errorBanner.style.display = "block";
+      }
+      if (window.PracticeApp?.showToast) {
+        window.PracticeApp.showToast("⚡ You have used all your weekly Schreiben credits. Quota resets next week.", "warning", 4500);
+      }
+      return;
+    }
+
     this.isEvaluating = true;
     this.studentAnswer = answerText;
 
@@ -584,7 +686,7 @@ window.SchreibenPlayerComponent = {
             Your submission is being evaluated against official exam criteria for task fulfillment, structure, vocabulary, and grammar.
           </p>
           <div class="schreiben-eval-meta">
-            <span>Length: ${wordCount} / ${maxWords} words</span> · <span>1 weekly credit will be deducted upon successful evaluation</span>
+            <span>Length: ${wordCount} / ${maxWords} words</span> · <span>1 weekly credit will be deducted upon successful evaluation (${this.escapeHtml(this.formatWeeklyCredits())})</span>
           </div>
         </div>
       `;
@@ -665,13 +767,21 @@ window.SchreibenPlayerComponent = {
     this.isSubmitted = true;
     this.evaluationResult = evalRes.evaluation;
 
-    // Update remaining credits in local AppState if returned
-    if (typeof evalRes.schreiben_credits_remaining === "number" && window.AppState) {
-      window.AppState.schreibenCreditsRemaining = evalRes.schreiben_credits_remaining;
-      const creditsEl = document.getElementById("schreiben-credits-text");
-      if (creditsEl) {
-        creditsEl.textContent = `${evalRes.schreiben_credits_remaining} weekly credits`;
+    // Update remaining credits in local AppState and UI if returned
+    if (typeof evalRes.schreiben_credits_remaining === "number") {
+      if (window.AppState) {
+        window.AppState.schreibenCreditsRemaining = evalRes.schreiben_credits_remaining;
+        if (typeof evalRes.weekly_schreiben_limit === "number") {
+          window.AppState.weeklySchreibenLimit = evalRes.weekly_schreiben_limit;
+        }
       }
+      if (this.evaluationResult) {
+        this.evaluationResult.schreiben_credits_remaining = evalRes.schreiben_credits_remaining;
+        if (typeof evalRes.weekly_schreiben_limit === "number") {
+          this.evaluationResult.weekly_schreiben_limit = evalRes.weekly_schreiben_limit;
+        }
+      }
+      this.updateWeeklyCreditsDisplay(evalRes.schreiben_credits_remaining, evalRes.weekly_schreiben_limit);
     }
 
     // Validate evaluationResult before proceeding
@@ -817,7 +927,12 @@ window.SchreibenPlayerComponent = {
     const wordCount = evaluation.word_count || (this.studentAnswer ? this.studentAnswer.trim().split(/\s+/).filter(Boolean).length : 0);
     const creditsRemaining = (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number")
       ? window.AppState.schreibenCreditsRemaining
-      : null;
+      : (typeof evaluation.schreiben_credits_remaining === "number" ? evaluation.schreiben_credits_remaining : null);
+    const creditsLimit = (window.AppState && typeof window.AppState.weeklySchreibenLimit === "number")
+      ? window.AppState.weeklySchreibenLimit
+      : (typeof evaluation.weekly_schreiben_limit === "number" ? evaluation.weekly_schreiben_limit : null);
+
+    this.updateWeeklyCreditsDisplay(creditsRemaining, creditsLimit);
 
     // Derived qualitative indicators from actual evaluation data
     const fulfilledCount = tfPoints.filter(p => String(p.status || "").toLowerCase() === "fulfilled").length;
@@ -870,7 +985,7 @@ window.SchreibenPlayerComponent = {
               <span class="schreiben-badge-pill schreiben-badge-level">${this.escapeHtml(exam)} ${this.escapeHtml(level)}</span>
               <span class="schreiben-badge-pill schreiben-badge-module">Writing Report</span>
               ${material.teil ? `<span class="schreiben-badge-pill schreiben-badge-sub">${this.escapeHtml(material.teil)}</span>` : ''}
-              ${creditsRemaining !== null ? `<span class="schreiben-badge-pill schreiben-badge-credits">${creditsRemaining} credits remaining</span>` : ''}
+              ${creditsRemaining !== null ? `<span class="schreiben-badge-pill schreiben-badge-credits">${this.escapeHtml(this.formatWeeklyCredits(creditsRemaining, creditsLimit))}</span>` : ''}
             </div>
             <h1 class="schreiben-results-heading">Examination Evaluation Report</h1>
           </div>
