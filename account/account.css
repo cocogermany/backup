@@ -864,7 +864,268 @@ body::before {
   flex-shrink: 0;
 }
 
-/* 13. Responsive Breakpoints */
+/* 13. Modal Popup for Smartphone & Tablet View Only (Hidden on Desktop) */
+.account-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+@media (min-width: 1025px) {
+  .account-modal-overlay {
+    display: none !important;
+  }
+  .account-modal-close-btn,
+  .account-modal-footer {
+    display: none !important;
+  }
+}
+
+/* 14. Responsive Breakpoints */
+
+/* Smartphone and Tablet View Only (<= 1024px)
+   Turn Account sub-nav tabs into compact box-style buttons and enable popup modal.
+   Desktop/PC (>= 1025px) behavior, content, and functionality remain untouched. */
+@media (max-width: 1024px) {
+  /* Turn sub-navigation tabs into compact box-style buttons */
+  .account-nav-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    background: var(--surface) !important;
+    border-radius: var(--radius-xl) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow-sm) !important;
+    margin-bottom: 24px !important;
+    overflow: visible !important;
+  }
+
+  .account-tab-divider {
+    display: none !important;
+  }
+
+  .account-tab {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 16px 10px !important;
+    min-height: 84px !important;
+    border-radius: var(--radius-md) !important;
+    border: 1.5px solid var(--line) !important;
+    background: var(--surface-subtle) !important;
+    color: var(--ink) !important;
+    text-decoration: none !important;
+    white-space: normal !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    gap: 8px !important;
+    box-shadow: 0 1px 3px rgba(20, 25, 48, 0.03) !important;
+    transition: all var(--transition-fast) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .account-tab:hover,
+  .account-tab:focus-visible {
+    background: var(--surface) !important;
+    border-color: rgba(97, 88, 223, 0.38) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(20, 25, 48, 0.08) !important;
+  }
+
+  .account-tab.active {
+    background: linear-gradient(180deg, rgba(97, 88, 223, 0.12) 0%, rgba(97, 88, 223, 0.04) 100%) !important;
+    border-color: var(--brand) !important;
+    color: var(--brand) !important;
+    box-shadow: 0 3px 12px rgba(97, 88, 223, 0.18) !important;
+  }
+
+  .account-tab svg {
+    width: 24px !important;
+    height: 24px !important;
+    color: var(--brand) !important;
+    flex-shrink: 0 !important;
+    transition: transform var(--transition-fast) !important;
+  }
+
+  .account-tab:hover svg {
+    transform: scale(1.1) !important;
+  }
+
+  /* Hide background content card when not inside modal */
+  #account-content-view:not(.in-modal) {
+    display: none !important;
+  }
+
+  /* Modal Active State for Smartphone and Tablet */
+  body.account-modal-open {
+    overflow: hidden !important;
+  }
+
+  .account-modal-overlay {
+    display: flex;
+  }
+
+  .account-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .account-modal-card {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+    width: 100%;
+    max-width: 660px;
+    max-height: calc(100dvh - 36px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.95) translateY(14px);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .account-modal-overlay.active .account-modal-card {
+    transform: scale(1) translateY(0);
+  }
+
+  .account-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--line-light);
+    background: var(--surface-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .account-modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .account-modal-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background: rgba(97, 88, 223, 0.12);
+    color: var(--brand);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  .account-modal-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .account-modal-title {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ink);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Clear Close Button in Header */
+  .account-modal-close-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--ink-secondary);
+    border: 1.5px solid var(--line);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .account-modal-close-btn:hover,
+  .account-modal-close-btn:active {
+    background: var(--rose-wash);
+    color: var(--rose);
+    border-color: rgba(244, 63, 94, 0.35);
+    transform: scale(1.02);
+  }
+
+  .account-modal-close-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .account-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+  }
+
+  .account-modal-body .account-content-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .account-modal-body .account-section-header {
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+  }
+
+  .account-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 12px 20px;
+    border-top: 1px solid var(--line-light);
+    background: var(--surface-subtle);
+    flex-shrink: 0;
+  }
+
+  .account-modal-footer .account-modal-bottom-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+}
 
 /* Tablet & Intermediate Screens (769px to 1024px) */
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -978,22 +1239,26 @@ body::before {
   }
 
   .account-nav-bar {
-    margin-bottom: 20px;
-    padding: 5px;
-    gap: 6px;
-    border-radius: var(--radius-md);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 10px !important;
+    margin-bottom: 22px !important;
   }
 
   .account-tab {
-    padding: 9px 14px;
-    font-size: 13px;
-    min-height: 40px;
-    gap: 6px;
+    min-height: 78px !important;
+    padding: 12px 8px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
   }
 
   .account-tab svg {
-    width: 15px;
-    height: 15px;
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .account-tab:last-of-type {
+    grid-column: span 2 !important;
   }
 
   .account-content-card {

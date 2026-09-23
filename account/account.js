@@ -117,6 +117,7 @@ async function getFirebaseTools() {
 document.addEventListener("DOMContentLoaded", async () => {
   initIcons();
   highlightActiveNavTab();
+  initMobileTabModal();
   await initAccountAuth();
 });
 
@@ -126,6 +127,179 @@ function highlightActiveNavTab() {
     const href = tab.getAttribute("href") || "";
     const isCurrent = href === currentPath || (currentPath === "" && href === "index.html");
     tab.classList.toggle("active", isCurrent);
+  });
+}
+
+function initMobileTabModal() {
+  let modal = document.getElementById("account-tab-modal");
+  let modalBody = document.getElementById("account-modal-body");
+  let modalTitle = document.getElementById("account-modal-title");
+  let modalIcon = document.getElementById("account-modal-icon");
+  const inlineView = document.getElementById("account-content-view");
+  let inlinePlaceholder = document.getElementById("account-inline-placeholder");
+
+  // Create modal element if not present in markup
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.className = "account-modal-overlay";
+    modal.id = "account-tab-modal";
+    modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.innerHTML = `
+      <div class="account-modal-card">
+        <div class="account-modal-header">
+          <div class="account-modal-title-wrap">
+            <span class="account-modal-icon" id="account-modal-icon"><i data-lucide="settings-2"></i></span>
+            <h2 class="account-modal-title" id="account-modal-title">Details</h2>
+          </div>
+          <button class="account-modal-close-btn" id="account-modal-close-btn" type="button" aria-label="Close modal">
+            <i data-lucide="x"></i>
+            <span>Close</span>
+          </button>
+        </div>
+        <div class="account-modal-body" id="account-modal-body"></div>
+        <div class="account-modal-footer">
+          <button class="button-secondary account-modal-bottom-close" type="button">
+            <i data-lucide="x"></i>
+            <span>Close</span>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modalBody = document.getElementById("account-modal-body");
+    modalTitle = document.getElementById("account-modal-title");
+    modalIcon = document.getElementById("account-modal-icon");
+  }
+
+  if (!inlinePlaceholder && inlineView) {
+    inlinePlaceholder = document.createElement("div");
+    inlinePlaceholder.id = "account-inline-placeholder";
+    inlinePlaceholder.style.display = "none";
+    inlineView.before(inlinePlaceholder);
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.classList.remove("active");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("account-modal-open");
+
+    // If inlineView was moved into modal, restore it back to original placeholder position
+    if (inlineView && inlinePlaceholder && inlineView.parentElement === modalBody) {
+      inlineView.classList.remove("in-modal");
+      inlinePlaceholder.after(inlineView);
+    }
+
+    // Restore active tab to current page's tab
+    highlightActiveNavTab();
+  }
+
+  function openTabInModal(tabEl) {
+    if (!tabEl || !modal || !modalBody) return;
+    const href = (tabEl.getAttribute("href") || "").split("/").pop() || "index.html";
+    const tabName = tabEl.textContent.trim();
+    const iconEl = tabEl.querySelector("i, svg");
+    const iconName = iconEl ? (iconEl.getAttribute("data-lucide") || "folder") : "folder";
+
+    // Update modal title & icon
+    if (modalTitle) modalTitle.textContent = tabName;
+    if (modalIcon) {
+      modalIcon.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    }
+
+    // Restore inlineView if it was in the modal
+    if (inlineView && inlinePlaceholder && inlineView.parentElement === modalBody) {
+      inlineView.classList.remove("in-modal");
+      inlinePlaceholder.after(inlineView);
+    }
+    modalBody.innerHTML = "";
+
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    const isCurrentPage = href === currentPage || (currentPage === "" && href === "index.html");
+
+    if (isCurrentPage && inlineView) {
+      inlineView.classList.add("in-modal");
+      modalBody.appendChild(inlineView);
+    } else {
+      const tmplKey = href.replace(".html", "").toLowerCase();
+      const tmpl = document.getElementById(`tmpl-${tmplKey}`);
+      if (tmpl) {
+        modalBody.appendChild(tmpl.content.cloneNode(true));
+      } else if (inlineView && href === "index.html") {
+        inlineView.classList.add("in-modal");
+        modalBody.appendChild(inlineView);
+      } else {
+        modalBody.innerHTML = `
+          <div class="account-empty-state">
+            <i data-lucide="${iconName}"></i>
+            <h3>${tabName}</h3>
+            <p>View detailed information and manage your preferences.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Refresh icons inside modal
+    initIcons();
+
+    // Trigger dynamic data initializers if user is authenticated
+    if (currentAccountUser) {
+      if (href === "orders.html") {
+        initOrdersList(currentAccountUser);
+      } else if (href === "purchased.html") {
+        initPurchasedList(currentAccountUser);
+      }
+    }
+
+    // Highlight clicked tab
+    document.querySelectorAll(".account-tab").forEach((t) => t.classList.toggle("active", t === tabEl));
+
+    // Open modal
+    modal.classList.add("active");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("account-modal-open");
+  }
+
+  // Bind clicks on sub-navigation tabs (Smartphone & Tablet only)
+  document.querySelectorAll(".account-tab").forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      // ONLY intercept on smartphone and tablet viewports (<= 1024px)
+      if (window.innerWidth <= 1024) {
+        e.preventDefault();
+        openTabInModal(tab);
+      }
+      // On desktop/PC (> 1024px), DO NOT preventDefault - let normal browser navigation occur!
+    });
+  });
+
+  // Bind close buttons and dismissal triggers
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#account-modal-close-btn") || e.target.closest(".account-modal-bottom-close")) {
+      closeModal();
+    } else if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal && modal.classList.contains("active")) {
+      closeModal();
+    }
+  });
+
+  // Window resize handler: if resized to desktop, close modal and restore inline view
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1024) {
+      if (modal && modal.classList.contains("active")) {
+        closeModal();
+      }
+      if (inlineView && inlinePlaceholder && inlineView.parentElement !== inlinePlaceholder.parentElement) {
+        inlineView.classList.remove("in-modal");
+        inlinePlaceholder.after(inlineView);
+      }
+    }
   });
 }
 

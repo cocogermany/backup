@@ -142,6 +142,145 @@
           </div>
         </form>
       </section>
+
+      <!-- Modal Popup for Smartphone & Tablet View Only -->
+      <div class="account-modal-overlay" id="account-tab-modal" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="account-modal-card">
+          <div class="account-modal-header">
+            <div class="account-modal-title-wrap">
+              <span class="account-modal-icon" id="account-modal-icon"><i data-lucide="settings-2"></i></span>
+              <h2 class="account-modal-title" id="account-modal-title">Profile Settings</h2>
+            </div>
+            <button class="account-modal-close-btn" id="account-modal-close-btn" type="button" aria-label="Close modal">
+              <i data-lucide="x"></i>
+              <span>Close</span>
+            </button>
+          </div>
+          <div class="account-modal-body" id="account-modal-body"></div>
+          <div class="account-modal-footer">
+            <button class="button-secondary account-modal-bottom-close" type="button">
+              <i data-lucide="x"></i>
+              <span>Close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content Templates for Mobile/Tablet Modal -->
+      <template id="tmpl-orders">
+        <div class="account-section-header">
+          <h2>Order History</h2>
+          <p>Review the fulfillment status of your workbook and mock exam orders.</p>
+        </div>
+        <div id="account-orders-container">
+          <div class="account-empty-state">
+            <i data-lucide="loader"></i>
+            <p>Loading your orders...</p>
+          </div>
+        </div>
+      </template>
+
+      <template id="tmpl-purchased">
+        <div class="account-section-header">
+          <h2>Purchased Resources</h2>
+          <p>Access your unlocked digital workbooks, practice papers, and answer keys.</p>
+        </div>
+        <div id="account-purchased-container">
+          <div class="account-empty-state">
+            <i data-lucide="loader"></i>
+            <p>Loading your materials...</p>
+          </div>
+        </div>
+      </template>
+
+      <template id="tmpl-billing">
+        <div class="account-section-header">
+          <h2>Billing &amp; Subscriptions</h2>
+          <p>Manage membership tiers, preferred billing currency, and payment history.</p>
+        </div>
+        <div class="doc-prose">
+          <h3>Current Membership Status</h3>
+          <p>
+            Your account is currently active on the standard customer tier. If you have subscribed to interactive practice packs or individual workbooks, your invoices and fulfillment records are stored under <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a>.
+          </p>
+          <div class="account-empty-state" style="margin: 28px 0;">
+            <i data-lucide="crown"></i>
+            <h3>Explore Premium Membership</h3>
+            <p>Unlock unlimited Goethe &amp; telc mock exams, automated grammar evaluation, and full access to our digital publishing library.</p>
+            <a class="button-primary" href="../index.html#/membership">
+              <i data-lucide="sparkles"></i> View Membership Plans
+            </a>
+          </div>
+          <h3>Payment Methods &amp; Invoicing</h3>
+          <p>
+            Payments for digital study guides and mock preparation kits are processed securely via Stripe or verified UPI transfer with invoice confirmation delivered to your registered email address.
+          </p>
+        </div>
+      </template>
+
+      <template id="tmpl-help">
+        <div class="account-section-header">
+          <h2>Help &amp; Customer Support</h2>
+          <p>Find answers to frequent inquiries or contact the Coco Germany team.</p>
+        </div>
+        <div class="doc-prose">
+          <h3>Frequently Asked Questions</h3>
+          <h4>How do I receive my purchased digital PDF workbooks?</h4>
+          <p>
+            Digital books and practice papers are unlocked automatically under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> once manual payment verification is confirmed by our editorial desk (typically within 2 to 6 hours).
+          </p>
+          <h4>How does the Practice App synchronize my target German level?</h4>
+          <p>
+            When you update your Exam Format (Goethe or telc) and CEFR Level (A1–B2) in <a href="index.html" style="color: var(--brand); font-weight: 600;">Profile Settings</a>, your target curriculum is automatically synchronized with the interactive Practice App and your learning analytics.
+          </p>
+          <h4>Need direct assistance with an order?</h4>
+          <p>
+            For order modifications, invoice receipts, or technical questions, please visit our <a href="../index.html#/contact" style="color: var(--brand); font-weight: 600;">Contact Page</a> or write directly to our editorial team at <code>cocogermany.ytd@gmail.com</code>.
+          </p>
+        </div>
+      </template>
+
+      <template id="tmpl-terms">
+        <div class="account-section-header">
+          <h2>Terms &amp; Conditions</h2>
+          <p>Last updated: September 2026 • Platform usage &amp; digital publication agreements.</p>
+        </div>
+        <div class="doc-prose">
+          <h3>1. Educational Scope &amp; Usage</h3>
+          <p>
+            Coco Germany provides educational software, practice simulations, and digital study publications. All exam-preparation kits and mock tests are engineered for independent study and are not officially endorsed by Goethe-Institut e.V. or telc gGmbH unless explicitly noted.
+          </p>
+          <h3>2. Digital Products &amp; Intellectual Property</h3>
+          <p>
+            All PDF workbooks, curated exercise frames, audio recordings, and editorial analyses are protected by international copyright laws. When you purchase or download materials from Coco Germany, you receive a single-user personal license for your individual study. Reproduction, resale, or unauthorized redistribution is strictly prohibited.
+          </p>
+          <h3>3. Account Security</h3>
+          <p>
+            You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your registered account.
+          </p>
+        </div>
+      </template>
+
+      <template id="tmpl-privacy">
+        <div class="account-section-header">
+          <h2>Privacy Policy</h2>
+          <p>Last updated: September 2026 • How we collect, safeguard, and process your data.</p>
+        </div>
+        <div class="doc-prose">
+          <h3>1. Data We Collect</h3>
+          <p>
+            We collect your email address upon registration and your selected learning preferences (target German exam format, CEFR level, country, and preferred currency). We use this information strictly to customize your interactive practice exercises, mock exam timers, and order fulfillments.
+          </p>
+          <h3>2. Storage &amp; Security</h3>
+          <p>
+            Your account data is stored in enterprise-grade Google Firebase Firestore and Supabase databases utilizing end-to-end transport layer security (TLS 1.3). We never sell your personal data or email address to third parties or marketing brokers.
+          </p>
+          <h3>3. Your Rights Under GDPR</h3>
+          <p>
+            As a learner, you maintain the right to access your stored profile information, request corrections, or request complete deletion of your customer record at any time by contacting <code>cocogermany.ytd@gmail.com</code>.
+          </p>
+        </div>
+      </template>
     </main>
 
     <!-- Footer -->
