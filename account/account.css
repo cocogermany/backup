@@ -885,8 +885,7 @@ body::before {
   .account-modal-overlay {
     display: none !important;
   }
-  .account-modal-close-btn,
-  .account-modal-footer {
+  .account-modal-close-btn {
     display: none !important;
   }
 }
@@ -1107,24 +1106,6 @@ body::before {
     padding-bottom: 14px;
   }
 
-  .account-modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 12px 20px;
-    border-top: 1px solid var(--line-light);
-    background: var(--surface-subtle);
-    flex-shrink: 0;
-  }
-
-  .account-modal-footer .account-modal-bottom-close {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 20px;
-    font-size: 13.5px;
-    font-weight: 700;
-  }
 }
 
 /* Tablet & Intermediate Screens (769px to 1024px) */

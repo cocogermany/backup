@@ -159,12 +159,6 @@ function initMobileTabModal() {
           </button>
         </div>
         <div class="account-modal-body" id="account-modal-body"></div>
-        <div class="account-modal-footer">
-          <button class="button-secondary account-modal-bottom-close" type="button">
-            <i data-lucide="x"></i>
-            <span>Close</span>
-          </button>
-        </div>
       </div>
     `;
     document.body.appendChild(modal);
@@ -276,7 +270,7 @@ function initMobileTabModal() {
 
   // Bind close buttons and dismissal triggers
   document.addEventListener("click", (e) => {
-    if (e.target.closest("#account-modal-close-btn") || e.target.closest(".account-modal-bottom-close")) {
+    if (e.target.closest("#account-modal-close-btn")) {
       closeModal();
     } else if (e.target === modal) {
       closeModal();
