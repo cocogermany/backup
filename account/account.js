@@ -198,6 +198,44 @@ const defaultTabTemplates = {
         As a learner, you maintain the right to access your stored profile information, request corrections, or request complete deletion of your customer record at any time by contacting <code>cocogermany.ytd@gmail.com</code>.
       </p>
     </div>
+  `,
+  index: `
+    <div class="account-section-header">
+      <h2>Profile &amp; Learning Preferences</h2>
+      <p>Customize your target exam format, current CEFR level, country, and preferred currency.</p>
+    </div>
+    <form class="profile-form" id="account-profile-form">
+      <label class="field">
+        Exam Format
+        <select name="format" required>
+          <option value="">Select exam format</option>
+        </select>
+      </label>
+      <label class="field">
+        Current German Level
+        <select name="level" required>
+          <option value="">Select level</option>
+        </select>
+      </label>
+      <label class="field">
+        Country
+        <select name="country" required>
+          <option value="">Select country</option>
+        </select>
+      </label>
+      <label class="field">
+        Currency
+        <select name="currency" required>
+          <option value="">Select currency</option>
+        </select>
+      </label>
+      <div class="form-actions-row">
+        <button class="button-primary" type="submit">
+          <i data-lucide="save"></i> Save preferences
+        </button>
+        <p id="profile-message" aria-live="polite"></p>
+      </div>
+    </form>
   `
 };
 
@@ -234,6 +272,7 @@ async function getFirebaseTools() {
 document.addEventListener("DOMContentLoaded", async () => {
   initIcons();
   highlightActiveNavTab();
+  initProfileForm(currentAccountUser);
   initMobileTabModal();
   await initAccountAuth();
 });
@@ -335,8 +374,8 @@ function initMobileTabModal() {
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("account-modal-open");
 
-    // The 4 protected tabs that require authentication
-    const protectedPages = ["index.html", "orders.html", "purchased.html", "billing.html"];
+    // The protected tabs that require authentication
+    const protectedPages = ["orders.html", "purchased.html", "billing.html"];
     const isProtected = protectedPages.includes(href);
 
     if (isProtected) {
@@ -400,14 +439,14 @@ function initMobileTabModal() {
     // Refresh icons inside modal
     initIcons();
 
-    // Trigger dynamic data initializers if user is authenticated
-    if (currentAccountUser) {
+    // Trigger dynamic data initializers
+    if (href === "index.html") {
+      initProfileForm(currentAccountUser);
+    } else if (currentAccountUser) {
       if (href === "orders.html") {
         initOrdersList(currentAccountUser);
       } else if (href === "purchased.html") {
         initPurchasedList(currentAccountUser);
-      } else if (href === "index.html") {
-        initProfileForm(currentAccountUser);
       }
     }
   }
@@ -576,7 +615,7 @@ function updateUserHeader(user) {
 
 function handleUnauthenticatedState() {
   const currentPath = (window.location.pathname.split("/").pop() || "index.html").toLowerCase();
-  const protectedPages = ["index.html", "orders.html", "purchased.html", "billing.html", ""];
+  const protectedPages = ["orders.html", "purchased.html", "billing.html"];
 
   if (!protectedPages.includes(currentPath)) {
     return;
@@ -628,8 +667,8 @@ async function loadAccountProfile(user) {
         email: user.email,
         format: localStorage.getItem("coco_practice_format") || "goethe",
         level: localStorage.getItem("coco_practice_level") || "A1",
-        country: "",
-        currency: "INR",
+        country: localStorage.getItem("coco_user_country") || "",
+        currency: localStorage.getItem("coco_user_currency") || "INR",
       };
     }
   } catch (error) {
@@ -637,127 +676,197 @@ async function loadAccountProfile(user) {
   }
 }
 
-function initProfileForm(user) {
-  const form = document.getElementById("account-profile-form");
-  if (!form || !user) return;
-
-  // Populate options
+function populateProfileFormFields(form) {
+  if (!form) return;
   const formatSelect = form.querySelector("[name='format']");
   const levelSelect = form.querySelector("[name='level']");
   const countrySelect = form.querySelector("[name='country']");
   const currencySelect = form.querySelector("[name='currency']");
 
-  const currentFormat = (currentAccountProfile?.format || "goethe").toLowerCase();
-  const currentLevel = (currentAccountProfile?.level || currentAccountProfile?.current_level || "A1").toUpperCase();
-  const currentCountry = currentAccountProfile?.country || "";
-  const currentCurrency = currentAccountProfile?.currency || "INR";
+  const currentFormat = (
+    currentAccountProfile?.format ||
+    localStorage.getItem("coco_practice_format") ||
+    "goethe"
+  ).toLowerCase();
+
+  const currentLevel = (
+    currentAccountProfile?.level ||
+    currentAccountProfile?.current_level ||
+    localStorage.getItem("coco_practice_level") ||
+    "A1"
+  ).toUpperCase();
+
+  const currentCountry =
+    currentAccountProfile?.country ||
+    localStorage.getItem("coco_user_country") ||
+    "";
+
+  const currentCurrency =
+    currentAccountProfile?.currency ||
+    localStorage.getItem("coco_user_currency") ||
+    "INR";
 
   if (formatSelect) {
-    formatSelect.innerHTML = `<option value="">Select exam format</option>` +
-      examFormatOptions.map(([val, label]) => `<option value="${val}" ${val.toLowerCase() === currentFormat ? "selected" : ""}>${label}</option>`).join("");
+    formatSelect.innerHTML =
+      `<option value="">Select exam format</option>` +
+      examFormatOptions
+        .map(
+          ([val, label]) =>
+            `<option value="${val}" ${val.toLowerCase() === currentFormat ? "selected" : ""}>${label}</option>`
+        )
+        .join("");
   }
 
   if (levelSelect) {
-    levelSelect.innerHTML = `<option value="">Select level</option>` +
-      germanLevelOptions.map((lvl) => `<option value="${lvl}" ${lvl.toUpperCase() === currentLevel ? "selected" : ""}>${lvl}</option>`).join("");
+    levelSelect.innerHTML =
+      `<option value="">Select level</option>` +
+      germanLevelOptions
+        .map(
+          (lvl) =>
+            `<option value="${lvl}" ${lvl.toUpperCase() === currentLevel ? "selected" : ""}>${lvl}</option>`
+        )
+        .join("");
   }
 
   if (countrySelect) {
-    countrySelect.innerHTML = `<option value="">Select country</option>` +
-      countryOptions.map((c) => `<option value="${c}" ${c === currentCountry ? "selected" : ""}>${c}</option>`).join("");
+    countrySelect.innerHTML =
+      `<option value="">Select country</option>` +
+      countryOptions
+        .map(
+          (c) =>
+            `<option value="${c}" ${c === currentCountry ? "selected" : ""}>${c}</option>`
+        )
+        .join("");
   }
 
   if (currencySelect) {
-    currencySelect.innerHTML = `<option value="">Select currency</option>` +
-      currencyOptions.map(([val, label]) => `<option value="${val}" ${val === currentCurrency ? "selected" : ""}>${label}</option>`).join("");
+    currencySelect.innerHTML =
+      `<option value="">Select currency</option>` +
+      currencyOptions
+        .map(
+          ([val, label]) =>
+            `<option value="${val}" ${val === currentCurrency ? "selected" : ""}>${label}</option>`
+        )
+        .join("");
   }
+}
 
-  // Handle submit
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById("profile-message");
-    const data = new FormData(form);
-    const country = String(data.get("country") || "").trim();
-    const currency = String(data.get("currency") || "").trim();
-    const format = String(data.get("format") || "goethe").toLowerCase().trim();
-    const level = String(data.get("level") || "A1").toUpperCase().trim();
+function initProfileForm(user) {
+  const forms = document.querySelectorAll("#account-profile-form");
+  if (!forms.length) return;
 
-    if (!country || !currency || !format || !level) {
-      if (msg) {
-        msg.className = "error";
-        msg.textContent = "Please complete all fields (Format, Level, Country, Currency).";
-      }
+  forms.forEach((form) => {
+    populateProfileFormFields(form);
+
+    if (form.dataset.initialized === "true") {
       return;
     }
+    form.dataset.initialized = "true";
 
-    const tools = await getFirebaseTools();
-    const submitBtn = form.querySelector("button[type='submit']");
-    if (submitBtn) submitBtn.disabled = true;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector("#profile-message") || document.getElementById("profile-message");
+      const data = new FormData(form);
+      const country = String(data.get("country") || "").trim();
+      const currency = String(data.get("currency") || "").trim();
+      const format = String(data.get("format") || "goethe").toLowerCase().trim();
+      const level = String(data.get("level") || "A1").toUpperCase().trim();
 
-    try {
-      // 1. Save to Firestore
-      await tools.firestoreModule.setDoc(
-        tools.firestoreModule.doc(tools.db, "userProfiles", user.uid),
-        {
-          uid: user.uid,
-          email: user.email || "",
+      if (!country || !currency || !format || !level) {
+        if (msg) {
+          msg.className = "error";
+          msg.textContent = "Please complete all fields (Format, Level, Country, Currency).";
+          msg.style.display = "inline-flex";
+        }
+        return;
+      }
+
+      const submitBtn = form.querySelector("button[type='submit']");
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        // 1. Sync local storage & state for all users (guests & authenticated)
+        localStorage.setItem("coco_practice_level", level);
+        localStorage.setItem("coco_practice_format", format.toLowerCase());
+        localStorage.setItem("coco_user_country", country);
+        localStorage.setItem("coco_user_currency", currency);
+        localStorage.setItem("coco_last_target_update", Date.now().toString());
+
+        if (window.CocoStateSync && typeof window.CocoStateSync.notifyTargetChanged === "function") {
+          window.CocoStateSync.notifyTargetChanged(level, format);
+        }
+
+        currentAccountProfile = {
+          ...(currentAccountProfile || {}),
+          uid: currentAccountUser?.uid || null,
+          email: currentAccountUser?.email || "",
           country,
           currency,
           format,
           level,
-          updatedAt: tools.firestoreModule.serverTimestamp(),
-        },
-        { merge: true }
-      );
+          current_level: level,
+        };
 
-      currentAccountProfile = {
-        ...(currentAccountProfile || {}),
-        uid: user.uid,
-        email: user.email || "",
-        country,
-        currency,
-        format,
-        level,
-        current_level: level,
-      };
+        // 2. If user is authenticated, save to Firestore & ping Worker
+        if (currentAccountUser) {
+          const tools = await getFirebaseTools();
+          if (tools) {
+            await tools.firestoreModule.setDoc(
+              tools.firestoreModule.doc(tools.db, "userProfiles", currentAccountUser.uid),
+              {
+                uid: currentAccountUser.uid,
+                email: currentAccountUser.email || "",
+                country,
+                currency,
+                format,
+                level,
+                updatedAt: tools.firestoreModule.serverTimestamp(),
+              },
+              { merge: true }
+            );
 
-      // 2. Sync local state
-      localStorage.setItem("coco_practice_level", level);
-      localStorage.setItem("coco_practice_format", format.toLowerCase());
-      localStorage.setItem("coco_last_target_update", Date.now().toString());
+            try {
+              const timezone =
+                typeof Intl !== "undefined" && Intl.DateTimeFormat
+                  ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                  : "UTC";
+              const idToken = await currentAccountUser.getIdToken(true);
+              await fetch(
+                "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev/learning/onboarding",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
+                  },
+                  body: JSON.stringify({ level, format, timezone }),
+                }
+              ).catch((err) => console.warn("Worker onboarding ping warning:", err));
+            } catch (pingErr) {
+              console.warn("Onboarding ping failed:", pingErr);
+            }
+          }
+        }
 
-      if (window.CocoStateSync && typeof window.CocoStateSync.notifyTargetChanged === "function") {
-        window.CocoStateSync.notifyTargetChanged(level, format);
+        if (msg) {
+          msg.className = "success";
+          msg.textContent = "Preferences saved successfully.";
+          msg.style.display = "inline-flex";
+          setTimeout(() => {
+            if (msg) msg.style.display = "none";
+          }, 3500);
+        }
+      } catch (err) {
+        console.error("Failed to save profile preferences:", err);
+        if (msg) {
+          msg.className = "error";
+          msg.textContent = "Failed to save preferences. Please try again.";
+          msg.style.display = "inline-flex";
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
-
-      // 3. Notify Cloudflare Worker
-      const timezone = typeof Intl !== "undefined" && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
-      const idToken = await user.getIdToken(true);
-      await fetch("https://cocogermany-r2-worker.cocogermany-ytd.workers.dev/learning/onboarding", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ level, format, timezone }),
-      }).catch((err) => console.warn("Worker onboarding ping warning:", err));
-
-      if (msg) {
-        msg.className = "success";
-        msg.textContent = "Preferences saved successfully.";
-        setTimeout(() => {
-          if (msg) msg.style.display = "none";
-        }, 3500);
-      }
-    } catch (err) {
-      console.error(err);
-      if (msg) {
-        msg.className = "error";
-        msg.textContent = "Failed to save preferences. Please try again.";
-      }
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
+    });
   });
 }
 
