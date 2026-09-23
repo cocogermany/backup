@@ -989,19 +989,11 @@ body::before {
     box-shadow: 0 6px 16px rgba(20, 25, 48, 0.08) !important;
   }
 
-  /* On smartphone and tablet, tabs are launcher buttons; keep all buttons uniform and neutral */
   .account-tab.active {
-    background: var(--surface-subtle) !important;
-    border: 1.5px solid var(--line) !important;
-    color: var(--ink) !important;
-    box-shadow: 0 1px 3px rgba(20, 25, 48, 0.03) !important;
-  }
-
-  .account-tab.active:hover,
-  .account-tab.active:focus-visible {
-    background: var(--surface) !important;
-    border-color: rgba(97, 88, 223, 0.38) !important;
+    background: linear-gradient(180deg, rgba(97, 88, 223, 0.12) 0%, rgba(97, 88, 223, 0.04) 100%) !important;
+    border-color: var(--brand) !important;
     color: var(--brand) !important;
+    box-shadow: 0 3px 12px rgba(97, 88, 223, 0.18) !important;
   }
 
   .account-tab svg {

@@ -378,7 +378,6 @@ window.SchreibenPlayerComponent = {
   initPlayerMaterial: async function (materialId, appState) {
     const renderRequestId = ++this.renderRequestId;
     const level = appState ? appState.currentLevel || "A1" : "A1";
-    const resolvedMaterialId = String(materialId || "").trim();
 
     let material = (this.preloadedMaterial && String(this.preloadedMaterial.id) === String(materialId))
       ? this.preloadedMaterial
@@ -425,9 +424,6 @@ window.SchreibenPlayerComponent = {
 
     if (renderRequestId !== this.renderRequestId) return;
 
-    // Capture authentic database ID before loading JSON content
-    const authoritativeId = resolvedMaterialId || (material && String(material.id)) || "";
-
     // Load content JSON if contentPath is specified
     const contentPath = material && (material.contentPath || material.content_path);
     if (contentPath) {
@@ -437,7 +433,6 @@ window.SchreibenPlayerComponent = {
         material = {
           ...material,
           ...content,
-          id: authoritativeId || material?.id || content?.id || "schreiben-fallback",
           teil: material?.teil || content?.teil || "",
           exam: material?.exam || content?.exam || "goethe",
           level: material?.level || content?.level || level,
@@ -449,7 +444,7 @@ window.SchreibenPlayerComponent = {
     // Fallback if material couldn't be resolved
     if (!material) {
       material = {
-        id: authoritativeId || "schreiben-fallback",
+        id: materialId || "schreiben-fallback",
         title: `Writing Task (${level})`,
         exam: "goethe",
         level: level,
@@ -457,8 +452,6 @@ window.SchreibenPlayerComponent = {
         task: "Bitte verfasse einen kurzen Text nach CEFR-Prüfungsvorgabe.",
         teil: "Teil 1"
       };
-    } else if (authoritativeId && String(material.id) !== authoritativeId) {
-      material.id = authoritativeId;
     }
 
     this.currentMaterial = material;
@@ -850,11 +843,9 @@ window.SchreibenPlayerComponent = {
         dbFormat = userFormat === "telc" ? "telc" : "goethe";
       }
 
-      const matId = String(material?.id || "").trim();
-
       const attemptPayload = {
         uid: uid,
-        material_id: matId,
+        material_id: String(material.id),
         level: (material.level || window.AppState?.currentLevel || "A1").toUpperCase(),
         format: dbFormat,
         module: "Schreiben",
@@ -871,21 +862,6 @@ window.SchreibenPlayerComponent = {
       if (insertError) {
         if (insertError.code === "23505") {
           console.info("SchreibenPlayer: Practice attempt already completed for (uid, material_id).", insertError.message);
-          // Treat as "Already completed" - not a failure
-          try {
-            localStorage.removeItem("coco_practice_hub_materials_cache");
-            if (window.PracticeHubComponent?.completedMaterialIds && matId) {
-              window.PracticeHubComponent.completedMaterialIds.add(matId);
-            }
-            if (window.PracticeHubComponent && Array.isArray(window.PracticeHubComponent.loadedMaterials)) {
-              window.PracticeHubComponent.loadedMaterials = window.PracticeHubComponent.loadedMaterials.filter(
-                m => m && String(m.id || "").trim() !== matId
-              );
-            }
-          } catch (e) {}
-          if (window.CocoStateSync?.notifyAttemptCompleted) {
-            window.CocoStateSync.notifyAttemptCompleted({ materialId: matId, module: "Schreiben", scorePercent });
-          }
           return { success: true, alreadyCompleted: true };
         } else {
           console.warn("SchreibenPlayer: Error recording attempt:", insertError);
@@ -893,21 +869,15 @@ window.SchreibenPlayerComponent = {
         }
       }
 
-      // Invalidate Practice Hub cache and update completed set in memory
       try {
         localStorage.removeItem("coco_practice_hub_materials_cache");
-        if (window.PracticeHubComponent?.completedMaterialIds && matId) {
-          window.PracticeHubComponent.completedMaterialIds.add(matId);
-        }
-        if (window.PracticeHubComponent && Array.isArray(window.PracticeHubComponent.loadedMaterials)) {
-          window.PracticeHubComponent.loadedMaterials = window.PracticeHubComponent.loadedMaterials.filter(
-            m => m && String(m.id || "").trim() !== matId
-          );
+        if (window.PracticeHubComponent?.completedMaterialIds) {
+          window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
         }
       } catch (e) {}
 
       if (window.CocoStateSync?.notifyAttemptCompleted) {
-        window.CocoStateSync.notifyAttemptCompleted({ materialId: matId, module: "Schreiben", scorePercent });
+        window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: "Schreiben", scorePercent });
       }
 
       return { success: true, alreadyCompleted: false, data };
@@ -1622,10 +1592,6 @@ window.SchreibenPlayerComponent = {
     if (typeof document !== "undefined" && document.body) {
       document.body.classList.remove("schreiben-mode");
     }
-
-    try {
-      localStorage.removeItem("coco_practice_hub_materials_cache");
-    } catch (e) {}
 
     window.location.hash = "#practice?module=Schreiben";
   },
