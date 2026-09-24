@@ -2104,8 +2104,8 @@ function renderLogin(mode = "login") {
         <h1>${isForgot ? "Reset password" : isRegister ? "Create account" : "Login"}</h1>
         <p class="intro">
           ${isForgot
-            ? "Enter your email and Coco Germany will send a password reset link."
-            : "Access orders, purchased resources, and account settings."}
+            ? "Enter your email and Coco Germany will send a password reset link, else contact cocogermany."
+            : "Sign in to access your practices, mock exams, learning resources, exam preparation, courses, progress, and account preferences."}
         </p>
 
         ${isForgot
