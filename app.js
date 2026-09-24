@@ -411,7 +411,7 @@ function friendlyError(error) {
   const code = error && error.code ? error.code : "";
 
   if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) {
-    return "The email or password is incorrect.";
+    return "The email or password is incorrect. New users must register first!";
   }
   if (code.includes("auth/user-not-found")) {
     return "No account was found with this email.";
