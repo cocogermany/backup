@@ -120,11 +120,11 @@ const defaultTabTemplates = {
       <p>Manage membership tiers, preferred billing currency, and payment history.</p>
     </div>
     <div class="doc-prose">
-      <h3>Current Membership Status</h3>
+      <h3>Current Membership &amp; Account Status</h3>
       <p>
-        Your account is currently active on the standard customer tier. If you have subscribed to interactive practice packs or individual workbooks, your invoices and fulfillment records are stored under <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a>.
+        Your account is currently active on the standard customer tier. If you have purchased interactive practice packs, exam kits, or digital workbooks, your invoices, payment receipts, and order fulfillment records are stored under <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a>.
       </p>
-      <div class="account-empty-state" style="margin: 28px 0;">
+      <div class="account-empty-state" style="margin: 24px 0;">
         <i data-lucide="crown"></i>
         <h3>Explore Premium Membership</h3>
         <p>Unlock unlimited Goethe &amp; telc mock exams, automated grammar evaluation, and full access to our digital publishing library.</p>
@@ -132,31 +132,125 @@ const defaultTabTemplates = {
           <i data-lucide="sparkles"></i> View Membership Plans
         </a>
       </div>
-      <h3>Payment Methods &amp; Invoicing</h3>
+
+      <h3>Accepted Payment Methods</h3>
       <p>
-        Payments for digital study guides and mock preparation kits are processed securely via Stripe or verified UPI transfer with invoice confirmation delivered to your registered email address.
+        Coco Germany supports both domestic Indian and international payment methods to ensure seamless access for learners worldwide:
       </p>
+      <ul>
+        <li><strong>Domestic Payments (India):</strong> Processed via verified UPI transfers (Google Pay, PhonePe, Paytm, BHIM) and authorized Indian banking channels.</li>
+        <li><strong>International Payments:</strong> Processed securely via Stripe supporting major international debit and credit cards (Visa, Mastercard, American Express) with automated currency conversion.</li>
+      </ul>
+
+      <h3>Payment Security &amp; Data Processing</h3>
+      <p>
+        Your financial security is our highest priority. All transactions are processed directly by our external PCI-DSS compliant payment providers (Stripe and verified UPI banking gateways) through 256-bit encrypted TLS connections. <strong>Coco Germany does not collect, handle, or store full credit/debit card numbers, CVVs, UPI PINs, or banking passwords directly on its servers.</strong>
+      </p>
+
+      <h3>Payment Confirmation &amp; Order Statuses</h3>
+      <p>
+        When you submit a checkout request, the order status progresses through the following stages:
+      </p>
+      <ul>
+        <li><strong>Pending / Payment Requested:</strong> Your purchase order is recorded and waiting for processor or manual desk verification.</li>
+        <li><strong>Paid / Completed:</strong> Payment has been successfully verified. Digital downloads, model answers, and exam credits are immediately accessible under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a>.</li>
+        <li><strong>Cancelled:</strong> Order was cancelled by user request, unfulfilled due to payment timeout, or refunded.</li>
+      </ul>
+
+      <h3>Invoices &amp; Transaction Receipts</h3>
+      <p>
+        An itemized payment confirmation and digital receipt are delivered automatically to your registered account email address upon verified completion of your order. You can also view historical order IDs and payment dates in the <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a> tab.
+      </p>
+
+      <h3>Failed, Declined, or Interrupted Payments</h3>
+      <p>
+        If your payment attempt fails or your card is declined, please check with your issuing bank to ensure international/online transactions are enabled. If funds are deducted from your account but your order remains in "Pending" status beyond standard verification time, please do not initiate a duplicate payment. Instead, reach out to our billing desk with your bank transaction reference ID.
+      </p>
+
+      <h3>Refunds &amp; Cancellations</h3>
+      <p>
+        Because Coco Germany educational products are digital goods delivered or unlocked electronically, purchases are non-refundable once accessed. In cases of accidental duplicate charges or verified technical errors where delivery could not be completed, refunds are processed back to the original payment source. For full legal terms, please review the <a href="terms.html" style="color: var(--brand); font-weight: 600;">Refund &amp; Cancellation Terms</a>.
+      </p>
+
+      <h3>Billing Support &amp; Direct Assistance</h3>
+      <p>
+        For invoice receipts, currency queries, or payment inquiries:
+      </p>
+      <ul>
+        <li><strong>Email:</strong> <code>cocogermany.ytd@gmail.com</code></li>
+        <li><strong>WhatsApp Desk:</strong> <code>+91 7907211108</code> (Mon–Sat, 09:00–18:00 IST)</li>
+      </ul>
     </div>
   `,
   help: `
     <div class="account-section-header">
       <h2>Help &amp; Customer Support</h2>
-      <p>Find answers to frequent inquiries or contact the Coco Germany team.</p>
+      <p>Find answers to frequent inquiries, purchase workflows, or contact the Coco Germany team.</p>
     </div>
     <div class="doc-prose">
-      <h3>Frequently Asked Questions</h3>
+      <h3>Payments &amp; Purchases Help</h3>
+
+      <h4>How do I purchase a workbook or mock exam pack?</h4>
+      <p>
+        Browse our catalog on the <a href="../index.html#/resources" style="color: var(--brand); font-weight: 600;">Resources page</a> or <a href="../practice/index.html#mock-exams" style="color: var(--brand); font-weight: 600;">Mock Exam library</a> and click <strong>Buy Now</strong> or <strong>Checkout</strong>. You will be prompted to confirm your order details and choose your preferred payment method (verified UPI for Indian payments, or Stripe for international cards).
+      </p>
+
+      <h4>What happens after successful payment?</h4>
+      <p>
+        Upon completing payment, your order reference is recorded under <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a>. Once verified by the payment gateway or our desk, the status updates to <strong>Paid</strong> and the materials unlock automatically.
+      </p>
+
+      <h4>Where do my purchased resources appear?</h4>
+      <p>
+        All unlocked digital PDF workbooks, practice papers, audio links, and answer keys are accessible under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> whenever you are logged in.
+      </p>
+
+      <h4>What if payment succeeded but access is not immediately active?</h4>
+      <p>
+        Standard verification typically completes within <strong>2 to 6 hours</strong> for manual verification orders and immediately for direct gateway checkouts. If your payment was deducted but access remains pending after 6 hours, please email your transaction reference or UPI UTR to <code>cocogermany.ytd@gmail.com</code> and our desk will activate access immediately.
+      </p>
+
+      <h4>How do I handle a failed or debited transaction?</h4>
+      <p>
+        If funds were debited from your account but the page showed a payment timeout or failure, your bank or payment provider will usually reverse the charge automatically within 3 to 5 business days. If not reversed, send us a screenshot of the debit with your registered email and Order ID.
+      </p>
+
+      <h4>How do I request order assistance or report a problem?</h4>
+      <p>
+        When writing to our support desk, please provide:
+      </p>
+      <ul>
+        <li>Your registered account email address.</li>
+        <li>The Order ID (from your <a href="orders.html" style="color: var(--brand); font-weight: 600;">My Orders</a> list).</li>
+        <li>The payment provider transaction reference or UPI UTR number.</li>
+      </ul>
+
+      <h4>What is the refund and cancellation guidance?</h4>
+      <p>
+        Because study materials and practice tests are digital goods delivered electronically, purchases are non-refundable once unlocked. Duplicate charges or confirmed fulfillment errors are refunded in full. Review our complete <a href="terms.html" style="color: var(--brand); font-weight: 600;">Terms &amp; Refund Policy</a> for details.
+      </p>
+
+      <h3>General Platform FAQs</h3>
+
       <h4>How do I receive my purchased digital PDF workbooks?</h4>
       <p>
-        Digital books and practice papers are unlocked automatically under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> once manual payment verification is confirmed by our editorial desk (typically within 2 to 6 hours).
+        Digital workbooks are unlocked automatically under <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> and a digital copy is delivered to your registered email address upon verification.
       </p>
+
       <h4>How does the Practice App synchronize my target German level?</h4>
       <p>
         When you update your Exam Format (Goethe or telc) and CEFR Level (A1–B2) in <a href="index.html" style="color: var(--brand); font-weight: 600;">Profile Settings</a>, your target curriculum is automatically synchronized with the interactive Practice App and your learning analytics.
       </p>
+
       <h4>Need direct assistance with an order?</h4>
       <p>
-        For order modifications, invoice receipts, or technical questions, please visit our <a href="../index.html#/contact" style="color: var(--brand); font-weight: 600;">Contact Page</a> or write directly to our editorial team at <code>cocogermany.ytd@gmail.com</code>.
+        For order modifications, invoice receipts, or technical questions:
       </p>
+      <ul>
+        <li><strong>Email:</strong> <a href="mailto:cocogermany.ytd@gmail.com" style="color: var(--brand);">cocogermany.ytd@gmail.com</a></li>
+        <li><strong>WhatsApp Desk:</strong> <a href="https://wa.me/917907211108" target="_blank" rel="noopener" style="color: var(--brand);">+91 7907211108</a></li>
+        <li><strong>Contact Page:</strong> <a href="../index.html#/contact" style="color: var(--brand);">Coco Germany Contact Form</a></li>
+      </ul>
     </div>
   `,
   terms: `
@@ -165,18 +259,112 @@ const defaultTabTemplates = {
       <p>Last updated: September 2026 • Platform usage &amp; digital publication agreements.</p>
     </div>
     <div class="doc-prose">
-      <h3>1. Educational Scope &amp; Usage</h3>
+      <div class="doc-terms-nav" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; padding: 12px 14px; background: var(--surface-subtle); border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600; color: var(--muted);">
+        <span>Terms of Use</span> •
+        <span>Purchases &amp; Payments</span> •
+        <span>Digital Delivery</span> •
+        <span>Refund &amp; Cancellation</span> •
+        <span>Intellectual Property</span> •
+        <span>User Responsibilities</span> •
+        <span>Third-Party Services</span> •
+        <span>Account Termination</span> •
+        <span>Changes to Terms</span> •
+        <span>Contact</span>
+      </div>
+
+      <h3>1. Terms of Use</h3>
       <p>
-        Coco Germany provides educational software, practice simulations, and digital study publications. All exam-preparation kits and mock tests are engineered for independent study and are not officially endorsed by Goethe-Institut e.V. or telc gGmbH unless explicitly noted.
+        Welcome to Coco Germany. By creating an account, accessing our website, or purchasing learning materials, you agree to comply with and be bound by these Terms &amp; Conditions. Coco Germany provides German-language educational resources, CEFR A1–B2 curriculum materials, interactive practice drills, Goethe &amp; telc mock exam simulations, automated and guided writing (<em>Schreiben</em>) evaluation tools, self-paced courses, and digital study publications.
       </p>
-      <h3>2. Digital Products &amp; Intellectual Property</h3>
       <p>
-        All PDF workbooks, curated exercise frames, audio recordings, and editorial analyses are protected by international copyright laws. When you purchase or download materials from Coco Germany, you receive a single-user personal license for your individual study. Reproduction, resale, or unauthorized redistribution is strictly prohibited.
+        All exam preparation kits, practice questions, and study guides are developed for independent educational purposes. Unless explicitly stated otherwise, Coco Germany is an independent educational provider and is not affiliated with, endorsed by, or sponsored by Goethe-Institut e.V. or telc gGmbH.
       </p>
-      <h3>3. Account Security</h3>
       <p>
-        You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your registered account.
+        Coco Germany grants you a limited, non-exclusive, non-transferable, revocable license to access the platform and its resources solely for your personal, non-commercial German learning, in accordance with these Terms. Platform availability and features are provided on an "as is" and "as available" basis with reasonable service limitations.
       </p>
+
+      <h3>2. User Responsibilities &amp; Account Security</h3>
+      <p>
+        To access certain features, mock exams, or purchased resources, you must register an account. You agree to:
+      </p>
+      <ul>
+        <li>Provide accurate, current, and complete registration information (such as your valid email address and learning preferences).</li>
+        <li>Maintain the confidentiality and security of your login credentials and authentication tokens.</li>
+        <li>Promptly notify Coco Germany if you suspect any unauthorized access or security breach involving your account.</li>
+        <li>Accept full responsibility for all activities, submissions, and purchases that occur under your account credentials.</li>
+      </ul>
+
+      <h3>3. Purchases &amp; Payments</h3>
+      <p>
+        When you purchase digital workbooks, mock exam packs, writing evaluations, or membership plans on Coco Germany:
+      </p>
+      <ul>
+        <li><strong>Pricing &amp; Taxes:</strong> All prices are displayed in your selected or local currency (including INR, EUR, USD, etc.) and represent the stated price at checkout. Any applicable transaction taxes or local statutory levies are itemized prior to final payment confirmation.</li>
+        <li><strong>Payment Processing:</strong> Domestic transactions in India are processed through verified Indian payment channels (including verified UPI transfer and authorized Indian payment processing). International transactions are processed securely through Stripe.</li>
+        <li><strong>No Credential Storage:</strong> Payment details (such as credit/debit card numbers, CVVs, UPI PINs, or banking passwords) are processed directly by our external payment providers through encrypted gateways. Coco Germany does not collect, process, or store sensitive card credentials on its own servers.</li>
+        <li><strong>Order Confirmation:</strong> An order confirmation and transaction summary are generated upon submission. Fulfillment and access activation occur once payment verification is successfully completed by the payment processor or our desk.</li>
+        <li><strong>Failed, Reversed, or Disputed Payments:</strong> If a payment fails, is reversed by your financial institution, or is flagged for suspected dispute/fraud, access to the corresponding digital materials will be suspended until verified payment is re-established.</li>
+      </ul>
+
+      <h3>4. Digital Delivery</h3>
+      <p>
+        All educational products offered by Coco Germany are digital goods. Upon successful payment verification:
+      </p>
+      <ul>
+        <li>Digital PDF workbooks, model answer keys, and study guides are unlocked automatically under your registered account in <a href="purchased.html" style="color: var(--brand); font-weight: 600;">Purchased Resources</a> and/or delivered to your verified account email address.</li>
+        <li>Interactive mock exams, practice sets, and writing evaluations are immediately credited to your account profile for use in the Practice App.</li>
+        <li>Standard verification and fulfillment typically occur within 2 to 6 hours for manual verification workflows, and instantly for automated gateway checkouts.</li>
+      </ul>
+
+      <h3>5. Refund &amp; Cancellation Policy</h3>
+      <p>
+        Because Coco Germany provides electronically delivered digital goods, downloadable PDF publications, and immediately accessible interactive practice evaluations, the following rules apply:
+      </p>
+      <ul>
+        <li><strong>Digital Products:</strong> Once a digital workbook, practice paper, or exam preparation file has been unlocked in your account or delivered electronically, sales are generally non-refundable and non-cancellable, as the digital content has been irrevocably delivered.</li>
+        <li><strong>Duplicate Charges &amp; Technical Errors:</strong> If you experience a duplicate payment for the same order due to a technical glitch, or if your payment succeeded but the digital materials cannot be made accessible despite editorial support, you are entitled to a full refund upon verification.</li>
+        <li><strong>Writing (Schreiben) Evaluations:</strong> Evaluation credits that have already been submitted, processed, or reviewed by automated or editorial evaluators are non-refundable.</li>
+        <li><strong>Refund Requests:</strong> To request assistance with a billing discrepancy or duplicate payment, write to <code>cocogermany.ytd@gmail.com</code> within 7 days of the transaction with your Order ID and payment receipt reference. Valid refunds are credited back to the original payment method via the respective payment processor.</li>
+      </ul>
+
+      <h3>6. Intellectual Property &amp; Content Licensing</h3>
+      <p>
+        All content published by Coco Germany—including PDF textbooks, exam simulations, exercise datasets, writing prompts, audio recordings, visual graphics, trademarks, logos, and proprietary software code—is the intellectual property of Coco Germany and protected by international copyright laws.
+      </p>
+      <p>
+        Your purchase grants you a single-user, non-transferable personal license. You may not resell, sub-license, publicly share, redistribute, photocopy for commercial groups, upload to public cloud drives, or exploit any Coco Germany material without prior written authorization from our editorial desk.
+      </p>
+
+      <h3>7. Third-Party Services</h3>
+      <p>
+        Coco Germany integrates trusted third-party technology providers to operate its platform, including Google Firebase (identity authentication &amp; database), Supabase (relational data &amp; analytics), Cloudflare (content delivery &amp; media hosting), and payment gateways (Stripe &amp; verified Indian UPI processors). Your interaction with third-party payment gateways is subject to their respective terms and privacy policies. Coco Germany is not liable for service interruptions caused by independent third-party networks.
+      </p>
+
+      <h3>8. Account Suspension &amp; Termination</h3>
+      <p>
+        Coco Germany reserves the right to suspend or terminate your account access without prior notice if you violate these Terms, engage in fraudulent payment disputes, distribute copyrighted materials unlawfully, or attempt to compromise platform security or other users' privacy.
+      </p>
+
+      <h3>9. Changes to Terms</h3>
+      <p>
+        We may update these Terms &amp; Conditions periodically to reflect educational curriculum additions, technology updates, or regulatory requirements. Material revisions will be posted on this page with an updated "Last updated" date. Continued use of the platform after modifications constitutes agreement to the updated Terms.
+      </p>
+
+      <h3>10. Governing Law &amp; Jurisdiction</h3>
+      <p>
+        These Terms &amp; Conditions and any transactions conducted on Coco Germany shall be governed by and construed in accordance with the laws of [JURISDICTION / GOVERNING LAW - e.g., Laws of India], without regard to conflict of law principles. Any legal disputes arising out of or in connection with the platform shall be subject to the exclusive jurisdiction of the competent courts in [CITY / STATE / COUNTRY - e.g., Bengaluru, Karnataka, India].
+      </p>
+
+      <h3>11. Contact &amp; Support</h3>
+      <p>
+        If you have questions regarding these Terms &amp; Conditions, order fulfillment, or billing inquiries, please contact our team:
+      </p>
+      <ul>
+        <li><strong>Entity:</strong> Coco Germany ([BUSINESS LEGAL NAME - e.g., Coco Germany Educational Services])</li>
+        <li><strong>Email:</strong> <a href="mailto:cocogermany.ytd@gmail.com" style="color: var(--brand);">cocogermany.ytd@gmail.com</a></li>
+        <li><strong>WhatsApp Support:</strong> <a href="https://wa.me/917907211108" target="_blank" rel="noopener" style="color: var(--brand);">+91 7907211108</a></li>
+        <li><strong>Contact Page:</strong> <a href="../index.html#/contact" style="color: var(--brand);">Coco Germany Contact Hub</a></li>
+      </ul>
     </div>
   `,
   privacy: `
@@ -185,18 +373,107 @@ const defaultTabTemplates = {
       <p>Last updated: September 2026 • How we collect, safeguard, and process your data.</p>
     </div>
     <div class="doc-prose">
-      <h3>1. Data We Collect</h3>
+      <div class="doc-terms-nav" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; padding: 12px 14px; background: var(--surface-subtle); border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600; color: var(--muted);">
+        <span>Information We Collect</span> •
+        <span>Payment Data</span> •
+        <span>How We Use Data</span> •
+        <span>Technologies &amp; Providers</span> •
+        <span>Cookies &amp; Storage</span> •
+        <span>Security &amp; Retention</span> •
+        <span>Your Rights</span> •
+        <span>Contact</span>
+      </div>
+
+      <h3>1. Information We Collect</h3>
       <p>
-        We collect your email address upon registration and your selected learning preferences (target German exam format, CEFR level, country, and preferred currency). We use this information strictly to customize your interactive practice exercises, mock exam timers, and order fulfillments.
+        When you create an account, complete exercises, or purchase study resources on Coco Germany, we collect only the information necessary to provide our educational services:
       </p>
-      <h3>2. Storage &amp; Security</h3>
+      <ul>
+        <li><strong>Account &amp; Identity:</strong> Email address, display name (if provided via Google Sign-In or profile settings), and secure authentication user identifiers (UID) generated by Google Firebase Authentication.</li>
+        <li><strong>Learning Preferences:</strong> Your selected German exam format (Goethe or telc), target CEFR level (A1, A2, B1, B2), country of study, and preferred display currency.</li>
+        <li><strong>Practice &amp; Academic Progress:</strong> Interactive drill answers, mock exam scores, section completion statuses, Hören/Lesen/Grammatik test results, and German writing (<em>Schreiben</em>) text submissions and AI/editorial evaluation feedback.</li>
+        <li><strong>Orders &amp; Fulfillment History:</strong> Records of purchased workbooks, digital resource IDs, payment status flags, fulfillment timestamps, and order reference numbers.</li>
+      </ul>
+
+      <h3>2. Payment Information Handling</h3>
       <p>
-        Your account data is stored in enterprise-grade Google Firebase Firestore and Supabase databases utilizing end-to-end transport layer security (TLS 1.3). We never sell your personal data or email address to third parties or marketing brokers.
+        Payment processing is conducted entirely through external, secure payment gateways (Stripe for international card processing and verified UPI banking channels for India). <strong>Coco Germany does not collect, process, or store credit or debit card numbers, card verification codes (CVV), banking passwords, or UPI PINs on its servers.</strong> All transaction data is handled in accordance with the payment providers' rigorous privacy and security standards.
       </p>
-      <h3>3. Your Rights Under GDPR</h3>
+
+      <h3>3. How We Use Your Information</h3>
       <p>
-        As a learner, you maintain the right to access your stored profile information, request corrections, or request complete deletion of your customer record at any time by contacting <code>cocogermany.ytd@gmail.com</code>.
+        We use your information strictly for legitimate educational, operational, and customer support purposes:
       </p>
+      <ul>
+        <li>Authenticating your account login and maintaining session security across visits.</li>
+        <li>Granting access to unlocked workbooks, exam kits, and interactive tools in your Customer Hub.</li>
+        <li>Synchronizing your curriculum, exam timers, and difficulty levels across the Practice App.</li>
+        <li>Processing writing submissions and delivering accurate grammatical and lexical evaluation reports.</li>
+        <li>Transmitting order confirmation notices, digital delivery links, and customer support communications.</li>
+        <li>Detecting and preventing fraudulent transactions, automated abuse, or unauthorized account sharing.</li>
+      </ul>
+
+      <h3>4. Technologies &amp; Third-Party Processors</h3>
+      <p>
+        To ensure speed, reliability, and security, Coco Germany relies on established enterprise infrastructure:
+      </p>
+      <ul>
+        <li><strong>Google Firebase:</strong> User authentication, secure token verification, and customer profile storage in Google Cloud datacenters.</li>
+        <li><strong>Supabase:</strong> Cloud-hosted relational database used to record practice attempts, learning analytics, and Schreiben submission data.</li>
+        <li><strong>Cloudflare Workers &amp; R2:</strong> Edge computing routing, DDoS mitigation, and secure asset delivery for digital audio recordings and study guides.</li>
+        <li><strong>Payment Gateways (Stripe &amp; UPI Processors):</strong> Encrypted transaction processing and invoice generation.</li>
+      </ul>
+      <p>
+        These third-party processors receive only the data strictly necessary to execute their respective functions and are contractually prohibited from selling or sharing your personal information.
+      </p>
+
+      <h3>5. Cookies, Local Storage &amp; Session Data</h3>
+      <p>
+        Coco Germany uses modern browser technologies, including local storage and first-party session tokens, exclusively to keep you logged in, save your active learning preferences, and cache local mock exam timers for uninterrupted study. We do not use third-party behavioral advertising trackers, data brokers, or marketing surveillance tools.
+      </p>
+
+      <h3>6. Data Security Measures</h3>
+      <p>
+        We implement industry-standard technical and operational safeguards to protect your personal information. All network communication occurs over encrypted Transport Layer Security (TLS 1.3 / HTTPS), database access is restricted by strict role-based access controls, and sensitive operations require authenticated identity tokens. While we take every reasonable measure to protect your data, no internet transmission is 100% immune from external risks.
+      </p>
+
+      <h3>7. Data Retention &amp; International Transfers</h3>
+      <p>
+        Your account details, learning history, and purchase records are retained for as long as your account remains active. As our infrastructure utilizes globally distributed cloud services (Firebase, Supabase, Cloudflare), your information may be processed in secure facilities located outside your country of residence, subject to international data protection safeguards.
+      </p>
+
+      <h3>8. Your Rights &amp; Data Control</h3>
+      <p>
+        Under applicable data protection laws (including GDPR and consumer privacy standards), you maintain the right to:
+      </p>
+      <ul>
+        <li>Access the personal data and learning records associated with your account.</li>
+        <li>Update or correct your profile preferences directly within the <a href="index.html" style="color: var(--brand); font-weight: 600;">Profile Settings</a> view.</li>
+        <li>Request the complete deletion of your account and associated database records at any time.</li>
+      </ul>
+      <p>
+        To submit a data access or deletion request, please email our privacy desk at <code>cocogermany.ytd@gmail.com</code> from your registered account address. We process verification and fulfillment within 30 days.
+      </p>
+
+      <h3>9. Children's Privacy</h3>
+      <p>
+        Coco Germany is designed as a language-learning resource for independent learners, exam candidates, and university applicants. We do not knowingly collect personal information from children without verified parental or legal guardian consent where required by local laws.
+      </p>
+
+      <h3>10. Changes to This Privacy Policy</h3>
+      <p>
+        We reserve the right to revise this Privacy Policy to reflect platform improvements or statutory obligations. Any updates will be published on this page with a revised effective date.
+      </p>
+
+      <h3>11. Contact Privacy Desk</h3>
+      <p>
+        For privacy-related questions or data inquiries:
+      </p>
+      <ul>
+        <li><strong>Email:</strong> <a href="mailto:cocogermany.ytd@gmail.com" style="color: var(--brand);">cocogermany.ytd@gmail.com</a></li>
+        <li><strong>Editorial Desk:</strong> Coco Germany Educational Publishing</li>
+        <li><strong>Direct Support:</strong> <a href="../index.html#/contact" style="color: var(--brand);">Contact Page</a></li>
+      </ul>
     </div>
   `,
   index: `
