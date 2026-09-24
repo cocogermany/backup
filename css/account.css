@@ -17,25 +17,13 @@
 .auth-card {
   width: 100%;
   max-width: 440px;
-  padding: 48px 40px;
+  padding: 44px 38px 36px;
   border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid rgba(54, 62, 124, 0.11);
   box-shadow: var(--shadow-polished);
   text-align: center;
   position: relative;
-}
-
-/* Subtle Top Brand Accent Stripe */
-.auth-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--brand-gradient);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .auth-logo {
@@ -132,12 +120,54 @@
 /* Auth Navigation Links */
 .auth-links {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin-top: 24px;
-  font-size: 13px;
-  font-weight: 600;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-light);
+  font-size: 13.5px;
+}
+
+.auth-switch-prompt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.auth-link-action {
   color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: color var(--transition-fast);
+}
+
+.auth-link-action:hover {
+  color: var(--brand-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-link-sub {
+  color: var(--muted-light);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.auth-link-sub:hover {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-links a {
+  color: var(--brand);
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
 .auth-links a:hover {

@@ -2129,9 +2129,26 @@ function renderLogin(mode = "login") {
         </form>
 
         <div class="auth-links">
-          <a href="#/login">Login</a>
-          <a href="#/register">Register</a>
-          <a href="#/forgot-password">Forgot Password</a>
+          ${isRegister
+            ? `
+                <p class="auth-switch-prompt">
+                  Already have an account? <a href="#/login" class="auth-link-action">Log in</a>
+                </p>
+                <a href="#/forgot-password" class="auth-link-sub">Forgot password?</a>
+              `
+            : isForgot
+            ? `
+                <p class="auth-switch-prompt">
+                  Remember your password? <a href="#/login" class="auth-link-action">Log in</a>
+                </p>
+                <a href="#/register" class="auth-link-sub">Don't have an account? Create one</a>
+              `
+            : `
+                <p class="auth-switch-prompt">
+                  Don't have an account? <a href="#/register" class="auth-link-action">Create account</a>
+                </p>
+                <a href="#/forgot-password" class="auth-link-sub">Forgot password?</a>
+              `}
         </div>
       </div>
     </section>
