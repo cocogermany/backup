@@ -278,6 +278,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function highlightActiveNavTab() {
+  if (window.innerWidth <= 1024) {
+    document.querySelectorAll(".account-tab").forEach((tab) => tab.classList.remove("active"));
+    return;
+  }
   const currentPath = window.location.pathname.split("/").pop() || "index.html";
   document.querySelectorAll(".account-tab").forEach((tab) => {
     const href = tab.getAttribute("href") || "";

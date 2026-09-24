@@ -990,10 +990,10 @@ body::before {
   }
 
   .account-tab.active {
-    background: linear-gradient(180deg, rgba(97, 88, 223, 0.12) 0%, rgba(97, 88, 223, 0.04) 100%) !important;
-    border-color: var(--brand) !important;
-    color: var(--brand) !important;
-    box-shadow: 0 3px 12px rgba(97, 88, 223, 0.18) !important;
+    background: var(--surface-subtle) !important;
+    border-color: var(--line) !important;
+    color: var(--ink) !important;
+    box-shadow: 0 1px 3px rgba(20, 25, 48, 0.03) !important;
   }
 
   .account-tab svg {
