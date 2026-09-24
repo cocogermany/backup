@@ -16,6 +16,7 @@
 
 window.SchreibenPlayerComponent = {
   currentMaterial: null,
+  currentMaterialId: null,
   preloadedMaterial: null,
   currentSettings: null,
   studentAnswer: "",
@@ -340,6 +341,10 @@ window.SchreibenPlayerComponent = {
   },
 
   render: function (appState, searchParams) {
+    if (searchParams && searchParams.get("id")) {
+      this.currentMaterialId = String(searchParams.get("id")).trim();
+    }
+
     return `
       <div class="schreiben-player-root" id="schreiben-player-root">
         <!-- Sticky Minimal Header -->
@@ -379,27 +384,37 @@ window.SchreibenPlayerComponent = {
     const renderRequestId = ++this.renderRequestId;
     const level = appState ? appState.currentLevel || "A1" : "A1";
 
-    let material = (this.preloadedMaterial && String(this.preloadedMaterial.id) === String(materialId))
+    const targetMaterialId = String(
+      materialId ||
+      this.currentMaterialId ||
+      (this.preloadedMaterial && this.preloadedMaterial.id) ||
+      ""
+    ).trim();
+    if (targetMaterialId) {
+      this.currentMaterialId = targetMaterialId;
+    }
+
+    let material = (this.preloadedMaterial && String(this.preloadedMaterial.id) === String(targetMaterialId))
       ? this.preloadedMaterial
       : null;
 
     // Check loaded materials cache from Practice Hub
-    if (!material && materialId && window.PracticeHubComponent?.loadedMaterials) {
-      const found = window.PracticeHubComponent.loadedMaterials.find(m => m && String(m.id) === String(materialId));
+    if (!material && targetMaterialId && window.PracticeHubComponent?.loadedMaterials) {
+      const found = window.PracticeHubComponent.loadedMaterials.find(m => m && String(m.id) === String(targetMaterialId));
       if (found) {
         material = { ...found };
       }
     }
 
     // Fetch from Supabase materials table if not preloaded
-    if (!material && materialId && window.SupabaseService?.getSupabaseClient) {
+    if (!material && targetMaterialId && window.SupabaseService?.getSupabaseClient) {
       try {
         const supabase = await window.SupabaseService.getSupabaseClient();
         if (supabase) {
           const { data: dbMat } = await supabase
             .from("materials")
             .select("id, title, description, exam, level, module, teil, material_number, content_path, difficulty, duration_minutes, active")
-            .eq("id", materialId)
+            .eq("id", targetMaterialId)
             .eq("active", true)
             .maybeSingle();
 
@@ -430,9 +445,18 @@ window.SchreibenPlayerComponent = {
       const content = await this.fetchMaterialContent(contentPath);
       if (renderRequestId !== this.renderRequestId) return;
       if (content) {
+        const canonicalId = String(
+          targetMaterialId ||
+          material?.id ||
+          (this.preloadedMaterial && this.preloadedMaterial.id) ||
+          ""
+        ).trim();
+
         material = {
           ...material,
           ...content,
+          id: canonicalId || (content && content.id) || targetMaterialId,
+          contentId: content?.id,
           teil: material?.teil || content?.teil || "",
           exam: material?.exam || content?.exam || "goethe",
           level: material?.level || content?.level || level,
@@ -443,8 +467,9 @@ window.SchreibenPlayerComponent = {
 
     // Fallback if material couldn't be resolved
     if (!material) {
+      const fallbackId = targetMaterialId || "schreiben-fallback";
       material = {
-        id: materialId || "schreiben-fallback",
+        id: fallbackId,
         title: `Writing Task (${level})`,
         exam: "goethe",
         level: level,
@@ -455,6 +480,9 @@ window.SchreibenPlayerComponent = {
     }
 
     this.currentMaterial = material;
+    if (material.id) {
+      this.currentMaterialId = String(material.id).trim();
+    }
     this.studentAnswer = "";
     this.evaluationResult = null;
     this.isEvaluating = false;
@@ -646,7 +674,22 @@ window.SchreibenPlayerComponent = {
       return;
     }
 
-    const material = this.currentMaterial || { id: "schreiben-1", module: "Schreiben", level: "A1", exam: "goethe", teil: "Teil 2" };
+    const urlParams = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+    const urlId = urlParams.get("id");
+    const canonicalId = String(
+      (this.currentMaterial && this.currentMaterial.id) ||
+      this.currentMaterialId ||
+      urlId ||
+      (this.preloadedMaterial && this.preloadedMaterial.id) ||
+      "schreiben-1"
+    ).trim();
+
+    const material = this.currentMaterial || { id: canonicalId, module: "Schreiben", level: "A1", exam: "goethe", teil: "Teil 2" };
+    if (!material.id || material.id === "schreiben-1" || material.id === "schreiben-fallback") {
+      if (canonicalId && canonicalId !== "schreiben-1" && canonicalId !== "schreiben-fallback") {
+        material.id = canonicalId;
+      }
+    }
     const wordLimits = this.getWordLimits(material);
     const maxWords = wordLimits.maximum;
 
@@ -800,7 +843,7 @@ window.SchreibenPlayerComponent = {
     const correctCount = 10;
     const totalCount = 10;
 
-    await this.savePracticeAttempt(material, correctCount, totalCount, scorePercent, evalRes.uid);
+    await this.savePracticeAttempt(material, correctCount, totalCount, scorePercent, evalRes.uid, evalRes.material_id);
 
     if (window.PracticeApp?.recordTestCompletion) {
       window.PracticeApp.recordTestCompletion("Schreiben", scorePercent);
@@ -809,7 +852,7 @@ window.SchreibenPlayerComponent = {
     this.renderResultsScreen();
   },
 
-  savePracticeAttempt: async function (material, correctCount, totalCount, scorePercent, serverUid) {
+  savePracticeAttempt: async function (material, correctCount, totalCount, scorePercent, serverUid, serverMaterialId) {
     if (!window.SupabaseService?.getSupabaseClient) {
       console.warn("SchreibenPlayer: SupabaseService not available for practice attempt save.");
       return { success: false, error: new Error("SupabaseService not available") };
@@ -822,22 +865,49 @@ window.SchreibenPlayerComponent = {
         return { success: false, error: new Error("Supabase client not initialized") };
       }
 
-      let uid = serverUid || (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous" ? window.AppState.userProfile.uid : null);
-      if (!uid) {
-        uid = window.AppState?.user?.uid;
+      const urlParams = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+      const urlId = urlParams.get("id");
+
+      const targetMaterialId = String(
+        (material && material.id) ||
+        this.currentMaterialId ||
+        serverMaterialId ||
+        urlId ||
+        (this.preloadedMaterial && this.preloadedMaterial.id) ||
+        ""
+      ).trim();
+
+      if (!targetMaterialId) {
+        console.warn("SchreibenPlayer: No valid material_id found for practice attempt save.");
+        return { success: false, error: new Error("No valid material_id found") };
       }
+
+      let uid = (window.AppState?.userProfile?.uid && window.AppState.userProfile.uid !== "local-user" && window.AppState.userProfile.uid !== "anonymous")
+        ? window.AppState.userProfile.uid
+        : ((window.PracticeApp?.currentFirebaseUser?.uid && window.PracticeApp.currentFirebaseUser.uid !== "local-user" && window.PracticeApp.currentFirebaseUser.uid !== "anonymous")
+          ? window.PracticeApp.currentFirebaseUser.uid
+          : (serverUid && serverUid !== "local-user" && serverUid !== "anonymous" ? serverUid : null));
+
+      if (!uid) {
+        const stored = localStorage.getItem("coco_user_uid");
+        if (stored && stored !== "local-user" && stored !== "anonymous") {
+          uid = stored;
+        }
+      }
+
       if (!uid && typeof window.firebase !== "undefined" && window.firebase.auth) {
-        uid = window.firebase.auth().currentUser?.uid;
+        const fbUid = window.firebase.auth().currentUser?.uid;
+        if (fbUid && fbUid !== "local-user" && fbUid !== "anonymous") {
+          uid = fbUid;
+        }
       }
-      if (!uid) {
-        uid = window.PracticeApp?.currentFirebaseUser?.uid || localStorage.getItem("coco_user_uid");
-      }
-      if (!uid || (!serverUid && (uid === "local-user" || uid === "anonymous"))) {
+
+      if (!uid || uid === "local-user" || uid === "anonymous") {
         console.warn("SchreibenPlayer: No valid UID found for practice attempt save.");
         return { success: false, error: new Error("No valid UID found") };
       }
 
-      let dbFormat = String(material.exam || material.format || "").toLowerCase().trim();
+      let dbFormat = String(material?.exam || material?.format || "").toLowerCase().trim();
       if (dbFormat !== "goethe" && dbFormat !== "telc") {
         const userFormat = String(window.AppState?.currentFormat || localStorage.getItem("coco_practice_format") || "goethe").toLowerCase().trim();
         dbFormat = userFormat === "telc" ? "telc" : "goethe";
@@ -845,8 +915,8 @@ window.SchreibenPlayerComponent = {
 
       const attemptPayload = {
         uid: uid,
-        material_id: String(material.id),
-        level: (material.level || window.AppState?.currentLevel || "A1").toUpperCase(),
+        material_id: targetMaterialId,
+        level: (material?.level || window.AppState?.currentLevel || "A1").toUpperCase(),
         format: dbFormat,
         module: "Schreiben",
         correct_answers: parseInt(correctCount || 0, 10),
@@ -862,6 +932,17 @@ window.SchreibenPlayerComponent = {
       if (insertError) {
         if (insertError.code === "23505") {
           console.info("SchreibenPlayer: Practice attempt already completed for (uid, material_id).", insertError.message);
+          try {
+            localStorage.removeItem("coco_practice_hub_materials_cache");
+            if (window.PracticeHubComponent?.completedMaterialIds) {
+              window.PracticeHubComponent.completedMaterialIds.add(targetMaterialId);
+            }
+          } catch (e) {}
+
+          if (window.CocoStateSync?.notifyAttemptCompleted) {
+            window.CocoStateSync.notifyAttemptCompleted({ materialId: targetMaterialId, module: "Schreiben", scorePercent });
+          }
+
           return { success: true, alreadyCompleted: true };
         } else {
           console.warn("SchreibenPlayer: Error recording attempt:", insertError);
@@ -872,12 +953,12 @@ window.SchreibenPlayerComponent = {
       try {
         localStorage.removeItem("coco_practice_hub_materials_cache");
         if (window.PracticeHubComponent?.completedMaterialIds) {
-          window.PracticeHubComponent.completedMaterialIds.add(String(material.id));
+          window.PracticeHubComponent.completedMaterialIds.add(targetMaterialId);
         }
       } catch (e) {}
 
       if (window.CocoStateSync?.notifyAttemptCompleted) {
-        window.CocoStateSync.notifyAttemptCompleted({ materialId: material.id, module: "Schreiben", scorePercent });
+        window.CocoStateSync.notifyAttemptCompleted({ materialId: targetMaterialId, module: "Schreiben", scorePercent });
       }
 
       return { success: true, alreadyCompleted: false, data };
@@ -1587,6 +1668,7 @@ window.SchreibenPlayerComponent = {
     this.isSubmitted = false;
     this.isReviewMode = false;
     this.currentMaterial = null;
+    this.currentMaterialId = null;
     this.preloadedMaterial = null;
 
     if (typeof document !== "undefined" && document.body) {

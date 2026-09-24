@@ -163,10 +163,10 @@ window.PracticeHubComponent = {
 
   fetchCompletedMaterialIds: async function (appState) {
     if (appState) this._lastAppState = appState;
-    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return new Set();
+    if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) return this.completedMaterialIds || new Set();
     try {
       const supabase = await window.SupabaseService.getSupabaseClient();
-      if (!supabase) return new Set();
+      if (!supabase) return this.completedMaterialIds || new Set();
       const uid = this.getCurrentUserUid(appState);
 
       if (uid) {
@@ -177,21 +177,28 @@ window.PracticeHubComponent = {
 
         if (error) {
           console.warn("PracticeHub: Error fetching completed attempts:", error);
-          return new Set();
+          return this.completedMaterialIds || new Set();
         }
 
-        this.completedMaterialIds = new Set(
+        const ids = new Set(
           (data || [])
             .map(row => String(row?.material_id || "").trim())
             .filter(Boolean)
         );
+
+        if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
+          this.completedMaterialIds.forEach(id => {
+            if (id) ids.add(id);
+          });
+        }
+
+        this.completedMaterialIds = ids;
         return this.completedMaterialIds;
       }
     } catch (e) {
       console.warn("PracticeHub: Completed materials lookup note:", e);
     }
-    this.completedMaterialIds = new Set();
-    return this.completedMaterialIds;
+    return this.completedMaterialIds || new Set();
   },
 
   executeFetchAndRender: async function (appState) {
