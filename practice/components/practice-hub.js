@@ -59,6 +59,89 @@ window.PracticeHubComponent = {
     this.currentQuery.activeTeil = activeTeil;
     this.currentQuery.page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
+    if (activeModule === "Sprechen") {
+      return `
+        <div class="view-fade-in" id="practice-hub-root">
+          <!-- Filter Tabs / Skill Navigation -->
+          <div class="filter-bar">
+            <div class="filter-tabs" role="tablist" aria-label="Skill filters">
+              <button type="button" class="filter-tab-btn" onclick="window.PracticeHubComponent.setModuleFilter('All')">
+                All
+              </button>
+              <button type="button" class="filter-tab-btn" onclick="window.PracticeHubComponent.setModuleFilter('Lesen')">
+                Lesen
+              </button>
+              <button type="button" class="filter-tab-btn" onclick="window.PracticeHubComponent.setModuleFilter('Hören')">
+                Hören
+              </button>
+              <button type="button" class="filter-tab-btn" onclick="window.PracticeHubComponent.setModuleFilter('Grammatik')">
+                Grammatik
+              </button>
+              <button type="button" class="filter-tab-btn" onclick="window.PracticeHubComponent.setModuleFilter('Schreiben')">
+                Schreiben
+              </button>
+              <button type="button" class="filter-tab-btn active" onclick="window.PracticeHubComponent.setModuleFilter('Sprechen')">
+                Sprechen
+              </button>
+            </div>
+          </div>
+
+          <!-- Sprechen Static Module Page: Only Two Boxes -->
+          <div class="sprechen-view-container">
+            <div class="sprechen-grid">
+              <!-- Box 1: Join WhatsApp Community -->
+              <a href="https://chat.whatsapp.com/FSBPXUL7JUwBSBjd0ujfeZ" target="_blank" rel="noopener noreferrer" class="card sprechen-box sprechen-box-whatsapp" aria-label="Join WhatsApp Community">
+                <div class="sprechen-box-header">
+                  <div class="sprechen-box-icon whatsapp-icon-wrap">
+                    <i data-lucide="message-circle"></i>
+                  </div>
+                  <span class="badge-pill badge-emerald">
+                    <i data-lucide="users" style="width:12px;height:12px;"></i> Active Group
+                  </span>
+                </div>
+                <div class="sprechen-box-body">
+                  <h2 class="sprechen-box-title">Join WhatsApp Community</h2>
+                  <p class="sprechen-box-desc">Connect with fellow German learners, participate in active discussions, exchange exam strategies, and find speaking partners.</p>
+                </div>
+                <div class="sprechen-box-footer">
+                  <span class="sprechen-status-tag status-free">
+                    <i data-lucide="check-circle-2" style="width:14px;height:14px;"></i> Free Access
+                  </span>
+                  <span class="btn-primary btn-sm sprechen-cta-btn whatsapp-cta">
+                    Join Community <i data-lucide="arrow-up-right" style="width:14px;height:14px;"></i>
+                  </span>
+                </div>
+              </a>
+
+              <!-- Box 2: Personalized Practice -->
+              <div class="card sprechen-box sprechen-box-disabled" aria-label="Personalized Practice (Coming Soon)">
+                <div class="sprechen-box-header">
+                  <div class="sprechen-box-icon locked-icon-wrap">
+                    <i data-lucide="mic"></i>
+                  </div>
+                  <span class="badge-pill badge-gold">
+                    <i data-lucide="clock" style="width:12px;height:12px;"></i> Coming Soon
+                  </span>
+                </div>
+                <div class="sprechen-box-body">
+                  <h2 class="sprechen-box-title">Personalized Practice</h2>
+                  <p class="sprechen-box-desc">AI-guided interactive speaking drills, real-time pronunciation evaluation, and simulated examiner conversations tailored to your Goethe/TELC level.</p>
+                </div>
+                <div class="sprechen-box-footer">
+                  <span class="sprechen-status-tag status-muted">
+                    <i data-lucide="sparkles" style="width:14px;height:14px;"></i> In Development
+                  </span>
+                  <span class="badge-pill coming-soon-pill">
+                    <i data-lucide="lock" style="width:12px;height:12px;"></i> Coming Soon
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="view-fade-in" id="practice-hub-root">
         <!-- Filter Bar & Search -->
@@ -149,6 +232,10 @@ window.PracticeHubComponent = {
 
   initHubData: async function (appState) {
     this._lastAppState = appState || this._lastAppState;
+    if (this.currentQuery.activeModule === "Sprechen") {
+      if (window.lucide) window.lucide.createIcons();
+      return Promise.resolve();
+    }
     const level = appState ? (appState.currentLevel || "A1") : "A1";
     const format = appState ? (appState.currentFormat || "goethe") : "goethe";
     const membership = appState ? (appState.userProfile?.plan || "FREE") : "FREE";
@@ -202,6 +289,7 @@ window.PracticeHubComponent = {
   },
 
   executeFetchAndRender: async function (appState) {
+    if (this.currentQuery.activeModule === "Sprechen") return;
     if (appState) this._lastAppState = appState;
     const gridContainer = document.getElementById("materials-grid-container");
     const pagContainer = document.getElementById("practice-pagination-container");
@@ -279,6 +367,15 @@ window.PracticeHubComponent = {
   },
 
   querySupabaseMaterials: async function () {
+    if (this.currentQuery.activeModule === "Sprechen") {
+      return {
+        materials: [],
+        totalCount: 0,
+        page: 1,
+        totalPages: 1,
+      };
+    }
+
     if (!window.SupabaseService || !window.SupabaseService.getSupabaseClient) {
       throw new Error("Supabase service not initialized");
     }
@@ -319,6 +416,9 @@ window.PracticeHubComponent = {
     if (error) throw error;
 
     let allMaterials = data || [];
+
+    // Filter out Sprechen materials from materials grid
+    allMaterials = allMaterials.filter(mat => mat && mat.module !== "Sprechen");
 
     // Authoritative client-side filtering by completedMaterialIds
     if (this.completedMaterialIds && this.completedMaterialIds.size > 0) {
@@ -493,6 +593,9 @@ window.PracticeHubComponent = {
   },
 
   setModuleFilter: function (moduleName) {
+    const wasSprechen = this.currentQuery.activeModule === "Sprechen";
+    const isNowSprechen = moduleName === "Sprechen";
+
     this.currentQuery.activeModule = moduleName;
     this.currentQuery.page = 1;
 
@@ -523,6 +626,21 @@ window.PracticeHubComponent = {
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, "", newHash);
     }
+
+    if (wasSprechen || isNowSprechen) {
+      const viewport = document.getElementById("app-viewport");
+      if (viewport) {
+        viewport.innerHTML = this.render(this._lastAppState, params);
+        if (window.lucide) window.lucide.createIcons();
+      }
+      if (window.PracticeApp && typeof window.PracticeApp.updateNavLinks === "function") {
+        window.PracticeApp.updateNavLinks("#practice", params);
+      }
+      if (isNowSprechen) {
+        return;
+      }
+    }
+
     this.executeFetchAndRender();
   },
 

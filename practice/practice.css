@@ -1977,6 +1977,172 @@ a {
 /* Mock Exam Simulator styles moved to mock-exams.css */
 /* Interactive Player styles moved to interactive-player.css */
 
+/* Sprechen Static Module Page */
+.sprechen-view-container {
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sprechen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  max-width: 960px;
+}
+
+.sprechen-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04), 0 1px 2px rgba(28, 25, 23, 0.02);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+  min-height: 250px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sprechen-box-whatsapp {
+  cursor: pointer;
+}
+
+.sprechen-box-whatsapp:hover {
+  transform: translateY(-4px);
+  border-color: #25D366;
+  box-shadow: 0 16px 32px -8px rgba(37, 211, 102, 0.2), 0 4px 12px -2px rgba(28, 25, 23, 0.04);
+}
+
+.sprechen-box-whatsapp:hover .whatsapp-cta {
+  background: #20ba5a;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.38);
+}
+
+.sprechen-box-disabled {
+  cursor: default;
+  background: #fdfcfb;
+  border: 1px dashed #d6cfc4;
+  opacity: 0.9;
+  user-select: none;
+}
+
+.sprechen-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sprechen-box-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sprechen-box-icon i {
+  width: 26px;
+  height: 26px;
+}
+
+.whatsapp-icon-wrap {
+  background: #e8fbf0;
+  color: #25D366;
+  border: 1px solid #bbf7d0;
+}
+
+.locked-icon-wrap {
+  background: var(--soft);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.sprechen-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.sprechen-box-title {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.sprechen-box-desc {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sprechen-box-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line-subtle);
+  padding-top: 20px;
+  margin-top: 24px;
+}
+
+.sprechen-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.sprechen-status-tag.status-free {
+  color: #059669;
+}
+
+.sprechen-status-tag.status-muted {
+  color: var(--muted);
+}
+
+.sprechen-cta-btn.whatsapp-cta {
+  background: #25D366;
+  border: 1px solid #20ba5a;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.86rem;
+  padding: 9px 20px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.coming-soon-pill {
+  background: var(--soft);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
 /* Progress Tracker */
 .progress-header-grid {
   display: grid;
