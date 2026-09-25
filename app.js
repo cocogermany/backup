@@ -2266,10 +2266,8 @@ function requireAdminPage() {
   if (isAdmin()) return true;
   app.innerHTML = html`
     <section class="section">
-      <p class="eyebrow">Admin</p>
-      <h1>Admin access required</h1>
-      <p class="lead">Please login with ${adminEmail} to manage Coco Germany.</p>
-      <div class="actions"><a class="button" href="#/login">Login</a></div>
+      <h1>Page not available !</h1>
+      <div class="actions"><a class="button" href="#/">Return home</a></div>
     </section>
   `;
   return false;
