@@ -3319,162 +3319,162 @@ function renderAdminExamMaterials() {
     "Exam Materials Metadata CMS",
     "Manage exam materials metadata stored in Supabase materials table. R2 JSON files are uploaded manually.",
     html`
-      <section class="admin-section admin-grid-two">
-        <div class="card card-body">
-          <h2>Create / Edit Exam Material</h2>
-          <p class="muted">Fill in metadata fields. Content is loaded directly from Cloudflare R2 using Content Path.</p>
+      <section class="admin-section admin-exam-form-section">
+        <h2>Create / Edit Exam Material</h2>
+        <p class="muted">Fill in metadata fields. Content is loaded directly from Cloudflare R2 using Content Path.</p>
 
-          <form class="form exam-material-form" id="exam-material-form">
-            <div class="exam-material-form-grid">
-              <label class="field">
-                Exam
-                <select name="exam">
-                  <option value="goethe">Goethe</option>
-                  <option value="telc">telc</option>
-                  <option value="both">Both</option>
-                </select>
-              </label>
-
-              <label class="field">
-                Level
-                <select name="level">
-                  <option value="A1">A1</option>
-                  <option value="A2">A2</option>
-                  <option value="B1">B1</option>
-                  <option value="B2">B2</option>
-                </select>
-              </label>
-
-              <label class="field">
-                Module
-                <select name="module">
-                  <option value="Lesen">Lesen (Reading)</option>
-                  <option value="Hören">Hören (Listening)</option>
-                  <option value="Grammatik">Grammatik</option>
-                  <option value="Schreiben">Schreiben (Writing)</option>
-                  <option value="Sprechen">Sprechen (Speaking)</option>
-                  <option value="Mock Exam">Mock Exam</option>
-                </select>
-              </label>
-
-              <label class="field">
-                Teil (Optional)
-                <select name="teil">
-                  <option value="">None / General</option>
-                  <option value="Teil 1">Teil 1</option>
-                  <option value="Teil 2">Teil 2</option>
-                  <option value="Teil 3">Teil 3</option>
-                  <option value="Teil 4">Teil 4</option>
-                  <option value="Teil 5">Teil 5</option>
-                </select>
-              </label>
-
-              <label class="field">
-                Material Number
-                <input type="number" name="materialNumber" min="1" max="999" value="1" required />
-              </label>
-            </div>
-
-            <div style="margin: 10px 0 18px;">
-              <span class="muted" style="font-size: 13px;">Auto-generated ID (Read Only):</span><br />
-              <span class="id-preview-badge" id="id-preview-badge">GoA1LM001</span>
-            </div>
-
+        <form class="form exam-material-form" id="exam-material-form">
+          <div class="exam-material-form-grid">
             <label class="field">
-              Title
-              <input name="title" placeholder="e.g. Restaurant Advertisement" required />
+              Exam
+              <select name="exam">
+                <option value="goethe">Goethe</option>
+                <option value="telc">telc</option>
+                <option value="both">Both</option>
+              </select>
             </label>
 
             <label class="field">
-              Description
-              <textarea name="description" placeholder="Brief summary of this practice material..." rows="2"></textarea>
+              Level
+              <select name="level">
+                <option value="A1">A1</option>
+                <option value="A2">A2</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+              </select>
+            </label>
+
+            <label class="field">
+              Module
+              <select name="module">
+                <option value="Lesen">Lesen (Reading)</option>
+                <option value="Hören">Hören (Listening)</option>
+                <option value="Grammatik">Grammatik</option>
+                <option value="Schreiben">Schreiben (Writing)</option>
+                <option value="Sprechen">Sprechen (Speaking)</option>
+                <option value="Mock Exam">Mock Exam</option>
+              </select>
+            </label>
+
+            <label class="field">
+              Teil (Optional)
+              <select name="teil">
+                <option value="">None / General</option>
+                <option value="Teil 1">Teil 1</option>
+                <option value="Teil 2">Teil 2</option>
+                <option value="Teil 3">Teil 3</option>
+                <option value="Teil 4">Teil 4</option>
+                <option value="Teil 5">Teil 5</option>
+              </select>
+            </label>
+
+            <label class="field">
+              Material Number
+              <input type="number" name="materialNumber" min="1" max="999" value="1" required />
+            </label>
+          </div>
+
+          <div style="margin: 14px 0 16px;">
+            <span class="muted" style="font-size: 13px;">Auto-generated ID (Read Only):</span><br />
+            <span class="id-preview-badge" id="id-preview-badge">GoA1LM001</span>
+          </div>
+
+          <div class="exam-material-form-grid" style="margin-bottom: 14px;">
+            <label class="field" style="grid-column: span 2;">
+              Title
+              <input name="title" placeholder="e.g. Restaurant Advertisement" required />
             </label>
 
             <label class="field">
               Content Path
               <input name="contentPath" placeholder="e.g. A1/GoA1LM001.json" required />
             </label>
-
-            <div class="exam-material-form-grid">
-              <label class="field">
-                Duration (minutes)
-                <input type="number" name="durationMinutes" min="1" max="999" placeholder="e.g. 15" />
-              </label>
-
-              <label class="field">
-                Difficulty
-                <select name="difficulty">
-                  <option value="Easy">Easy</option>
-                  <option value="Medium" selected>Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </label>
-
-              <label class="field">
-                Active
-                <select name="active">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="actions" style="margin-top: 20px;">
-              <button class="button" type="submit">${icon("save")} Save Metadata to Supabase</button>
-            </div>
-            <p id="exam-material-message" aria-live="polite"></p>
-          </form>
-        </div>
-
-        <div>
-          <h2>Saved Materials Metadata (${examMaterials.length})</h2>
-          <div class="card card-body" style="padding: 0; overflow-x: auto;">
-            ${examMaterials.length
-              ? html`
-                  <table class="exam-materials-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Exam / Level</th>
-                        <th>Module</th>
-                        <th>Teil</th>
-                        <th>Duration</th>
-                        <th>Content Path</th>
-                        <th>Active</th>
-                        <th>Difficulty</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${examMaterials
-                        .map(
-                          (item) => html`
-                            <tr>
-                              <td><strong>${item.id}</strong></td>
-                              <td>${item.title}</td>
-                              <td>${item.exam} ${item.level}</td>
-                              <td><span class="badge">${item.module}</span></td>
-                              <td><span class="muted">${item.teil || "--"}</span></td>
-                              <td>${item.durationMinutes ? `${item.durationMinutes} mins` : "--"}</td>
-                              <td><code class="cdn-link">${item.contentPath || `${item.level}/${item.id}.json`}</code></td>
-                              <td><span class="badge ${item.active ? "badge-gold" : ""}">${item.active ? "Yes" : "No"}</span></td>
-                              <td><span class="muted">${item.difficulty || "Medium"}</span></td>
-                              <td>
-                                <div class="actions" style="gap: 4px;">
-                                  <button class="button-light" type="button" data-edit-exam-material="${item.id}">${icon("pencil")}</button>
-                                  <button class="button-light danger-button" type="button" data-delete-exam-material="${item.id}">${icon("trash-2")}</button>
-                                </div>
-                              </td>
-                            </tr>
-                          `,
-                        )
-                        .join("")}
-                    </tbody>
-                  </table>
-                `
-              : `<p class="muted" style="padding: 20px;">No exam materials saved yet. Fill in the form to add metadata to Supabase.</p>`}
           </div>
+
+          <label class="field" style="margin-bottom: 14px;">
+            Description
+            <textarea name="description" placeholder="Brief summary of this practice material..." rows="2"></textarea>
+          </label>
+
+          <div class="exam-material-form-grid">
+            <label class="field">
+              Duration (minutes)
+              <input type="number" name="durationMinutes" min="1" max="999" placeholder="e.g. 15" />
+            </label>
+
+            <label class="field">
+              Difficulty
+              <select name="difficulty">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </label>
+
+            <label class="field">
+              Active
+              <select name="active">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="actions" style="margin-top: 20px;">
+            <button class="button" type="submit">${icon("save")} Save Metadata to Supabase</button>
+          </div>
+          <p id="exam-material-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="admin-section admin-exam-table-section">
+        <h2>Saved Materials Metadata (${examMaterials.length})</h2>
+        <div class="card card-body" style="padding: 0; overflow-x: auto; border: 1px solid var(--line-light); box-shadow: none;">
+          ${examMaterials.length
+            ? html`
+                <table class="exam-materials-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Title</th>
+                      <th>Exam / Level</th>
+                      <th>Module</th>
+                      <th>Teil</th>
+                      <th>Duration</th>
+                      <th>Content Path</th>
+                      <th>Active</th>
+                      <th>Difficulty</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${examMaterials
+                      .map(
+                        (item) => html`
+                          <tr>
+                            <td><strong>${item.id}</strong></td>
+                            <td>${item.title}</td>
+                            <td>${item.exam} ${item.level}</td>
+                            <td><span class="badge">${item.module}</span></td>
+                            <td><span class="muted">${item.teil || "--"}</span></td>
+                            <td>${item.durationMinutes ? `${item.durationMinutes} mins` : "--"}</td>
+                            <td><code class="cdn-link">${item.contentPath || `${item.level}/${item.id}.json`}</code></td>
+                            <td><span class="badge ${item.active ? "badge-gold" : ""}">${item.active ? "Yes" : "No"}</span></td>
+                            <td><span class="muted">${item.difficulty || "Medium"}</span></td>
+                            <td>
+                              <div class="actions" style="gap: 4px;">
+                                <button class="button-light" type="button" data-edit-exam-material="${item.id}">${icon("pencil")}</button>
+                                <button class="button-light danger-button" type="button" data-delete-exam-material="${item.id}">${icon("trash-2")}</button>
+                              </div>
+                            </td>
+                          </tr>
+                        `,
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              `
+            : `<p class="muted" style="padding: 20px;">No exam materials saved yet. Fill in the form to add metadata to Supabase.</p>`}
         </div>
       </section>
     `,

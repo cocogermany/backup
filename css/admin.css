@@ -411,10 +411,40 @@
 }
 
 /* ─── Exam Materials CMS ─────────────────────────────────────────────────── */
+.admin-exam-form-section,
+.admin-exam-table-section {
+  width: 100%;
+}
+
 .exam-material-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.exam-materials-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+}
+
+.exam-materials-table th,
+.exam-materials-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-light);
+  white-space: nowrap;
+}
+
+.exam-materials-table th {
+  background: var(--surface-muted, #f8f9fa);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.exam-materials-table tbody tr:hover {
+  background: var(--soft, rgba(0, 0, 0, 0.02));
 }
 
 .file-upload-hint {
@@ -462,6 +492,12 @@
   .admin-section.admin-grid-two {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .exam-material-form-grid [style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
   }
 }
 
