@@ -275,20 +275,29 @@ const defaultTabTemplates = {
       <p>Last updated: September 2026 • Platform usage &amp; digital publication agreements.</p>
     </div>
     <div class="doc-prose">
-      <div class="doc-terms-nav" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; padding: 12px 14px; background: var(--surface-subtle); border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600; color: var(--muted);">
-        <span>Terms of Use</span> •
-        <span>Purchases &amp; Payments</span> •
-        <span>Digital Delivery</span> •
-        <span>Refund &amp; Cancellation</span> •
-        <span>Intellectual Property</span> •
-        <span>User Responsibilities</span> •
-        <span>Third-Party Services</span> •
-        <span>Account Termination</span> •
-        <span>Changes to Terms</span> •
-        <span>Contact</span>
+      <div class="doc-terms-nav">
+        <a href="#terms-use">Terms of Use</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-payments">Purchases &amp; Payments</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-delivery">Digital Delivery</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-refund">Refund &amp; Cancellation</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-ip">Intellectual Property</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-responsibilities">User Responsibilities</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-services">Third-Party Services</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-termination">Account Termination</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-changes">Changes to Terms</a>
+        <span class="nav-dot">•</span>
+        <a href="#terms-contact">Contact</a>
       </div>
 
-      <h3>1. Terms of Use</h3>
+      <h3 id="terms-use">1. Terms of Use</h3>
       <p>
         Welcome to Coco Germany. By creating an account, accessing our website, or purchasing learning materials, you agree to comply with and be bound by these Terms &amp; Conditions. Coco Germany provides German-language educational resources, CEFR A1–B2 curriculum materials, interactive practice drills, Goethe &amp; telc mock exam simulations, automated and guided writing (<em>Schreiben</em>) evaluation tools, self-paced courses, and digital study publications.
       </p>
@@ -299,7 +308,7 @@ const defaultTabTemplates = {
         Coco Germany grants you a limited, non-exclusive, non-transferable, revocable license to access the platform and its resources solely for your personal, non-commercial German learning, in accordance with these Terms. Platform availability and features are provided on an "as is" and "as available" basis with reasonable service limitations.
       </p>
 
-      <h3>2. User Responsibilities &amp; Account Security</h3>
+      <h3 id="terms-responsibilities">2. User Responsibilities &amp; Account Security</h3>
       <p>
         To access certain features, mock exams, or purchased resources, you must register an account. You agree to:
       </p>
@@ -310,7 +319,7 @@ const defaultTabTemplates = {
         <li>Accept full responsibility for all activities, submissions, and purchases that occur under your account credentials.</li>
       </ul>
 
-      <h3>3. Purchases &amp; Payments</h3>
+      <h3 id="terms-payments">3. Purchases &amp; Payments</h3>
       <p>
         When you purchase digital workbooks, mock exam packs, writing evaluations, or membership plans on Coco Germany:
       </p>
@@ -322,7 +331,7 @@ const defaultTabTemplates = {
         <li><strong>Failed, Reversed, or Disputed Payments:</strong> If a payment fails, is reversed by your financial institution, or is flagged for suspected dispute/fraud, access to the corresponding digital materials will be suspended until verified payment is re-established.</li>
       </ul>
 
-      <h3>4. Digital Delivery</h3>
+      <h3 id="terms-delivery">4. Digital Delivery</h3>
       <p>
         All educational products offered by Coco Germany are digital goods. Upon successful payment verification:
       </p>
@@ -332,7 +341,7 @@ const defaultTabTemplates = {
         <li>Standard verification and fulfillment typically occur within 2 to 6 hours for manual verification workflows, and instantly for automated gateway checkouts.</li>
       </ul>
 
-      <h3>5. Refund &amp; Cancellation Policy</h3>
+      <h3 id="terms-refund">5. Refund &amp; Cancellation Policy</h3>
       <p>
         Because Coco Germany provides electronically delivered digital goods, downloadable PDF publications, and immediately accessible interactive practice evaluations, the following rules apply:
       </p>
@@ -343,7 +352,7 @@ const defaultTabTemplates = {
         <li><strong>Refund Requests:</strong> To request assistance with a billing discrepancy or duplicate payment, write to <code>cocogermany.ytd@gmail.com</code> within 7 days of the transaction with your Order ID and payment receipt reference. Valid refunds are credited back to the original payment method via the respective payment processor.</li>
       </ul>
 
-      <h3>6. Intellectual Property &amp; Content Licensing</h3>
+      <h3 id="terms-ip">6. Intellectual Property &amp; Content Licensing</h3>
       <p>
         All content published by Coco Germany—including PDF textbooks, exam simulations, exercise datasets, writing prompts, audio recordings, visual graphics, trademarks, logos, and proprietary software code—is the intellectual property of Coco Germany and protected by international copyright laws.
       </p>
@@ -351,27 +360,27 @@ const defaultTabTemplates = {
         Your purchase grants you a single-user, non-transferable personal license. You may not resell, sub-license, publicly share, redistribute, photocopy for commercial groups, upload to public cloud drives, or exploit any Coco Germany material without prior written authorization from our editorial desk.
       </p>
 
-      <h3>7. Third-Party Services</h3>
+      <h3 id="terms-services">7. Third-Party Services</h3>
       <p>
         Coco Germany integrates trusted third-party technology providers to operate its platform, including Google Firebase (identity authentication &amp; database), Supabase (relational data &amp; analytics), Cloudflare (content delivery &amp; media hosting), and payment gateways (Stripe &amp; verified Indian UPI processors). Your interaction with third-party payment gateways is subject to their respective terms and privacy policies. Coco Germany is not liable for service interruptions caused by independent third-party networks.
       </p>
 
-      <h3>8. Account Suspension &amp; Termination</h3>
+      <h3 id="terms-termination">8. Account Suspension &amp; Termination</h3>
       <p>
         Coco Germany reserves the right to suspend or terminate your account access without prior notice if you violate these Terms, engage in fraudulent payment disputes, distribute copyrighted materials unlawfully, or attempt to compromise platform security or other users' privacy.
       </p>
 
-      <h3>9. Changes to Terms</h3>
+      <h3 id="terms-changes">9. Changes to Terms</h3>
       <p>
         We may update these Terms &amp; Conditions periodically to reflect educational curriculum additions, technology updates, or regulatory requirements. Material revisions will be posted on this page with an updated "Last updated" date. Continued use of the platform after modifications constitutes agreement to the updated Terms.
       </p>
 
-      <h3>10. Governing Law &amp; Jurisdiction</h3>
+      <h3 id="terms-law">10. Governing Law &amp; Jurisdiction</h3>
       <p>
         These Terms &amp; Conditions and any transactions conducted on Coco Germany shall be governed by and construed in accordance with the laws of [JURISDICTION / GOVERNING LAW - e.g., Laws of India], without regard to conflict of law principles. Any legal disputes arising out of or in connection with the platform shall be subject to the exclusive jurisdiction of the competent courts in [CITY / STATE / COUNTRY - e.g., Bengaluru, Karnataka, India].
       </p>
 
-      <h3>11. Contact &amp; Support</h3>
+      <h3 id="terms-contact">11. Contact &amp; Support</h3>
       <p>
         If you have questions regarding these Terms &amp; Conditions, order fulfillment, or billing inquiries, please contact our team:
       </p>
@@ -389,18 +398,25 @@ const defaultTabTemplates = {
       <p>Last updated: September 2026 • How we collect, safeguard, and process your data.</p>
     </div>
     <div class="doc-prose">
-      <div class="doc-terms-nav" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; padding: 12px 14px; background: var(--surface-subtle); border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600; color: var(--muted);">
-        <span>Information We Collect</span> •
-        <span>Payment Data</span> •
-        <span>How We Use Data</span> •
-        <span>Technologies &amp; Providers</span> •
-        <span>Cookies &amp; Storage</span> •
-        <span>Security &amp; Retention</span> •
-        <span>Your Rights</span> •
-        <span>Contact</span>
+      <div class="doc-terms-nav">
+        <a href="#privacy-collect">Information We Collect</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-payment">Payment Data</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-use">How We Use Data</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-providers">Technologies &amp; Providers</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-cookies">Cookies &amp; Storage</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-security">Security &amp; Retention</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-rights">Your Rights</a>
+        <span class="nav-dot">•</span>
+        <a href="#privacy-contact">Contact</a>
       </div>
 
-      <h3>1. Information We Collect</h3>
+      <h3 id="privacy-collect">1. Information We Collect</h3>
       <p>
         When you create an account, complete exercises, or purchase study resources on Coco Germany, we collect only the information necessary to provide our educational services:
       </p>
@@ -411,12 +427,12 @@ const defaultTabTemplates = {
         <li><strong>Orders &amp; Fulfillment History:</strong> Records of purchased workbooks, digital resource IDs, payment status flags, fulfillment timestamps, and order reference numbers.</li>
       </ul>
 
-      <h3>2. Payment Information Handling</h3>
+      <h3 id="privacy-payment">2. Payment Information Handling</h3>
       <p>
         Payment processing is conducted entirely through external, secure payment gateways (Stripe for international card processing and verified UPI banking channels for India). <strong>Coco Germany does not collect, process, or store credit or debit card numbers, card verification codes (CVV), banking passwords, or UPI PINs on its servers.</strong> All transaction data is handled in accordance with the payment providers' rigorous privacy and security standards.
       </p>
 
-      <h3>3. How We Use Your Information</h3>
+      <h3 id="privacy-use">3. How We Use Your Information</h3>
       <p>
         We use your information strictly for legitimate educational, operational, and customer support purposes:
       </p>
@@ -429,7 +445,7 @@ const defaultTabTemplates = {
         <li>Detecting and preventing fraudulent transactions, automated abuse, or unauthorized account sharing.</li>
       </ul>
 
-      <h3>4. Technologies &amp; Third-Party Processors</h3>
+      <h3 id="privacy-providers">4. Technologies &amp; Third-Party Processors</h3>
       <p>
         To ensure speed, reliability, and security, Coco Germany relies on established enterprise infrastructure:
       </p>
@@ -443,22 +459,22 @@ const defaultTabTemplates = {
         These third-party processors receive only the data strictly necessary to execute their respective functions and are contractually prohibited from selling or sharing your personal information.
       </p>
 
-      <h3>5. Cookies, Local Storage &amp; Session Data</h3>
+      <h3 id="privacy-cookies">5. Cookies, Local Storage &amp; Session Data</h3>
       <p>
         Coco Germany uses modern browser technologies, including local storage and first-party session tokens, exclusively to keep you logged in, save your active learning preferences, and cache local mock exam timers for uninterrupted study. We do not use third-party behavioral advertising trackers, data brokers, or marketing surveillance tools.
       </p>
 
-      <h3>6. Data Security Measures</h3>
+      <h3 id="privacy-security">6. Data Security Measures</h3>
       <p>
         We implement industry-standard technical and operational safeguards to protect your personal information. All network communication occurs over encrypted Transport Layer Security (TLS 1.3 / HTTPS), database access is restricted by strict role-based access controls, and sensitive operations require authenticated identity tokens. While we take every reasonable measure to protect your data, no internet transmission is 100% immune from external risks.
       </p>
 
-      <h3>7. Data Retention &amp; International Transfers</h3>
+      <h3 id="privacy-retention">7. Data Retention &amp; International Transfers</h3>
       <p>
         Your account details, learning history, and purchase records are retained for as long as your account remains active. As our infrastructure utilizes globally distributed cloud services (Firebase, Supabase, Cloudflare), your information may be processed in secure facilities located outside your country of residence, subject to international data protection safeguards.
       </p>
 
-      <h3>8. Your Rights &amp; Data Control</h3>
+      <h3 id="privacy-rights">8. Your Rights &amp; Data Control</h3>
       <p>
         Under applicable data protection laws (including GDPR and consumer privacy standards), you maintain the right to:
       </p>
@@ -471,17 +487,17 @@ const defaultTabTemplates = {
         To submit a data access or deletion request, please email our privacy desk at <code>cocogermany.ytd@gmail.com</code> from your registered account address. We process verification and fulfillment within 30 days.
       </p>
 
-      <h3>9. Children's Privacy</h3>
+      <h3 id="privacy-children">9. Children's Privacy</h3>
       <p>
         Coco Germany is designed as a language-learning resource for independent learners, exam candidates, and university applicants. We do not knowingly collect personal information from children without verified parental or legal guardian consent where required by local laws.
       </p>
 
-      <h3>10. Changes to This Privacy Policy</h3>
+      <h3 id="privacy-changes">10. Changes to This Privacy Policy</h3>
       <p>
         We reserve the right to revise this Privacy Policy to reflect platform improvements or statutory obligations. Any updates will be published on this page with a revised effective date.
       </p>
 
-      <h3>11. Contact Privacy Desk</h3>
+      <h3 id="privacy-contact">11. Contact Privacy Desk</h3>
       <p>
         For privacy-related questions or data inquiries:
       </p>
@@ -632,6 +648,7 @@ function initMobileTabModal() {
     modal.classList.remove("active");
     modal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("account-modal-open");
+    document.documentElement.classList.remove("account-modal-open");
 
     // If inlineView was moved into modal, restore it back to original placeholder position
     if (inlineView && inlinePlaceholder && inlineView.parentElement === modalBody) {
@@ -666,10 +683,11 @@ function initMobileTabModal() {
     // Highlight clicked tab
     document.querySelectorAll(".account-tab").forEach((t) => t.classList.toggle("active", t === tabEl));
 
-    // Open modal
+    // Open modal and lock background scrolling on both documentElement and body
     modal.classList.add("active");
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("account-modal-open");
+    document.documentElement.classList.add("account-modal-open");
 
     // The protected tabs that require authentication
     const protectedPages = ["orders.html", "purchased.html", "billing.html"];
@@ -770,6 +788,17 @@ function initMobileTabModal() {
       closeModal();
     }
   });
+
+  // Prevent background touch scrolling through the backdrop overlay
+  modal.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.target === modal) {
+        e.preventDefault();
+      }
+    },
+    { passive: false }
+  );
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal && modal.classList.contains("active")) {
@@ -1288,3 +1317,20 @@ async function initPurchasedList(user) {
     container.innerHTML = `<p class="error">Failed to load resources. Please refresh.</p>`;
   }
 }
+
+// Delegate click handler for quick jump links in Terms & Conditions and Privacy Policy (works in modals and standalone pages)
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".doc-terms-nav a");
+  if (!link) return;
+  const href = link.getAttribute("href");
+  if (href && href.startsWith("#")) {
+    e.preventDefault();
+    const targetId = href.substring(1);
+    const modalBody = link.closest(".account-modal-body");
+    const container = modalBody || document;
+    const target = container.querySelector(`#${CSS.escape(targetId)}`) || document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+});
