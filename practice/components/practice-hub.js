@@ -125,7 +125,7 @@ window.PracticeHubComponent = {
                 </div>
                 <div class="sprechen-box-body">
                   <h2 class="sprechen-box-title">Personalized Practice</h2>
-                  <p class="sprechen-box-desc">AI-guided interactive speaking drills, real-time pronunciation evaluation, and simulated examiner conversations tailored to your Goethe/TELC level.</p>
+                  <p class="sprechen-box-desc">Advanced interactive speaking drills, real-time pronunciation evaluation, and simulated examiner conversations tailored to your Goethe/TELC level.</p>
                 </div>
                 <div class="sprechen-box-footer">
                   <span class="sprechen-status-tag status-muted">
