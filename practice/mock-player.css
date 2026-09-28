@@ -8,26 +8,63 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  height: auto;
+  width: 100%;
+  overflow-x: hidden;
   background: var(--bg, #faf8f5);
   color: var(--ink, #1c1917);
   font-family: var(--font-body, 'Inter', sans-serif);
 }
 
+/* Ensure full vertical page scrolling across all viewport heights and devices */
+html:has(body.mock-player-mode),
+html.mock-player-mode {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100% !important;
+}
+
+body.mock-player-mode,
+body.exam-mode.mock-player-mode,
+body:has(.mock-player-container) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background: var(--bg, #faf8f5) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 body.mock-player-mode #app-sidebar,
-body.mock-player-mode #app-topbar {
+body.mock-player-mode #app-topbar,
+body.mock-player-mode #mobile-bottom-nav,
+body.mock-player-mode #sidebar-overlay {
   display: none !important;
 }
 
-body.mock-player-mode #app-layout {
-  padding: 0 !important;
-  margin: 0 !important;
-  max-width: 100% !important;
-}
-
+body.mock-player-mode .app-layout,
+body.exam-mode.mock-player-mode .app-layout,
+body.mock-player-mode #app-layout,
+body.mock-player-mode .app-main-wrapper,
+body.exam-mode.mock-player-mode .app-main-wrapper,
+body.mock-player-mode .app-viewport,
+body.exam-mode.mock-player-mode .app-viewport,
 body.mock-player-mode #app-viewport {
-  padding: 0 !important;
   margin: 0 !important;
+  padding: 0 !important;
   max-width: 100% !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  display: block !important;
+  background: transparent !important;
 }
 
 /* TOP CBT HEADER */
@@ -1166,17 +1203,19 @@ body.mock-player-mode #app-viewport {
 }
 
 /* RESPONSIVE */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .mock-cbt-header {
-    padding: 8px 12px;
+    padding: 8px 14px;
   }
   .mock-lesen-split {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 16px;
+    min-height: auto;
   }
   .mock-passage-panel,
   .mock-questions-panel {
-    max-height: none;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
   .mock-hero-cert-card {
     padding: 24px 16px;

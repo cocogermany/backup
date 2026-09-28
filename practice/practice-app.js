@@ -749,7 +749,7 @@
       const mainPath = hash.split("?")[0];
       const searchParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
 
-      const isExamMode = mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player" || mainPath === "#mock-player";
+      const isExamMode = mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player";
       if (isExamMode) {
         document.body.classList.add("exam-mode");
       } else {

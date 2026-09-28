@@ -516,6 +516,7 @@ window.MockPlayerComponent = {
     `;
 
     if (window.lucide) window.lucide.createIcons();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   },
 
   renderActiveStepWorkspace: function (step, stepIndex, totalSteps) {
@@ -563,6 +564,7 @@ window.MockPlayerComponent = {
 
     if (window.lucide) window.lucide.createIcons();
     this.bindWorkspaceInputs(step);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   },
 
   renderModuleWorkspaceHtml: function (step, material) {
