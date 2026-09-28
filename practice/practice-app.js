@@ -749,11 +749,18 @@
       const mainPath = hash.split("?")[0];
       const searchParams = new URLSearchParams(hash.includes("?") ? hash.split("?")[1] : "");
 
-      const isExamMode = mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player";
+      const isExamMode = mainPath === "#player" || mainPath === "#schreiben" || mainPath === "#schreiben-player" || mainPath === "#mock-player";
       if (isExamMode) {
         document.body.classList.add("exam-mode");
       } else {
         document.body.classList.remove("exam-mode");
+      }
+
+      const isMockPlayerMode = mainPath === "#mock-player";
+      if (isMockPlayerMode) {
+        document.body.classList.add("mock-player-mode");
+      } else {
+        document.body.classList.remove("mock-player-mode");
       }
 
       const isSchreibenMode = mainPath === "#schreiben-player" || mainPath === "#schreiben";
@@ -822,6 +829,17 @@
             initPromise = window.SchreibenPlayerComponent._initPromise = window.SchreibenPlayerComponent.initPlayerMaterial(
               searchParams ? searchParams.get("id") : null,
               AppState
+            );
+          }
+          break;
+
+        case "#mock-player":
+          if (titleEl) titleEl.textContent = "Mock Examination";
+          if (window.MockPlayerComponent) {
+            viewport.innerHTML = window.MockPlayerComponent.render(AppState, searchParams);
+            initPromise = window.MockPlayerComponent._initPromise = window.MockPlayerComponent.initMockExam(
+              AppState,
+              searchParams
             );
           }
           break;
@@ -1313,8 +1331,8 @@
 
       this.closeMockExamModal();
 
-      // Continue into existing Mock Exam flow exactly as it currently works
-      window.location.hash = `#player?id=${encodeURIComponent(targetId)}`;
+      // Enter dedicated Mock Exam Player
+      window.location.hash = `#mock-player?id=${encodeURIComponent(targetId)}`;
     }
 
     async openPlayer(materialId) {

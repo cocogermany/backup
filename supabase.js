@@ -187,10 +187,16 @@ async function saveMockAttemptSupabase(attemptData) {
 
   const payload = {
     uid: attemptData.uid || "anonymous",
+    exam_id: attemptData.exam_id || attemptData.examId || null,
     level: attemptData.level || "A1",
     format: attemptData.format || attemptData.exam || "goethe",
+    total_score: attemptData.total_score !== undefined && attemptData.total_score !== null ? Number(attemptData.total_score) : null,
+    max_score: attemptData.max_score !== undefined && attemptData.max_score !== null ? Number(attemptData.max_score) : null,
     score_percent: parseInt(attemptData.score_percent || attemptData.percentage || attemptData.score || 0, 10),
-    completed_at: new Date().toISOString(),
+    started_at: attemptData.started_at || null,
+    completed_at: attemptData.completed_at || new Date().toISOString(),
+    duration_seconds: attemptData.duration_seconds !== undefined && attemptData.duration_seconds !== null ? parseInt(attemptData.duration_seconds, 10) : null,
+    details: attemptData.details || null,
   };
 
   try {

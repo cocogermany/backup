@@ -300,7 +300,7 @@ window.MockExamsComponent = {
 
       const { data: attempts, error } = await supabase
         .from("mock_attempts")
-        .select("id, uid, level, format, score_percent, completed_at")
+        .select("id, uid, level, format, score_percent, completed_at, total_score, max_score, duration_seconds, details")
         .eq("uid", uid)
         .order("completed_at", { ascending: false })
         .limit(30);
@@ -311,6 +311,7 @@ window.MockExamsComponent = {
         return;
       }
 
+      this.cachedAttempts = attempts;
       if (countEl) countEl.textContent = attempts.length.toString();
       this.renderReportsList(container, attempts);
 
@@ -330,8 +331,10 @@ window.MockExamsComponent = {
             <tr>
               <th>Date</th>
               <th>Format & Level</th>
-              <th>Score</th>
+              <th>Overall Score</th>
+              <th>Module Breakdown</th>
               <th>Status</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -341,26 +344,51 @@ window.MockExamsComponent = {
               const dateStr = att.completed_at
                 ? new Date(att.completed_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                 : "Recent";
+              const durMins = att.duration_seconds ? `${Math.round(att.duration_seconds / 60)}m` : null;
               const formatStr = (att.format || "Goethe").toUpperCase();
               const levelStr = (att.level || "A1").toUpperCase();
+
+              const secScores = att.details?.section_scores || null;
+              let breakdownChips = '<span style="font-size:0.75rem; color:var(--muted);">-</span>';
+              if (secScores) {
+                breakdownChips = Object.entries(secScores).map(([mName, s]) => {
+                  const mLetter = mName.charAt(0);
+                  const p = s.percent !== null ? `${s.percent}%` : "—";
+                  return `<span style="display:inline-block; font-size:0.72rem; background:#f1f5f9; padding:2px 6px; border-radius:4px; margin-right:4px;"><strong>${mLetter}:</strong> ${p}</span>`;
+                }).join("");
+              }
+
+              const ptsStr = (att.total_score !== null && att.max_score !== null && att.max_score > 0)
+                ? `<span style="font-size:0.75rem; color:var(--muted); display:block;">(${att.total_score}/${att.max_score} pts)</span>`
+                : "";
 
               return `
                 <tr class="mock-report-row">
                   <td class="mock-report-date">
                     <i data-lucide="calendar" style="width:14px;height:14px;color:var(--muted);display:inline;margin-right:6px;"></i>
                     ${dateStr}
+                    ${durMins ? `<span style="font-size:0.75rem; color:var(--muted); display:block; margin-left:20px;">${durMins}</span>` : ""}
                   </td>
                   <td class="mock-report-exam">
                     <strong>${formatStr}</strong> · ${levelStr}
                   </td>
                   <td class="mock-report-score">
                     <span class="mock-score-val ${isPass ? 'is-pass' : 'is-fail'}">${score}%</span>
+                    ${ptsStr}
+                  </td>
+                  <td>
+                    ${breakdownChips}
                   </td>
                   <td class="mock-report-status">
                     <span class="badge-pill ${isPass ? 'badge-emerald' : 'badge-rose'}">
                       <i data-lucide="${isPass ? 'check' : 'x'}" style="width:12px;height:12px;"></i>
                       ${isPass ? 'Passed' : 'Needs Review'}
                     </span>
+                  </td>
+                  <td>
+                    <button type="button" class="btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="window.MockExamsComponent.viewAttemptBreakdown('${att.id}')">
+                      Report
+                    </button>
                   </td>
                 </tr>
               `;
@@ -370,6 +398,91 @@ window.MockExamsComponent = {
       </div>
     `;
 
+    if (window.lucide) window.lucide.createIcons();
+  },
+
+  viewAttemptBreakdown: function (attemptId) {
+    const attempt = (this.cachedAttempts || []).find(a => String(a.id) === String(attemptId));
+    if (!attempt) return;
+
+    const modal = document.createElement("div");
+    modal.className = "modal-backdrop";
+    modal.id = "mock-report-detail-modal";
+    modal.style.display = "flex";
+
+    const score = attempt.score_percent || 0;
+    const isPass = score >= 60;
+    const secScores = attempt.details?.section_scores || {};
+    const teile = Array.isArray(attempt.details?.teile) ? attempt.details.teile : [];
+
+    modal.innerHTML = `
+      <div class="modal-card" style="max-width:680px; width:95%; max-height:90vh; overflow-y:auto; padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+          <div>
+            <h3 style="margin:0 0 4px; font-size:1.25rem; font-family:var(--font-heading);">${(attempt.format || 'Goethe').toUpperCase()} ${attempt.level || 'A1'} Mock Exam Report</h3>
+            <span style="font-size:0.8rem; color:var(--muted);">${new Date(attempt.completed_at).toLocaleString()}</span>
+          </div>
+          <button class="modal-close-btn" onclick="this.closest('.modal-backdrop').remove()"><i data-lucide="x"></i></button>
+        </div>
+
+        <div style="background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="font-size:0.78rem; text-transform:uppercase; color:var(--muted); font-weight:600;">Overall Simulation Score</span>
+            <div style="font-size:1.8rem; font-weight:800; color:var(--ink);">${score}% ${attempt.total_score ? `(${attempt.total_score}/${attempt.max_score} pts)` : ""}</div>
+          </div>
+          <span class="badge-pill ${isPass ? 'badge-emerald' : 'badge-rose'}" style="font-size:0.85rem; padding:6px 14px;">
+            ${isPass ? '✓ Passed (≥ 60%)' : '✗ Needs Review (< 60%)'}
+          </span>
+        </div>
+
+        ${Object.keys(secScores).length > 0 ? `
+          <h4 style="font-size:0.92rem; font-weight:700; margin:0 0 10px;">Section Scores</h4>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:20px;">
+            ${Object.entries(secScores).map(([mName, s]) => `
+              <div style="background:#ffffff; border:1px solid var(--line); border-radius:8px; padding:10px;">
+                <span style="font-size:0.75rem; color:var(--muted); font-weight:600; display:block;">${mName}</span>
+                <span style="font-size:1.1rem; font-weight:800; color:var(--ink);">${s.percent !== null ? `${s.percent}%` : "Skipped"}</span>
+                ${s.percent !== null ? `<span style="font-size:0.72rem; color:var(--muted); display:block;">${s.score}/${s.total} marks</span>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+
+        ${teile.length > 0 ? `
+          <h4 style="font-size:0.92rem; font-weight:700; margin:0 0 10px;">Teil Breakdown</h4>
+          <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:16px;">
+            <thead>
+              <tr style="background:var(--paper); text-align:left;">
+                <th style="padding:8px 10px;">Module</th>
+                <th style="padding:8px 10px;">Teil</th>
+                <th style="padding:8px 10px;">Score</th>
+                <th style="padding:8px 10px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${teile.map(t => `
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:8px 10px;"><strong>${t.module}</strong></td>
+                  <td style="padding:8px 10px;">${t.teil || "-"}</td>
+                  <td style="padding:8px 10px;">${t.skipped ? 'Skipped' : `${t.earnedMarks}/${t.totalMarks} (${t.scorePercent}%)`}</td>
+                  <td style="padding:8px 10px;">
+                    <span class="badge-pill ${t.skipped ? 'badge-gold' : (t.scorePercent >= 60 ? 'badge-emerald' : 'badge-rose')}" style="font-size:0.7rem;">
+                      ${t.skipped ? 'Skipped' : (t.scorePercent >= 60 ? 'Passed' : 'Needs Review')}
+                    </span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        ` : ""}
+
+        <div style="display:flex; justify-content:flex-end;">
+          <button type="button" class="btn-primary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
     if (window.lucide) window.lucide.createIcons();
   },
 
