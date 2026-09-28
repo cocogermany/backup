@@ -146,6 +146,10 @@ async function saveProfilePreferences(event) {
         window.location.href = destination;
         return;
       }
+      if (destination.includes("refer")) {
+        window.location.href = destination.startsWith("/") ? destination.slice(1) : destination;
+        return;
+      }
       location.hash = destination.replace("#", "");
     } else {
       renderAccount();

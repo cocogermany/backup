@@ -22,8 +22,27 @@ let homeSectionObserver = null;
 let pendingHomeSection = "";
 let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
+function captureIncomingReferral() {
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    let ref = searchParams.get("ref");
+    if (!ref && window.location.hash.includes("?")) {
+      const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
+      ref = hashParams.get("ref");
+    }
+    if (ref) {
+      const clean = ref.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+      if (clean) {
+        localStorage.setItem("coco_referral_code", clean);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not capture referral param in app.js:", e);
+  }
+}
+captureIncomingReferral();
+
 window.__setCurrentUserForTesting = (user, profile) => {
-  window.__isTesting = true;
   currentUser = user;
   if (profile) currentUserProfile = profile;
 };
@@ -461,6 +480,10 @@ function redirectAfterLogin() {
     window.location.href = destination;
     return;
   }
+  if (destination.includes("refer")) {
+    window.location.href = destination.startsWith("/") ? destination.slice(1) : destination;
+    return;
+  }
   if (destination.includes("account")) {
     window.location.href = "account/index.html";
     return;
@@ -745,6 +768,51 @@ async function ensureUserProfile(user, provider = "firebase") {
     provider,
   };
 
+async function processPendingReferralAttribution(user, profile) {
+  const pendingRef = localStorage.getItem("coco_referral_code");
+  if (!pendingRef || !user) return;
+
+  // If the user already has a referral attribution, do not overwrite it with another referral
+  if (profile && profile.referredBy) {
+    localStorage.removeItem("coco_referral_code");
+    return;
+  }
+
+  // Prevent self-referrals
+  if (profile && profile.referralCode && profile.referralCode.toUpperCase() === pendingRef.toUpperCase()) {
+    localStorage.removeItem("coco_referral_code");
+    return;
+  }
+
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch(`${R2_WORKER_URL}/referral/attribute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        referralCode: pendingRef,
+        country: profile?.country || localStorage.getItem("coco_user_country") || "",
+        currency: profile?.currency || localStorage.getItem("coco_user_currency") || "INR",
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        localStorage.removeItem("coco_referral_code");
+        if (profile && data.referrerUid) {
+          profile.referredBy = data.referrerUid;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Worker referral attribution warning:", err);
+  }
+}
+
   if (snapshot.exists()) {
     currentUserProfile = { ...baseProfile, ...snapshot.data() };
     if (!snapshot.data().email) {
@@ -754,6 +822,7 @@ async function ensureUserProfile(user, provider = "firebase") {
         { merge: true },
       );
     }
+    await processPendingReferralAttribution(user, currentUserProfile);
     return currentUserProfile;
   }
 
@@ -768,6 +837,7 @@ async function ensureUserProfile(user, provider = "firebase") {
     updatedAt: tools.firestoreModule.serverTimestamp(),
   });
 
+  await processPendingReferralAttribution(user, currentUserProfile);
   return currentUserProfile;
 }
 
@@ -2837,15 +2907,40 @@ function renderAdminProduct(product) {
   `;
 }
 
+async function triggerReferralProcessing(orderId, newStatus) {
+  if (!orderId || !currentUser) return;
+  try {
+    const idToken = await currentUser.getIdToken();
+    await fetch(`${R2_WORKER_URL}/referral/process-order`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId,
+        status: newStatus,
+      }),
+    });
+  } catch (err) {
+    console.warn("Referral order processing ping warning:", err);
+  }
+}
+
 async function updateOrderStatus(event) {
   const tools = await getFirebaseTools();
   const orderId = event.currentTarget.dataset.orderStatus;
+  const newStatus = event.currentTarget.value;
 
   try {
     await tools.firestoreModule.updateDoc(tools.firestoreModule.doc(tools.db, "orders", orderId), {
-      status: event.currentTarget.value,
+      status: newStatus,
       updatedAt: tools.firestoreModule.serverTimestamp(),
     });
+
+    // Trigger referral processing in background, strictly isolated from order update
+    triggerReferralProcessing(orderId, newStatus).catch((err) => console.warn("Referral processing error:", err));
+
     await loadOrders();
     if (location.hash.includes("#/admin/orders/")) {
       renderAdminOrderDetail(orderId);

@@ -203,6 +203,372 @@ function getLocalCalendarWeekStart(dateInput, timezone) {
   return `${mYear}-${mMonth}-${mDay}`;
 }
 
+// ============================================================================
+// FIRESTORE REST API & REFERRAL SYSTEM HELPERS
+// ============================================================================
+
+const FIREBASE_WEB_API_KEY = "AIzaSyCAmxLSnUWMuhuuH8oFshZMTajeP2iXvpY";
+let cachedGoogleAccessToken = null;
+let googleAccessTokenExp = 0;
+
+/**
+ * Exchange Google Service Account credentials for OAuth2 Access Token
+ * using standard Web Crypto PKCS8 RS256 signing.
+ */
+async function getGoogleOAuthToken(env) {
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedGoogleAccessToken && now < googleAccessTokenExp - 60) {
+    return cachedGoogleAccessToken;
+  }
+
+  let serviceAccount = null;
+  const rawSa = env.FIREBASE_SERVICE_ACCOUNT || env.FIREBASE_ADMIN_CREDENTIALS;
+  if (rawSa) {
+    try {
+      serviceAccount = typeof rawSa === "string" ? JSON.parse(rawSa) : rawSa;
+    } catch (e) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT:", e);
+    }
+  }
+
+  if (!serviceAccount || !serviceAccount.private_key || !serviceAccount.client_email) {
+    return null;
+  }
+
+  try {
+    const pem = serviceAccount.private_key
+      .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+      .replace(/-----END PRIVATE KEY-----/g, "")
+      .replace(/\s+/g, "");
+    const rawBinary = atob(pem);
+    const binaryDer = new Uint8Array(rawBinary.length);
+    for (let i = 0; i < rawBinary.length; i++) {
+      binaryDer[i] = rawBinary.charCodeAt(i);
+    }
+
+    const privateKey = await crypto.subtle.importKey(
+      "pkcs8",
+      binaryDer.buffer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const header = { alg: "RS256", typ: "JWT" };
+    const payload = {
+      iss: serviceAccount.client_email,
+      sub: serviceAccount.client_email,
+      aud: "https://oauth2.googleapis.com/token",
+      scope: "https://www.googleapis.com/auth/datastore",
+      iat: now,
+      exp: now + 3600,
+    };
+
+    const encoder = new TextEncoder();
+    const toB64Url = (obj) =>
+      btoa(unescape(encodeURIComponent(JSON.stringify(obj))))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    const unsignedToken = `${toB64Url(header)}.${toB64Url(payload)}`;
+
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      privateKey,
+      encoder.encode(unsignedToken)
+    );
+
+    const sigB64Url = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+    const signedJwt = `${unsignedToken}.${sigB64Url}`;
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: signedJwt,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text();
+      console.error("Google OAuth token exchange failed:", err);
+      return null;
+    }
+
+    const tokenData = await tokenRes.json();
+    cachedGoogleAccessToken = tokenData.access_token;
+    googleAccessTokenExp = now + (tokenData.expires_in || 3600);
+    return cachedGoogleAccessToken;
+  } catch (err) {
+    console.error("Error generating Google OAuth token:", err);
+    return null;
+  }
+}
+
+async function getFirestoreAuthHeaders(env, callerIdToken) {
+  const googleToken = await getGoogleOAuthToken(env);
+  if (googleToken) {
+    return { Authorization: `Bearer ${googleToken}` };
+  }
+  if (env.FIREBASE_ADMIN_TOKEN) {
+    return { Authorization: `Bearer ${env.FIREBASE_ADMIN_TOKEN}` };
+  }
+  if (callerIdToken) {
+    return { Authorization: `Bearer ${callerIdToken}` };
+  }
+  return {};
+}
+
+function jsValToFirestore(val) {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === "boolean") return { booleanValue: val };
+  if (typeof val === "number") {
+    if (Number.isInteger(val)) return { integerValue: String(val) };
+    return { doubleValue: val };
+  }
+  if (typeof val === "string") return { stringValue: val };
+  if (val instanceof Date) return { timestampValue: val.toISOString() };
+  if (Array.isArray(val)) return { arrayValue: { values: val.map(jsValToFirestore) } };
+  if (typeof val === "object") {
+    const fields = {};
+    for (const [k, v] of Object.entries(val)) {
+      if (v !== undefined) fields[k] = jsValToFirestore(v);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(val) };
+}
+
+function firestoreValToJs(val) {
+  if (!val || typeof val !== "object") return null;
+  if ("stringValue" in val) return val.stringValue;
+  if ("integerValue" in val) return parseInt(val.integerValue, 10);
+  if ("doubleValue" in val) return parseFloat(val.doubleValue);
+  if ("booleanValue" in val) return Boolean(val.booleanValue);
+  if ("nullValue" in val) return null;
+  if ("timestampValue" in val) return val.timestampValue;
+  if ("arrayValue" in val) {
+    const list = val.arrayValue?.values || [];
+    return list.map(firestoreValToJs);
+  }
+  if ("mapValue" in val) {
+    const out = {};
+    const f = val.mapValue?.fields || {};
+    for (const [k, v] of Object.entries(f)) {
+      out[k] = firestoreValToJs(v);
+    }
+    return out;
+  }
+  return null;
+}
+
+function docToJs(doc) {
+  if (!doc || !doc.fields) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(doc.fields)) {
+    out[k] = firestoreValToJs(v);
+  }
+  if (doc.name) {
+    const parts = doc.name.split("/");
+    out.id = parts[parts.length - 1];
+  }
+  return out;
+}
+
+function jsToFields(obj) {
+  const fields = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (k !== "id" && v !== undefined) {
+      fields[k] = jsValToFirestore(v);
+    }
+  }
+  return fields;
+}
+
+async function getFirestoreDoc(collection, docId, env, callerIdToken) {
+  const authHeaders = await getFirestoreAuthHeaders(env, callerIdToken);
+  const projectId = env.FIREBASE_PROJECT_ID || FIREBASE_PROJECT_ID;
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${encodeURIComponent(docId)}`;
+  if (!authHeaders.Authorization) {
+    url += `?key=${FIREBASE_WEB_API_KEY}`;
+  }
+  const res = await fetch(url, { headers: { ...authHeaders } });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Firestore GET ${collection}/${docId} failed (${res.status}): ${text}`);
+  }
+  const data = await res.json();
+  return docToJs(data);
+}
+
+async function setFirestoreDoc(collection, docId, data, env, callerIdToken, merge = true) {
+  const authHeaders = await getFirestoreAuthHeaders(env, callerIdToken);
+  const projectId = env.FIREBASE_PROJECT_ID || FIREBASE_PROJECT_ID;
+  const fields = jsToFields(data);
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${encodeURIComponent(docId)}`;
+  const params = [];
+  if (merge) {
+    for (const k of Object.keys(data)) {
+      if (k !== "id") params.push(`updateMask.fieldPaths=${encodeURIComponent(k)}`);
+    }
+  }
+  if (!authHeaders.Authorization) {
+    params.push(`key=${FIREBASE_WEB_API_KEY}`);
+  }
+  if (params.length > 0) {
+    url += `?${params.join("&")}`;
+  }
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Firestore PATCH ${collection}/${docId} failed (${res.status}): ${text}`);
+  }
+  const resData = await res.json();
+  return docToJs(resData);
+}
+
+async function queryFirestore(collection, field, operator, value, env, callerIdToken) {
+  const authHeaders = await getFirestoreAuthHeaders(env, callerIdToken);
+  const projectId = env.FIREBASE_PROJECT_ID || FIREBASE_PROJECT_ID;
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+  if (!authHeaders.Authorization) {
+    url += `?key=${FIREBASE_WEB_API_KEY}`;
+  }
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: collection }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: field },
+          op: operator || "EQUAL",
+          value: jsValToFirestore(value),
+        },
+      },
+    },
+  };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Firestore query ${collection} failed (${res.status}): ${text}`);
+  }
+  const rawList = await res.json();
+  const results = [];
+  for (const item of rawList) {
+    if (item.document) {
+      const parsed = docToJs(item.document);
+      if (parsed) results.push(parsed);
+    }
+  }
+  return results;
+}
+
+function generateReferralCode() {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 characters, no 0, O, 1, I
+  let code = "COCO";
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+async function getOrCreateReferralCode(uid, email, env, callerIdToken) {
+  let profile = await getFirestoreDoc("userProfiles", uid, env, callerIdToken).catch(() => null);
+  if (profile && profile.referralCode) {
+    return { referralCode: profile.referralCode, profile };
+  }
+
+  let newCode = "";
+  let attempts = 0;
+  while (attempts < 5) {
+    newCode = generateReferralCode();
+    const existing = await queryFirestore("userProfiles", "referralCode", "EQUAL", newCode, env, callerIdToken).catch(() => []);
+    if (!existing || existing.length === 0) break;
+    attempts++;
+  }
+
+  const nowIso = new Date().toISOString();
+  await setFirestoreDoc(
+    "userProfiles",
+    uid,
+    {
+      referralCode: newCode,
+      referralCreatedAt: nowIso,
+      updatedAt: nowIso,
+    },
+    env,
+    callerIdToken,
+    true
+  ).catch((e) => console.warn("Could not save referralCode to profile:", e));
+
+  if (profile) {
+    profile.referralCode = newCode;
+    profile.referralCreatedAt = nowIso;
+  } else {
+    profile = { uid, email: email || "", referralCode: newCode, referralCreatedAt: nowIso };
+  }
+  return { referralCode: newCode, profile };
+}
+
+async function getOrCreateReferralWallet(uid, env, callerIdToken) {
+  let wallet = await getFirestoreDoc("referralWallets", uid, env, callerIdToken).catch(() => null);
+  if (!wallet) {
+    wallet = {
+      coinBalance: 0,
+      totalEarned: 0,
+      totalSpent: 0,
+      transactions: [],
+      updatedAt: new Date().toISOString(),
+    };
+    await setFirestoreDoc("referralWallets", uid, wallet, env, callerIdToken, true).catch((e) => console.warn("Could not create wallet:", e));
+  }
+  return wallet;
+}
+
+function parsePurchasePrice(priceStr) {
+  if (typeof priceStr === "number") return { amount: priceStr, currency: "EUR" };
+  const raw = String(priceStr || "").trim();
+  let currency = "EUR";
+  if (raw.includes("₹") || /inr/i.test(raw) || /rs\.?/i.test(raw)) currency = "INR";
+  else if (raw.includes("$") || /usd/i.test(raw)) currency = "USD";
+  else if (raw.includes("£") || /gbp/i.test(raw)) currency = "GBP";
+  else if (raw.includes("€") || /eur/i.test(raw)) currency = "EUR";
+
+  const num = parseFloat(raw.replace(/[^0-9.]/g, ""));
+  return {
+    amount: isNaN(num) ? 0 : num,
+    currency,
+  };
+}
+
+function calculateReferralCoins(amount, currency, commissionPercent = 10) {
+  const commAmount = (amount * commissionPercent) / 100;
+  let multiplier = 100; // 1 EUR / USD / GBP = 100 coins
+  if (currency === "INR") {
+    multiplier = 10; // 1 INR = 10 coins
+  }
+  const coins = Math.round(commAmount * multiplier);
+  return Math.max(1, coins);
+}
+
 export default {
   async fetch(request, env) {
     // 1. Preflight OPTIONS request handling for all endpoints
@@ -2822,6 +3188,359 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             url: publicUrl,
             size: fileData.byteLength,
             contentType: fileContentType,
+          },
+          200,
+          request
+        );
+      }
+
+      // ============================================================================
+      // REFERRAL SYSTEM ENDPOINTS
+      // ============================================================================
+
+      // 1. Referral Dashboard (GET/POST /referral/dashboard)
+      if ((request.method === "GET" || request.method === "POST") && url.pathname === "/referral/dashboard") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        const email = tokenPayload.email || "";
+
+        // 1. Ensure referralCode exists
+        const { referralCode } = await getOrCreateReferralCode(uid, email, env, idToken);
+
+        // 2. Get wallet
+        const wallet = await getOrCreateReferralWallet(uid, env, idToken);
+
+        // 3. Count total referrals where referrerUid == uid
+        const referralsList = await queryFirestore("referrals", "referrerUid", "EQUAL", uid, env, idToken).catch(() => []);
+        const totalReferrals = referralsList.length;
+
+        // 4. Count successful referred purchases from wallet transactions
+        const transactions = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+        const successfulPurchases = transactions.filter((tx) => tx && tx.type === "referral_reward").length;
+
+        // Dynamic referral link using incoming origin or request origin
+        const reqOrigin = (request.headers.get("Origin") || url.origin || "https://www.cocogermany.site").replace(/\/$/, "");
+        const referralLink = `${reqOrigin}/index.html#/membership?ref=${referralCode}`;
+
+        return responseJSON(
+          {
+            success: true,
+            referralCode,
+            referralLink,
+            stats: {
+              totalReferrals,
+              successfulPurchases,
+              coinBalance: wallet.coinBalance || 0,
+              totalEarned: wallet.totalEarned || 0,
+              totalSpent: wallet.totalSpent || 0,
+            },
+            transactions,
+          },
+          200,
+          request
+        );
+      }
+
+      // 2. Referral Attribution (POST /referral/attribute)
+      if (request.method === "POST" && url.pathname === "/referral/attribute") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const referredUid = tokenPayload.sub;
+        const body = await request.json().catch(() => ({}));
+        const rawCode = String(body.referralCode || body.ref || "").trim().toUpperCase();
+
+        if (!rawCode) {
+          return responseJSON({ error: "Bad Request: referralCode is required." }, 400, request);
+        }
+
+        // 1. Fetch current profile of the referred user
+        let userProfile = await getFirestoreDoc("userProfiles", referredUid, env, idToken).catch(() => null);
+
+        // 2. Prevent overwriting existing referral attribution
+        if (userProfile && userProfile.referredBy) {
+          return responseJSON({
+            success: false,
+            alreadyReferred: true,
+            message: "User already has an existing referral attribution.",
+          }, 200, request);
+        }
+
+        // 3. Find referrer by referralCode
+        const referrerResults = await queryFirestore("userProfiles", "referralCode", "EQUAL", rawCode, env, idToken).catch(() => []);
+        if (!referrerResults || referrerResults.length === 0) {
+          return responseJSON({ error: "Invalid referral code: No matching referrer found." }, 404, request);
+        }
+
+        const referrer = referrerResults[0];
+        const referrerUid = referrer.uid || referrer.id;
+
+        // 4. Prevent self-referral
+        if (referrerUid === referredUid) {
+          return responseJSON({ error: "Self-referrals are not permitted." }, 400, request);
+        }
+
+        // 5. Update userProfiles with referredBy
+        const nowIso = new Date().toISOString();
+        await setFirestoreDoc(
+          "userProfiles",
+          referredUid,
+          {
+            referredBy: referrerUid,
+            updatedAt: nowIso,
+          },
+          env,
+          idToken,
+          true
+        );
+
+        // 6. Create relationship document in referrals/{referralId}
+        const referralId = `${referrerUid}_${referredUid}`;
+        await setFirestoreDoc(
+          "referrals",
+          referralId,
+          {
+            referrerUid,
+            referredUid,
+            referralCode: rawCode,
+            country: userProfile?.country || body.country || "",
+            currency: userProfile?.currency || body.currency || "",
+            createdAt: nowIso,
+          },
+          env,
+          idToken,
+          true
+        );
+
+        return responseJSON(
+          {
+            success: true,
+            message: "Referral attribution attached successfully.",
+            referrerUid,
+          },
+          200,
+          request
+        );
+      }
+
+      // 3. Referral Order Reward & Reversal Processing (POST /referral/process-order)
+      if (request.method === "POST" && url.pathname === "/referral/process-order") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token." }, 401, request);
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const orderId = String(body.orderId || "").trim();
+
+        if (!orderId) {
+          return responseJSON({ error: "Bad Request: Missing required orderId." }, 400, request);
+        }
+
+        // 1. Fetch order from Firestore (trusted source)
+        const order = await getFirestoreDoc("orders", orderId, env, idToken).catch(() => null);
+        if (!order) {
+          return responseJSON({ error: `Order '${orderId}' not found.` }, 404, request);
+        }
+
+        const status = String(body.status || order.status || "Pending").trim();
+        const purchaserUid = order.userId;
+
+        if (!purchaserUid) {
+          return responseJSON({ success: false, message: "Order does not have an attached customer userId." }, 200, request);
+        }
+
+        // 2. Fetch purchaser profile
+        const purchaserProfile = await getFirestoreDoc("userProfiles", purchaserUid, env, idToken).catch(() => null);
+        if (!purchaserProfile || !purchaserProfile.referredBy) {
+          return responseJSON({
+            success: true,
+            rewardAwarded: false,
+            message: "Purchaser does not have a referrer attribution.",
+          }, 200, request);
+        }
+
+        const referrerUid = purchaserProfile.referredBy;
+        if (referrerUid === purchaserUid) {
+          return responseJSON({ success: false, message: "Self-referral ignored." }, 200, request);
+        }
+
+        // 3. Fetch referrer wallet
+        const wallet = await getOrCreateReferralWallet(referrerUid, env, idToken);
+        const transactions = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+
+        // 4. Handle Status Transitions
+        const isCompleted = ["Paid", "Completed"].some((s) => s.toLowerCase() === status.toLowerCase());
+        const isCancelled = ["Cancelled", "Refunded"].some((s) => s.toLowerCase() === status.toLowerCase());
+
+        if (isCompleted) {
+          // Idempotency: check if this order already has a referral reward
+          const alreadyRewarded = transactions.some((tx) => tx && tx.orderId === orderId && tx.type === "referral_reward");
+          if (alreadyRewarded) {
+            return responseJSON({
+              success: true,
+              alreadyRewarded: true,
+              message: `Order ${orderId} referral reward has already been processed.`,
+            }, 200, request);
+          }
+
+          // Calculate reward
+          const commissionPercent = Number(env.REFERRAL_COMMISSION_PERCENT || 10);
+          const { amount, currency } = parsePurchasePrice(order.price || order.amount || 0);
+          const coins = calculateReferralCoins(amount, currency, commissionPercent);
+
+          const newTransaction = {
+            id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+            type: "referral_reward",
+            coins,
+            orderId,
+            purchaseAmount: amount,
+            purchaseCurrency: currency,
+            percentage: commissionPercent,
+            description: "Referral purchase",
+            createdAt: new Date().toISOString(),
+          };
+
+          const newBalance = (wallet.coinBalance || 0) + coins;
+          const newEarned = (wallet.totalEarned || 0) + coins;
+          const updatedTransactions = [newTransaction, ...transactions];
+
+          await setFirestoreDoc(
+            "referralWallets",
+            referrerUid,
+            {
+              coinBalance: newBalance,
+              totalEarned: newEarned,
+              totalSpent: wallet.totalSpent || 0,
+              transactions: updatedTransactions,
+              updatedAt: new Date().toISOString(),
+            },
+            env,
+            idToken,
+            true
+          );
+
+          return responseJSON(
+            {
+              success: true,
+              rewardAwarded: true,
+              coins,
+              orderId,
+              referrerUid,
+              newBalance,
+            },
+            200,
+            request
+          );
+        } else if (isCancelled) {
+          // Check if previously rewarded
+          const origReward = transactions.find((tx) => tx && tx.orderId === orderId && tx.type === "referral_reward");
+          const alreadyReversed = transactions.some((tx) => tx && tx.orderId === orderId && tx.type === "reversal");
+
+          if (!origReward || alreadyReversed) {
+            return responseJSON({
+              success: true,
+              reversalNeeded: false,
+              message: "No referral reward to reverse or already reversed.",
+            }, 200, request);
+          }
+
+          const reverseCoins = origReward.coins || 0;
+          const reversalTransaction = {
+            id: `tx_rev_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+            type: "reversal",
+            coins: -reverseCoins,
+            orderId,
+            purchaseAmount: origReward.purchaseAmount,
+            purchaseCurrency: origReward.purchaseCurrency,
+            percentage: origReward.percentage,
+            description: "Reversal for cancelled order",
+            createdAt: new Date().toISOString(),
+          };
+
+          const newBalance = Math.max(0, (wallet.coinBalance || 0) - reverseCoins);
+          const updatedTransactions = [reversalTransaction, ...transactions];
+
+          await setFirestoreDoc(
+            "referralWallets",
+            referrerUid,
+            {
+              coinBalance: newBalance,
+              transactions: updatedTransactions,
+              updatedAt: new Date().toISOString(),
+            },
+            env,
+            idToken,
+            true
+          );
+
+          return responseJSON(
+            {
+              success: true,
+              reversed: true,
+              coinsDeducted: reverseCoins,
+              newBalance,
+            },
+            200,
+            request
+          );
+        }
+
+        return responseJSON({
+          success: true,
+          status,
+          message: "No action required for this order status.",
+        }, 200, request);
+      }
+
+      // 4. Referral Wallet (GET /referral/wallet)
+      if (request.method === "GET" && url.pathname === "/referral/wallet") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        const wallet = await getOrCreateReferralWallet(uid, env, idToken);
+
+        return responseJSON(
+          {
+            success: true,
+            wallet,
           },
           200,
           request

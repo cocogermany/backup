@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Earn Coco Coins by inviting fellow German learners to Coco Germany. Track your referrals, balance, and rewards." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Refer &amp; Earn | Coco Germany</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Dedicated Refer & Earn Stylesheet -->
+    <link rel="stylesheet" href="refer.css" />
+  </head>
+  <body>
+    <!-- Site Header -->
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="logo" href="../index.html">
+          <img class="logo-mark" src="../public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+          <span>
+            <strong>Coco Germany</strong>
+            <small>Education &amp; Publishing</small>
+          </span>
+        </a>
+
+        <div class="desktop-nav">
+          <a href="../index.html"><i data-lucide="home"></i>Home</a>
+          <a href="../practice/index.html"><i data-lucide="pen-tool"></i>Practice App</a>
+          <a href="../index.html#/resources"><i data-lucide="book-open"></i>Resources</a>
+          <a href="../index.html#/membership"><i data-lucide="crown"></i>Membership</a>
+          <a class="active" href="../account/index.html" data-nav-account><i data-lucide="user"></i>Account</a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="refer-container">
+      <!-- Breadcrumbs -->
+      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <a href="../index.html">Home</a>
+        <i data-lucide="chevron-right"></i>
+        <a href="../account/index.html">My Account</a>
+        <i data-lucide="chevron-right"></i>
+        <span>Refer &amp; Earn</span>
+      </nav>
+
+      <!-- Loading State (initial view) -->
+      <div id="refer-loading-state" class="state-card">
+        <div class="spinner-icon">
+          <i data-lucide="loader-2"></i>
+        </div>
+        <p>Loading your referral dashboard...</p>
+      </div>
+
+      <!-- Logged-out State -->
+      <div id="refer-auth-required" class="auth-notice-card" style="display: none;">
+        <div class="auth-notice-icon-circle">
+          <i data-lucide="lock"></i>
+        </div>
+        <h2>Sign in to access Refer &amp; Earn</h2>
+        <p>Log in with your registered Coco Germany account to view your unique referral link, monitor your referred learners, and check your coin balance.</p>
+        <div class="auth-notice-actions">
+          <a class="button-primary" id="refer-login-btn" href="../index.html#/login">
+            <i data-lucide="log-in"></i> Log In to Continue
+          </a>
+          <a class="button-secondary" href="../index.html">
+            <i data-lucide="home"></i> Return Home
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Authenticated Dashboard -->
+      <div id="refer-dashboard-content" style="display: none;">
+        <!-- Hero Header -->
+        <section class="refer-hero-card">
+          <div class="refer-hero-header">
+            <span class="refer-badge"><i data-lucide="gift"></i> Rewards &amp; Community</span>
+            <h1 class="refer-title">Refer &amp; Earn</h1>
+            <p class="refer-lead">
+              Share Coco Germany with friends and fellow German learners. When they register using your invite link and purchase an eligible study plan or exam package, you automatically earn <strong>10% back in Coco Coins</strong> directly to your referral wallet.
+            </p>
+          </div>
+        </section>
+
+        <!-- Referral Link & Code Card -->
+        <section class="refer-share-card">
+          <div class="refer-section-header">
+            <div class="header-with-icon">
+              <span class="section-icon"><i data-lucide="share-2"></i></span>
+              <div>
+                <h2>Your Referral Link &amp; Code</h2>
+                <p>Share your personal link or code. Any new learner who joins through your link is permanently attributed to you.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="share-inputs-grid">
+            <!-- Referral Code Box -->
+            <div class="share-box code-box">
+              <label for="referral-code-input">Your Unique Referral Code</label>
+              <div class="input-with-action">
+                <div class="code-display" id="referral-code-display">
+                  <span id="referral-code-text">Generating...</span>
+                </div>
+                <button type="button" class="button-secondary" id="copy-code-btn" aria-label="Copy referral code">
+                  <i data-lucide="copy"></i>
+                  <span id="copy-code-label">Copy Code</span>
+                </button>
+              </div>
+              <small class="field-hint">Your friends can also enter this code when signing up.</small>
+            </div>
+
+            <!-- Referral Link Box -->
+            <div class="share-box link-box">
+              <label for="referral-link-input">Personal Referral Link</label>
+              <div class="input-with-action">
+                <input
+                  type="text"
+                  id="referral-link-input"
+                  class="link-input"
+                  readonly
+                  value="Loading your personalized link..."
+                  aria-label="Personal referral link"
+                />
+                <button type="button" class="button-primary" id="copy-link-btn" aria-label="Copy referral link">
+                  <i data-lucide="link"></i>
+                  <span id="copy-link-label">Copy Link</span>
+                </button>
+                <button type="button" class="button-secondary" id="share-link-btn" aria-label="Share referral link">
+                  <i data-lucide="share-2"></i>
+                  <span>Share</span>
+                </button>
+              </div>
+              <small class="field-hint">Takes visitors to Coco Germany and tracks your referral automatically.</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- Referral Stats Grid (Cards / Stat Boxes) -->
+        <section class="refer-stats-section">
+          <h2 class="sr-only">Referral Overview Statistics</h2>
+          <div class="stats-grid">
+            <!-- Current Coin Balance -->
+            <div class="stat-card stat-balance-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Current Coin Balance</span>
+                <span class="stat-icon-wrap balance-icon"><i data-lucide="coins"></i></span>
+              </div>
+              <div class="stat-value" id="stat-coin-balance">0</div>
+              <div class="stat-sub">Available in your wallet</div>
+            </div>
+
+            <!-- Total Referrals -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Referrals</span>
+                <span class="stat-icon-wrap"><i data-lucide="users"></i></span>
+              </div>
+              <div class="stat-value" id="stat-total-referrals">0</div>
+              <div class="stat-sub">Learners joined via your link</div>
+            </div>
+
+            <!-- Successful Purchases -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Successful Purchases</span>
+                <span class="stat-icon-wrap"><i data-lucide="shopping-bag"></i></span>
+              </div>
+              <div class="stat-value" id="stat-successful-purchases">0</div>
+              <div class="stat-sub">Paid plans &amp; workbooks</div>
+            </div>
+
+            <!-- Total Coins Earned -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Coins Earned</span>
+                <span class="stat-icon-wrap"><i data-lucide="trending-up"></i></span>
+              </div>
+              <div class="stat-value" id="stat-total-earned">0</div>
+              <div class="stat-sub">Lifetime referral commission</div>
+            </div>
+
+            <!-- Total Coins Spent -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Coins Spent</span>
+                <span class="stat-icon-wrap"><i data-lucide="credit-card"></i></span>
+              </div>
+              <div class="stat-value" id="stat-total-spent">0</div>
+              <div class="stat-sub">Used for plan perks &amp; upgrades</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works-card">
+          <div class="refer-section-header">
+            <div class="header-with-icon">
+              <span class="section-icon"><i data-lucide="help-circle"></i></span>
+              <div>
+                <h2>How the Referral Program Works</h2>
+                <p>Earn rewards in three simple steps with complete privacy.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="steps-grid">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <h3>Invite Friends</h3>
+              <p>Copy your unique link and share it with friends preparing for Goethe-Zertifikat or telc exams (A1–B2).</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <h3>They Join</h3>
+              <p>When your friend creates an account, they are permanently attributed to your profile with zero manual setup.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <h3>Earn 10% in Coins</h3>
+              <p>Whenever your referred learner purchases an eligible plan, 10% commission is credited to your coin balance automatically.</p>
+            </div>
+          </div>
+
+          <div class="privacy-note">
+            <i data-lucide="shield-check"></i>
+            <span><strong>Privacy Notice:</strong> We never display names, email addresses, or personal learning data of your referred friends. Only aggregated counts and transaction coin amounts are shown.</span>
+          </div>
+        </section>
+
+        <!-- Referral & Coin Transaction History -->
+        <section class="refer-history-card">
+          <div class="refer-section-header">
+            <div class="header-with-icon">
+              <span class="section-icon"><i data-lucide="history"></i></span>
+              <div>
+                <h2>Referral &amp; Coin History</h2>
+                <p>Real-time record of your earned rewards and wallet transactions.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="transaction-history-container" class="transaction-history-list">
+            <!-- Dynamically populated by refer.js -->
+            <div class="empty-state">
+              <i data-lucide="clock"></i>
+              <h3>Loading activity...</h3>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-col brand-col">
+          <a class="logo" href="../index.html">
+            <img class="logo-mark" src="../public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+            <span>
+              <strong>Coco Germany</strong>
+              <small>Education &amp; Publishing</small>
+            </span>
+          </a>
+          <p>
+            Structured courses, advanced practice, Goethe &amp; telc exam preparation, and carefully developed learning resources designed for all German learners.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h3>Publishing &amp; Practice</h3>
+          <a href="../practice/index.html">Practice App</a>
+          <a href="../practice/index.html#mock-exams">Mock Exams</a>
+          <a href="../index.html#/resources">Resources &amp; Workbooks</a>
+          <a href="../index.html#/membership">Membership Plans</a>
+        </div>
+        <div class="footer-col">
+          <h3>Customer Hub</h3>
+          <a href="../account/index.html">Profile Settings</a>
+          <a href="../account/orders.html">My Orders</a>
+          <a href="../account/purchased.html">Purchased Resources</a>
+          <a href="index.html" class="active">Refer &amp; Earn</a>
+          <a href="../account/billing.html">Billing</a>
+          <a href="../account/help.html">Help &amp; Support</a>
+        </div>
+        <p class="footer-copyright">&copy; 2026 Coco Germany. Learn with clarity.</p>
+      </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav" aria-label="Mobile navigation">
+      <a href="../index.html"><i data-lucide="home"></i><span>Home</span></a>
+      <a href="../practice/index.html"><i data-lucide="pen-tool"></i><span>Practice App</span></a>
+      <a href="../index.html#/resources"><i data-lucide="book-open"></i><span>Resources</span></a>
+      <a class="active" href="../account/index.html" data-nav-account><i data-lucide="user"></i><span>Account</span></a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="refer.js"></script>
+  </body>
+</html>

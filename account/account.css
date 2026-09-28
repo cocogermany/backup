@@ -1462,7 +1462,7 @@ body.account-modal-open {
   }
 
   .account-tab:last-of-type {
-    grid-column: span 2 !important;
+    grid-column: auto !important;
   }
 
   .account-content-card {

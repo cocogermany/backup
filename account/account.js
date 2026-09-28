@@ -578,7 +578,27 @@ async function getFirebaseTools() {
   }
 }
 
+function captureIncomingReferral() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    let refCode = params.get("ref");
+    if (!refCode && window.location.hash.includes("?")) {
+      const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
+      refCode = hashParams.get("ref");
+    }
+    if (refCode) {
+      const clean = refCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+      if (clean) {
+        localStorage.setItem("coco_referral_code", clean);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not capture referral param in account.js:", e);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  captureIncomingReferral();
   initIcons();
   highlightActiveNavTab();
   initProfileForm(currentAccountUser);
@@ -662,6 +682,9 @@ function initMobileTabModal() {
 
   async function openTabInModal(tabEl) {
     if (!tabEl || !modal || !modalBody) return;
+    if (tabEl.matches("[data-refer-tab]") || (tabEl.getAttribute("href") || "").includes("refer")) {
+      return;
+    }
     const href = (tabEl.getAttribute("href") || "").split("/").pop() || "index.html";
     const tabName = tabEl.textContent.trim();
     const iconEl = tabEl.querySelector("i, svg");
@@ -768,9 +791,25 @@ function initMobileTabModal() {
 
   window.openTabInModalInstance = openTabInModal;
 
-  // Bind clicks on sub-navigation tabs (Smartphone & Tablet only)
+  // Bind clicks on sub-navigation tabs
   document.querySelectorAll(".account-tab").forEach((tab) => {
-    tab.addEventListener("click", (e) => {
+    tab.addEventListener("click", async (e) => {
+      // Refer & Earn must NOT be a modal like the other Account sections!
+      if (tab.matches("[data-refer-tab]") || (tab.getAttribute("href") || "").includes("refer")) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!authResolved) {
+          await authReadyPromise;
+        }
+        if (currentAccountUser) {
+          window.location.href = "../refer/index.html";
+        } else {
+          localStorage.setItem("loginRedirect", "refer/index.html");
+          window.location.href = "../index.html#/login";
+        }
+        return;
+      }
+
       // ONLY intercept on smartphone and tablet viewports (<= 1024px)
       if (window.innerWidth <= 1024) {
         e.preventDefault();
