@@ -3263,6 +3263,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
 
         const tokenPayload = await verifyFirebaseToken(idToken, env);
         if (!tokenPayload || !tokenPayload.sub) {
+          console.error("[Worker/referral/attribute] Token verification failed.");
           return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
         }
 
@@ -3270,38 +3271,52 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
         const body = await request.json().catch(() => ({}));
         const rawCode = String(body.referralCode || body.ref || "").trim().toUpperCase();
 
+        console.log(`[Worker/referral/attribute] referredUid=${referredUid} code=${rawCode}`);
+
         if (!rawCode) {
           return responseJSON({ error: "Bad Request: referralCode is required." }, 400, request);
         }
 
         // 1. Fetch current profile of the referred user
         let userProfile = await getFirestoreDoc("userProfiles", referredUid, env, idToken).catch(() => null);
+        console.log(`[Worker/referral/attribute] userProfile exists=${!!userProfile} referredBy=${userProfile?.referredBy || "none"}`);
 
         // 2. Prevent overwriting existing referral attribution
         if (userProfile && userProfile.referredBy) {
+          console.log(`[Worker/referral/attribute] Already attributed to ${userProfile.referredBy}, returning alreadyReferred.`);
           return responseJSON({
             success: false,
             alreadyReferred: true,
             message: "User already has an existing referral attribution.",
+            referrerUid: userProfile.referredBy,
           }, 200, request);
         }
 
-        // 3. Find referrer by referralCode
+        // 3. Find referrer by referralCode (query is exact-match, uppercase stored codes)
         const referrerResults = await queryFirestore("userProfiles", "referralCode", "EQUAL", rawCode, env, idToken).catch(() => []);
+        console.log(`[Worker/referral/attribute] Referrer query results count=${referrerResults?.length || 0} for code=${rawCode}`);
+
         if (!referrerResults || referrerResults.length === 0) {
-          return responseJSON({ error: "Invalid referral code: No matching referrer found." }, 404, request);
+          console.warn(`[Worker/referral/attribute] No referrer found for code: ${rawCode}`);
+          return responseJSON({ error: "Invalid referral code: No matching referrer found.", code: rawCode }, 404, request);
         }
 
         const referrer = referrerResults[0];
         const referrerUid = referrer.uid || referrer.id;
 
+        console.log(`[Worker/referral/attribute] Found referrer: uid=${referrerUid}`);
+
         // 4. Prevent self-referral
         if (referrerUid === referredUid) {
+          console.warn(`[Worker/referral/attribute] Self-referral blocked: uid=${referredUid}`);
           return responseJSON({ error: "Self-referrals are not permitted." }, 400, request);
         }
 
         // 5. Update userProfiles with referredBy
         const nowIso = new Date().toISOString();
+        const effectiveCountry = (userProfile?.country || body.country || "").trim();
+        const effectiveCurrency = (userProfile?.currency || body.currency || "INR").trim();
+
         await setFirestoreDoc(
           "userProfiles",
           referredUid,
@@ -3323,14 +3338,16 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             referrerUid,
             referredUid,
             referralCode: rawCode,
-            country: userProfile?.country || body.country || "",
-            currency: userProfile?.currency || body.currency || "",
+            country: effectiveCountry,
+            currency: effectiveCurrency,
             createdAt: nowIso,
           },
           env,
           idToken,
           true
         );
+
+        console.log(`[Worker/referral/attribute] SUCCESS: referralId=${referralId} referrerUid=${referrerUid} referredUid=${referredUid}`);
 
         return responseJSON(
           {

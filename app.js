@@ -839,14 +839,16 @@ async function processPendingReferralAttribution(user, profile, tools) {
   const pendingRef = localStorage.getItem("coco_referral_code");
   if (!pendingRef || !user) return;
 
-  // 1. If the user already has a referral attribution, do not overwrite it
+  // 1. If the user already has a referral attribution, clear pending and stop
   if (profile && profile.referredBy) {
+    console.log("[Referral] User already attributed to referrer:", profile.referredBy);
     localStorage.removeItem("coco_referral_code");
     return;
   }
 
-  // 2. Prevent self-referrals if code matches own referralCode
+  // 2. Prevent self-referrals
   if (profile && profile.referralCode && profile.referralCode.toUpperCase() === pendingRef.toUpperCase()) {
+    console.warn("[Referral] Self-referral detected, discarding code:", pendingRef);
     localStorage.removeItem("coco_referral_code");
     return;
   }
@@ -855,9 +857,11 @@ async function processPendingReferralAttribution(user, profile, tools) {
   const currency = profile?.currency || localStorage.getItem("coco_user_currency") || "INR";
   let attributed = false;
 
-  // Attempt 1: Call Cloudflare Worker endpoint
+  console.log("[Referral] Attempting attribution with code:", pendingRef, "country:", country, "currency:", currency);
+
+  // Attempt 1: Call Cloudflare Worker endpoint (preferred – uses Service Account auth)
   try {
-    const idToken = await user.getIdToken();
+    const idToken = await user.getIdToken(true);
     const res = await fetch(`${R2_WORKER_URL}/referral/attribute`, {
       method: "POST",
       headers: {
@@ -871,37 +875,51 @@ async function processPendingReferralAttribution(user, profile, tools) {
       }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.success) {
+    const responseText = await res.text();
+    let data = null;
+    try { data = JSON.parse(responseText); } catch (e) {}
+
+    console.log("[Referral] Worker response:", res.status, responseText.slice(0, 200));
+
+    if (res.ok && data) {
+      if (data.success) {
         attributed = true;
         if (profile && data.referrerUid) {
           profile.referredBy = data.referrerUid;
         }
-      } else if (data && data.alreadyReferred) {
+        console.log("[Referral] Attribution successful via Worker. Referrer:", data.referrerUid);
+      } else if (data.alreadyReferred) {
         attributed = true;
+        console.log("[Referral] Already referred, clearing pending code.");
+      } else {
+        console.warn("[Referral] Worker attribution declined:", data.error || data.message);
       }
+    } else {
+      console.warn("[Referral] Worker attribution failed with status:", res.status, responseText.slice(0, 200));
     }
   } catch (err) {
-    console.warn("Worker referral attribution warning:", err);
+    console.warn("[Referral] Worker attribution network error:", err.message || err);
   }
 
-  // Attempt 2: Direct Firestore fallback if worker call didn't attribute
+  // Attempt 2: Direct Firestore client SDK fallback (if Worker failed)
   if (!attributed && tools && tools.firestoreModule && tools.db) {
+    console.log("[Referral] Trying Firestore client-side attribution fallback...");
     try {
       const refQuery = tools.firestoreModule.query(
         tools.firestoreModule.collection(tools.db, "userProfiles"),
         tools.firestoreModule.where("referralCode", "==", pendingRef)
       );
       const querySnap = await tools.firestoreModule.getDocs(refQuery);
+      console.log("[Referral] Firestore query found", querySnap.size, "results for code:", pendingRef);
+
       if (!querySnap.empty) {
         const referrerDoc = querySnap.docs[0];
         const referrerUid = referrerDoc.id;
 
-        // Prevent self-referral
         if (referrerUid !== user.uid) {
           const now = tools.firestoreModule.serverTimestamp();
           const referralId = `${referrerUid}_${user.uid}`;
+
           await tools.firestoreModule.setDoc(
             tools.firestoreModule.doc(tools.db, "referrals", referralId),
             {
@@ -928,16 +946,25 @@ async function processPendingReferralAttribution(user, profile, tools) {
             profile.referredBy = referrerUid;
           }
           attributed = true;
+          console.log("[Referral] Attribution successful via Firestore fallback. Referrer:", referrerUid);
         } else {
-          attributed = true; // Self-referral, skip
+          attributed = true;
+          console.warn("[Referral] Self-referral blocked in Firestore fallback.");
         }
+      } else {
+        console.warn("[Referral] Firestore fallback: no referrer found for code:", pendingRef);
       }
     } catch (fsErr) {
-      console.warn("Direct Firestore referral attribution warning:", fsErr);
+      console.warn("[Referral] Firestore fallback error:", fsErr.message || fsErr);
     }
   }
 
-  localStorage.removeItem("coco_referral_code");
+  if (attributed) {
+    localStorage.removeItem("coco_referral_code");
+    console.log("[Referral] Cleared pending referral code from localStorage.");
+  } else {
+    console.warn("[Referral] Attribution failed for code:", pendingRef, "— code kept in localStorage for retry on next login.");
+  }
 }
 
 async function ensureUserProfile(user, provider = "firebase") {

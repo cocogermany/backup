@@ -129,6 +129,41 @@ async function saveProfilePreferences(event) {
       }
     }
 
+    // 3. Retry referral attribution now that country/currency are known
+    // This handles new users who completed profile-setup after registration
+    const pendingReferralCode = localStorage.getItem("coco_referral_code");
+    if (pendingReferralCode && currentUser && !currentUserProfile?.referredBy) {
+      try {
+        const idToken = await tools.auth.currentUser.getIdToken(true);
+        const workerBase = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+        const refRes = await fetch(`${workerBase}/referral/attribute`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            referralCode: pendingReferralCode,
+            country,
+            currency,
+          }),
+        });
+        const refText = await refRes.text();
+        let refData = null;
+        try { refData = JSON.parse(refText); } catch (e) {}
+        console.log("[Referral] Profile-setup attribution response:", refRes.status, refText.slice(0, 200));
+        if (refData && (refData.success || refData.alreadyReferred)) {
+          localStorage.removeItem("coco_referral_code");
+          if (refData.referrerUid && currentUserProfile) {
+            currentUserProfile.referredBy = refData.referrerUid;
+          }
+          console.log("[Referral] Attribution confirmed during profile-setup.");
+        }
+      } catch (refErr) {
+        console.warn("[Referral] Profile-setup attribution warning:", refErr.message || refErr);
+      }
+    }
+
     if (window.CocoStateSync && typeof window.CocoStateSync.notifyTargetChanged === "function") {
       window.CocoStateSync.notifyTargetChanged(level, format);
     } else {
