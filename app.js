@@ -24,11 +24,27 @@ let R2_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
 
 function captureIncomingReferral() {
   try {
-    const searchParams = new URLSearchParams(window.location.search);
-    let ref = searchParams.get("ref");
-    if (!ref && window.location.hash.includes("?")) {
-      const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
-      ref = hashParams.get("ref");
+    let ref = null;
+    // 1. Check window.location.search (?ref=CODE)
+    if (window.location.search) {
+      const searchParams = new URLSearchParams(window.location.search);
+      ref = searchParams.get("ref");
+    }
+    // 2. Check window.location.hash (e.g. #/login?ref=CODE or #/?ref=CODE)
+    if (!ref && window.location.hash) {
+      const hash = window.location.hash;
+      const qIndex = hash.indexOf("?");
+      if (qIndex !== -1) {
+        const hashParams = new URLSearchParams(hash.slice(qIndex + 1));
+        ref = hashParams.get("ref");
+      }
+    }
+    // 3. Fallback: regex search in full href in case of non-standard hash query positioning
+    if (!ref && window.location.href) {
+      const match = window.location.href.match(/[?&]ref=([a-zA-Z0-9_-]+)/i);
+      if (match) {
+        ref = match[1];
+      }
     }
     if (ref) {
       const clean = ref.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -41,6 +57,7 @@ function captureIncomingReferral() {
   }
 }
 captureIncomingReferral();
+window.addEventListener("hashchange", captureIncomingReferral);
 
 window.__setCurrentUserForTesting = (user, profile) => {
   currentUser = user;
@@ -750,6 +767,179 @@ function analyticsTimestampLabel(record) {
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Not available";
 }
 
+function generateReferralCode() {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 characters, no ambiguous 0, O, 1, I
+  let code = "COCO";
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+async function ensureUserReferralCode(user, profile, tools) {
+  if (!user || !profile || !tools || !tools.firestoreModule || !tools.db) return;
+  if (profile.referralCode) return;
+
+  try {
+    let newCode = "";
+    let isUnique = false;
+    let attempts = 0;
+    while (!isUnique && attempts < 5) {
+      newCode = generateReferralCode();
+      const codeQuery = tools.firestoreModule.query(
+        tools.firestoreModule.collection(tools.db, "userProfiles"),
+        tools.firestoreModule.where("referralCode", "==", newCode)
+      );
+      const snap = await tools.firestoreModule.getDocs(codeQuery);
+      if (snap.empty) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!newCode) newCode = "COCO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    const now = tools.firestoreModule.serverTimestamp();
+    const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", user.uid);
+    await tools.firestoreModule.setDoc(
+      profileRef,
+      {
+        referralCode: newCode,
+        referralCreatedAt: now,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    profile.referralCode = newCode;
+    profile.referralCreatedAt = new Date().toISOString();
+
+    // Ensure referralWallets document exists (Requirement 8)
+    const walletRef = tools.firestoreModule.doc(tools.db, "referralWallets", user.uid);
+    const walletSnap = await tools.firestoreModule.getDoc(walletRef);
+    if (!walletSnap.exists()) {
+      await tools.firestoreModule.setDoc(
+        walletRef,
+        {
+          coinBalance: 0,
+          totalEarned: 0,
+          totalSpent: 0,
+          transactions: [],
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+    }
+  } catch (err) {
+    console.warn("Could not ensure referral code or wallet for user:", err);
+  }
+}
+
+async function processPendingReferralAttribution(user, profile, tools) {
+  const pendingRef = localStorage.getItem("coco_referral_code");
+  if (!pendingRef || !user) return;
+
+  // 1. If the user already has a referral attribution, do not overwrite it
+  if (profile && profile.referredBy) {
+    localStorage.removeItem("coco_referral_code");
+    return;
+  }
+
+  // 2. Prevent self-referrals if code matches own referralCode
+  if (profile && profile.referralCode && profile.referralCode.toUpperCase() === pendingRef.toUpperCase()) {
+    localStorage.removeItem("coco_referral_code");
+    return;
+  }
+
+  const country = profile?.country || localStorage.getItem("coco_user_country") || "";
+  const currency = profile?.currency || localStorage.getItem("coco_user_currency") || "INR";
+  let attributed = false;
+
+  // Attempt 1: Call Cloudflare Worker endpoint
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch(`${R2_WORKER_URL}/referral/attribute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        referralCode: pendingRef,
+        country,
+        currency,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        attributed = true;
+        if (profile && data.referrerUid) {
+          profile.referredBy = data.referrerUid;
+        }
+      } else if (data && data.alreadyReferred) {
+        attributed = true;
+      }
+    }
+  } catch (err) {
+    console.warn("Worker referral attribution warning:", err);
+  }
+
+  // Attempt 2: Direct Firestore fallback if worker call didn't attribute
+  if (!attributed && tools && tools.firestoreModule && tools.db) {
+    try {
+      const refQuery = tools.firestoreModule.query(
+        tools.firestoreModule.collection(tools.db, "userProfiles"),
+        tools.firestoreModule.where("referralCode", "==", pendingRef)
+      );
+      const querySnap = await tools.firestoreModule.getDocs(refQuery);
+      if (!querySnap.empty) {
+        const referrerDoc = querySnap.docs[0];
+        const referrerUid = referrerDoc.id;
+
+        // Prevent self-referral
+        if (referrerUid !== user.uid) {
+          const now = tools.firestoreModule.serverTimestamp();
+          const referralId = `${referrerUid}_${user.uid}`;
+          await tools.firestoreModule.setDoc(
+            tools.firestoreModule.doc(tools.db, "referrals", referralId),
+            {
+              referrerUid,
+              referredUid: user.uid,
+              referralCode: pendingRef,
+              country,
+              currency,
+              createdAt: now,
+            },
+            { merge: true }
+          );
+
+          await tools.firestoreModule.setDoc(
+            tools.firestoreModule.doc(tools.db, "userProfiles", user.uid),
+            {
+              referredBy: referrerUid,
+              updatedAt: now,
+            },
+            { merge: true }
+          );
+
+          if (profile) {
+            profile.referredBy = referrerUid;
+          }
+          attributed = true;
+        } else {
+          attributed = true; // Self-referral, skip
+        }
+      }
+    } catch (fsErr) {
+      console.warn("Direct Firestore referral attribution warning:", fsErr);
+    }
+  }
+
+  localStorage.removeItem("coco_referral_code");
+}
+
 async function ensureUserProfile(user, provider = "firebase") {
   if (!user) {
     currentUserProfile = null;
@@ -768,51 +958,6 @@ async function ensureUserProfile(user, provider = "firebase") {
     provider,
   };
 
-async function processPendingReferralAttribution(user, profile) {
-  const pendingRef = localStorage.getItem("coco_referral_code");
-  if (!pendingRef || !user) return;
-
-  // If the user already has a referral attribution, do not overwrite it with another referral
-  if (profile && profile.referredBy) {
-    localStorage.removeItem("coco_referral_code");
-    return;
-  }
-
-  // Prevent self-referrals
-  if (profile && profile.referralCode && profile.referralCode.toUpperCase() === pendingRef.toUpperCase()) {
-    localStorage.removeItem("coco_referral_code");
-    return;
-  }
-
-  try {
-    const idToken = await user.getIdToken();
-    const res = await fetch(`${R2_WORKER_URL}/referral/attribute`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        referralCode: pendingRef,
-        country: profile?.country || localStorage.getItem("coco_user_country") || "",
-        currency: profile?.currency || localStorage.getItem("coco_user_currency") || "INR",
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.success) {
-        localStorage.removeItem("coco_referral_code");
-        if (profile && data.referrerUid) {
-          profile.referredBy = data.referrerUid;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Worker referral attribution warning:", err);
-  }
-}
-
   if (snapshot.exists()) {
     currentUserProfile = { ...baseProfile, ...snapshot.data() };
     if (!snapshot.data().email) {
@@ -822,7 +967,8 @@ async function processPendingReferralAttribution(user, profile) {
         { merge: true },
       );
     }
-    await processPendingReferralAttribution(user, currentUserProfile);
+    await ensureUserReferralCode(user, currentUserProfile, tools);
+    await processPendingReferralAttribution(user, currentUserProfile, tools);
     return currentUserProfile;
   }
 
@@ -837,7 +983,8 @@ async function processPendingReferralAttribution(user, profile) {
     updatedAt: tools.firestoreModule.serverTimestamp(),
   });
 
-  await processPendingReferralAttribution(user, currentUserProfile);
+  await ensureUserReferralCode(user, currentUserProfile, tools);
+  await processPendingReferralAttribution(user, currentUserProfile, tools);
   return currentUserProfile;
 }
 
@@ -2907,40 +3054,15 @@ function renderAdminProduct(product) {
   `;
 }
 
-async function triggerReferralProcessing(orderId, newStatus) {
-  if (!orderId || !currentUser) return;
-  try {
-    const idToken = await currentUser.getIdToken();
-    await fetch(`${R2_WORKER_URL}/referral/process-order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        orderId,
-        status: newStatus,
-      }),
-    });
-  } catch (err) {
-    console.warn("Referral order processing ping warning:", err);
-  }
-}
-
 async function updateOrderStatus(event) {
   const tools = await getFirebaseTools();
   const orderId = event.currentTarget.dataset.orderStatus;
-  const newStatus = event.currentTarget.value;
 
   try {
     await tools.firestoreModule.updateDoc(tools.firestoreModule.doc(tools.db, "orders", orderId), {
-      status: newStatus,
+      status: event.currentTarget.value,
       updatedAt: tools.firestoreModule.serverTimestamp(),
     });
-
-    // Trigger referral processing in background, strictly isolated from order update
-    triggerReferralProcessing(orderId, newStatus).catch((err) => console.warn("Referral processing error:", err));
-
     await loadOrders();
     if (location.hash.includes("#/admin/orders/")) {
       renderAdminOrderDetail(orderId);

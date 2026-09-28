@@ -29,11 +29,27 @@ function initIcons() {
  */
 function captureIncomingReferral() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    let refCode = params.get("ref");
-    if (!refCode && window.location.hash.includes("?")) {
-      const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
-      refCode = hashParams.get("ref");
+    let refCode = null;
+    // 1. Check window.location.search (?ref=CODE)
+    if (window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      refCode = params.get("ref");
+    }
+    // 2. Check window.location.hash (e.g. #/login?ref=CODE or #/?ref=CODE)
+    if (!refCode && window.location.hash) {
+      const hash = window.location.hash;
+      const qIndex = hash.indexOf("?");
+      if (qIndex !== -1) {
+        const hashParams = new URLSearchParams(hash.slice(qIndex + 1));
+        refCode = hashParams.get("ref");
+      }
+    }
+    // 3. Fallback: regex search in full href in case of non-standard hash query positioning
+    if (!refCode && window.location.href) {
+      const match = window.location.href.match(/[?&]ref=([a-zA-Z0-9_-]+)/i);
+      if (match) {
+        refCode = match[1];
+      }
     }
     if (refCode) {
       const clean = refCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -42,9 +58,10 @@ function captureIncomingReferral() {
       }
     }
   } catch (e) {
-    console.warn("Could not capture referral param:", e);
+    console.warn("Could not capture referral param in refer.js:", e);
   }
 }
+window.addEventListener("hashchange", captureIncomingReferral);
 
 /**
  * Dynamic import of Firebase SDK modules (modular v10)
@@ -75,13 +92,13 @@ async function getFirebaseTools() {
 }
 
 /**
- * Construct dynamic referral link using current deployment host & path
+ * Construct dynamic referral link using current deployment host & path pointing to normal login page
  */
 function buildReferralLink(referralCode) {
   const origin = window.location.origin;
   // Strip trailing '/refer' or '/refer/index.html' from pathname to find site base
   const cleanBase = window.location.pathname.replace(/\/refer(\/.*)?$/, "");
-  return `${origin}${cleanBase}/index.html#/membership?ref=${encodeURIComponent(referralCode)}`;
+  return `${origin}${cleanBase}/index.html#/login?ref=${encodeURIComponent(referralCode)}`;
 }
 
 /**

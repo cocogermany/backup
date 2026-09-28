@@ -3229,9 +3229,9 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
         const transactions = Array.isArray(wallet.transactions) ? wallet.transactions : [];
         const successfulPurchases = transactions.filter((tx) => tx && tx.type === "referral_reward").length;
 
-        // Dynamic referral link using incoming origin or request origin
+        // Dynamic referral link using incoming origin or request origin pointing to normal login page
         const reqOrigin = (request.headers.get("Origin") || url.origin || "https://www.cocogermany.site").replace(/\/$/, "");
-        const referralLink = `${reqOrigin}/index.html#/membership?ref=${referralCode}`;
+        const referralLink = `${reqOrigin}/index.html#/login?ref=${referralCode}`;
 
         return responseJSON(
           {
