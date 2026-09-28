@@ -960,6 +960,211 @@ body.mock-player-mode #app-viewport {
   gap: 10px;
 }
 
+/* SCHREIBEN WORKSPACE HELPERS */
+.mock-umlauts-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.mock-umlaut-btn {
+  padding: 5px 12px;
+  background: var(--paper, #f5f3f0);
+  border: 1px solid var(--line, #e7e5e4);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink, #1c1917);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mock-umlaut-btn:hover {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #92400e;
+}
+
+.mock-word-pill-warn {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+.mock-word-pill-error {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+}
+
+.mock-schreiben-footnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--muted, #78716c);
+  margin-top: 10px;
+}
+
+.mock-schreiben-error-banner {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* SCHREIBEN CEFR REVIEW COMPONENTS */
+.mock-rubric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mock-rubric-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.mock-rubric-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.mock-rubric-card-score {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mock-tf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mock-tf-item {
+  background: #ffffff;
+  border: 1px solid var(--line, #e7e5e4);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.mock-tf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mock-tf-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.mock-tf-badge.status-fulfilled {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.mock-tf-badge.status-partial {
+  background: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fde047;
+}
+
+.mock-tf-badge.status-missing {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.mock-mistakes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mock-mistake-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #e7e5e4);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.mock-mistake-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.mock-mistake-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.mock-mistake-pill.grammar {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mock-mistake-pill.vocab {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.mock-badge-orig {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.mock-badge-corr {
+  background: #dcfce7;
+  color: #166534;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.mock-arrow {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.mock-mistake-exp {
+  font-size: 0.84rem;
+  color: #475569;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .mock-cbt-header {
@@ -982,5 +1187,41 @@ body.mock-player-mode #app-viewport {
   .mock-cert-meta-row {
     flex-direction: column;
     gap: 8px;
+  }
+  .mock-rubric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .mock-cbt-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mock-header-left {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+  .mock-header-center {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .mock-header-right {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .mock-rubric-grid {
+    grid-template-columns: 1fr;
+  }
+  .mock-review-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .mock-review-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }

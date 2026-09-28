@@ -1315,7 +1315,7 @@
         this.closeMockExamModal();
         const msg = (checkRes && checkRes.message)
           ? checkRes.message
-          : "⚡ You've reached your weekly Mock Exam limit. Upgrade your plan to continue.";
+          : "⚡ You have no Mock Exam credits remaining. Upgrade your plan to continue.";
         this.showToast(msg, "warning", 4500);
 
         const creditsModal = document.getElementById("credits-detail-modal");
@@ -1330,6 +1330,10 @@
       }
 
       this.closeMockExamModal();
+
+      // Clear any prior finished session and authorize fresh exam launch
+      localStorage.removeItem("coco_active_mock_exam");
+      sessionStorage.setItem("coco_mock_authorized", Date.now().toString());
 
       // Enter dedicated Mock Exam Player
       window.location.hash = `#mock-player?id=${encodeURIComponent(targetId)}`;

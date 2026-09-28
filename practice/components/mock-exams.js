@@ -519,7 +519,9 @@ window.MockExamsComponent = {
         completed_at: new Date().toISOString()
       };
 
-      await supabase.from("mock_attempts").insert([payload]);
+      if (window.SupabaseService && typeof window.SupabaseService.saveMockAttempt === "function") {
+        await window.SupabaseService.saveMockAttempt(payload);
+      }
       if (window.CocoStateSync) {
         window.CocoStateSync.notifyAttemptCompleted({ type: "mock", level, format, scorePercent });
       }

@@ -11,9 +11,11 @@
  * - Displays "You have solved all available materials for this Teil." with Skip button when all solved
  * - Sequential CBT Flow: Teil -> Result/Corrections -> Next Teil -> ... -> Final Mock Report
  * - Per-Teil independent countdown timers with auto-submission on expiration
+ * - Dedicated Mock Schreiben Player sub-flow with full CEFR evaluation and corrections
+ * - Consumes 1 Mock Exam credit at exam start; 1 normal Schreiben credit upon writing evaluation
  * - Saves each completed Teil attempt to practice_attempts
- * - Saves final aggregated exam results to mock_attempts
- * - Zero daily practice credit deduction inside player (handled by weekly mock exam credit)
+ * - Saves final aggregated exam results to mock_attempts via saveMockAttemptSupabase()
+ * - Responsive UI across mobile, tablet, and desktop with zero horizontal overflow
  */
 
 window.MockPlayerComponent = {
@@ -31,7 +33,7 @@ window.MockPlayerComponent = {
     const structure = [];
 
     if (fmt === "goethe") {
-      // Goethe Lesen
+      // Goethe Lesen: A1: T1-T3, A2: T1-T4, B1/B2: T1-T5
       let lesenTeile = 3;
       if (lvl === "A2") lesenTeile = 4;
       else if (lvl === "B1" || lvl === "B2") lesenTeile = 5;
@@ -43,15 +45,15 @@ window.MockPlayerComponent = {
       // Goethe Grammatik: optional/random (offered if material exists)
       structure.push({ module: "Grammatik", teil: null, teilNum: null, isRandomApplicable: true, optional: true, mandatory: false });
 
-      // Goethe Hören
+      // Goethe Hören: A1: T1-T3, A2/B1/B2: T1-T4
       let hoerenTeile = 3;
       if (lvl === "A2" || lvl === "B1" || lvl === "B2") hoerenTeile = 4;
       for (let i = 1; i <= hoerenTeile; i++) {
         structure.push({ module: "Hören", teil: `Teil ${i}`, teilNum: i, mandatory: true });
       }
 
-      // Goethe Schreiben: exactly one random applicable Teil
-      structure.push({ module: "Schreiben", teil: "Teil 1", teilNum: 1, isRandomApplicable: true, mandatory: true });
+      // Goethe Schreiben: specifically Teil 1
+      structure.push({ module: "Schreiben", teil: "Teil 1", teilNum: 1, isRandomApplicable: false, mandatory: true });
 
     } else {
       // Telc Lesen: T1-T3 for all levels
@@ -74,8 +76,8 @@ window.MockPlayerComponent = {
         structure.push({ module: "Hören", teil: `Teil ${i}`, teilNum: i, mandatory: true });
       }
 
-      // Telc Schreiben: exactly one random applicable Teil
-      structure.push({ module: "Schreiben", teil: "Teil 1", teilNum: 1, isRandomApplicable: true, mandatory: true });
+      // Telc Schreiben: specifically Teil 1
+      structure.push({ module: "Schreiben", teil: "Teil 1", teilNum: 1, isRandomApplicable: false, mandatory: true });
     }
 
     return structure;
@@ -153,10 +155,26 @@ window.MockPlayerComponent = {
         return mMod === modLower;
       });
 
-      // Filter by Teil
+      // Filter candidate materials by Teil
       let candidateMaterials = [];
-      if (stepDef.isRandomApplicable) {
-        // Applicable for any Teil in this module
+      if (stepDef.module === "Schreiben") {
+        // Schreiben Teil 1 candidate selection
+        candidateMaterials = moduleMaterials.filter(m => {
+          const rawTeil = String(m.teil || "").toLowerCase();
+          const matchNum = rawTeil.match(/\d+/);
+          if (matchNum && parseInt(matchNum[0], 10) === 1) return true;
+
+          const matchTitle = String(m.title || "").toLowerCase().match(/teil\s*(\d+)/);
+          if (matchTitle && parseInt(matchTitle[1], 10) === 1) return true;
+
+          const matchId = String(m.id || "").toLowerCase().match(/t(\d+)/);
+          if (matchId && parseInt(matchId[1], 10) === 1) return true;
+
+          if (!m.teil) return true;
+          return false;
+        });
+      } else if (stepDef.isRandomApplicable) {
+        // Applicable for any Teil in this module (e.g. optional Grammatik)
         candidateMaterials = moduleMaterials;
       } else if (stepDef.teilNum) {
         candidateMaterials = moduleMaterials.filter(m => {
@@ -170,38 +188,33 @@ window.MockPlayerComponent = {
           const matchId = String(m.id || "").toLowerCase().match(/t(\d+)/);
           if (matchId && parseInt(matchId[1], 10) === stepDef.teilNum) return true;
 
-          // If no teil specified and only 1 material exists for this module, match Teil 1
           if (!m.teil && stepDef.teilNum === 1 && moduleMaterials.length === 1) return true;
-
           return false;
         });
+      }
+
+      // Optional Grammatik check: if no material exists, omit step cleanly
+      if (stepDef.optional && candidateMaterials.length === 0) {
+        continue;
       }
 
       // Check unused vs completed materials
       const unusedMaterials = candidateMaterials.filter(m => !solvedMaterialIds.has(String(m.id)));
       const completedMaterials = candidateMaterials.filter(m => solvedMaterialIds.has(String(m.id)));
 
-      // Optional Grammatik check:
-      // "If suitable Grammatik material exists, offer/load it according to the configured logic. If unavailable, skip it."
-      if (stepDef.optional && candidateMaterials.length === 0) {
-        continue;
-      }
-
       let chosenMaterial = null;
       let isSolvedAll = false;
       let isMissingDb = false;
 
       if (unusedMaterials.length > 0) {
-        if (stepDef.isRandomApplicable) {
+        if (stepDef.isRandomApplicable || stepDef.module === "Schreiben") {
           chosenMaterial = unusedMaterials[Math.floor(Math.random() * unusedMaterials.length)];
         } else {
           chosenMaterial = unusedMaterials[0]; // default ordering: material_number ASC
         }
       } else if (completedMaterials.length > 0) {
-        // All materials for this Teil have already been solved by this user
         isSolvedAll = true;
       } else {
-        // No material in database for this required Teil
         isMissingDb = true;
       }
 
@@ -261,7 +274,7 @@ window.MockPlayerComponent = {
     const rawFormat = (appState?.currentFormat || localStorage.getItem("coco_practice_format") || "goethe").toLowerCase();
     const format = rawFormat.includes("telc") ? "telc" : "goethe";
 
-    // Check if an ongoing exam session exists in localStorage
+    // 1. Check if an ongoing exam session exists in localStorage
     let existingExam = null;
     try {
       const saved = localStorage.getItem("coco_active_mock_exam");
@@ -281,7 +294,18 @@ window.MockPlayerComponent = {
       return;
     }
 
-    // Build fresh exam
+    // 2. Authorization guard: ensure exam was launched via startMockExamConfirmed()
+    const isAuthorized = sessionStorage.getItem("coco_mock_authorized");
+    if (!isAuthorized) {
+      if (window.PracticeApp) {
+        window.PracticeApp.showToast("Please launch your Mock Examination from the Mock Exams Hub.", "info", 3500);
+      }
+      window.location.hash = "#mock-exams";
+      return;
+    }
+    sessionStorage.removeItem("coco_mock_authorized");
+
+    // 3. Build fresh exam steps
     try {
       const steps = await this.resolveMaterialsForExam(format, level, uid);
       if (!steps || steps.length === 0) {
@@ -400,7 +424,6 @@ window.MockPlayerComponent = {
 
     } catch (loadErr) {
       console.error("MockPlayer: Content load failed for step:", step, loadErr);
-      // Allow user to skip this Teil if content fetch failed
       step.isSkipped = true;
       step.skipReason = "Could not load content for this Teil. You may skip it without failing the exam.";
       this.renderSkippedStepView(step, stepIndex, totalSteps);
@@ -416,7 +439,7 @@ window.MockPlayerComponent = {
       return durMin * 60;
     }
 
-    // Official standard module fallbacks
+    // Standard module fallbacks
     const mod = String(material.module || "").toLowerCase();
     if (mod.includes("schreiben")) return 15 * 60; // 15 mins for Teil 1
     if (mod.includes("h")) return 12 * 60; // 12 mins
@@ -502,7 +525,6 @@ window.MockPlayerComponent = {
     const formatLabel = this.activeExam.format.toUpperCase();
     const level = this.activeExam.level;
     const material = step.loadedContent;
-    const isSchreiben = step.module === "Schreiben";
 
     root.innerHTML = `
       <header class="mock-cbt-header">
@@ -623,39 +645,67 @@ window.MockPlayerComponent = {
     }
 
     if (mod === "Schreiben") {
-      const task = material.task || material.prompt || {};
-      const situation = task.situation || task.context || material.description || "Writing task simulation.";
-      const taskText = task.aufgabe || task.instructions || task.task || "Schreiben Sie Ihren Text:";
-      const points = Array.isArray(task.leitpunkte || task.points || material.points)
-        ? (task.leitpunkte || task.points || material.points)
-        : [];
+      const taskDetails = this.extractTaskDetails(material);
+      const wordLimits = this.getWordLimits(material);
+      const minWords = wordLimits.minimum;
+      const maxWords = wordLimits.maximum;
 
       return `
         <div class="mock-schreiben-container">
+          <!-- Task Prompt Card -->
           <div class="mock-prompt-card">
-            <span class="mock-prompt-badge">${step.teil}</span>
+            <span class="mock-prompt-badge">${this.escapeHtml(step.teil)}</span>
             <h2 class="mock-prompt-title">${this.escapeHtml(material.title || "Schreibaufgabe")}</h2>
-            <div class="mock-prompt-situation">${this.escapeHtml(situation)}</div>
-            <p style="font-weight:600; font-size:0.92rem; color:var(--ink); margin-bottom:8px;">${this.escapeHtml(taskText)}</p>
-            ${points.length > 0 ? `
-              <div class="mock-prompt-points-title">Behandeln Sie folgende Punkte:</div>
+            
+            ${taskDetails.situation ? `
+              <div class="mock-prompt-situation">${this.sanitizeRichText(taskDetails.situation)}</div>
+            ` : ""}
+            
+            <p style="font-weight:600; font-size:0.92rem; color:var(--ink); margin-bottom:8px;">${this.sanitizeRichText(taskDetails.aufgabe)}</p>
+            
+            ${taskDetails.points.length > 0 ? `
+              <div class="mock-prompt-points-title">Leitpunkte:</div>
               <ul class="mock-prompt-points">
-                ${points.map(pt => `<li>${this.escapeHtml(pt)}</li>`).join("")}
+                ${taskDetails.points.map(pt => `<li>${this.escapeHtml(pt)}</li>`).join("")}
               </ul>
             ` : ""}
           </div>
 
+          <!-- Student Input Card -->
           <div class="mock-editor-card">
             <div class="mock-editor-header">
-              <span class="mock-editor-title">Ihr Text (Your Response)</span>
-              <span class="mock-word-counter" id="mock-word-counter">0 Wörter</span>
+              <span class="mock-editor-title">Ihr Text (Your German Writing):</span>
+              <div id="mock-schreiben-word-pill" class="mock-word-counter">
+                0 / ${maxWords} words
+              </div>
             </div>
+
+            <!-- German Special Characters Toolbar -->
+            <div class="mock-umlauts-row">
+              <span style="font-size:0.75rem; color:var(--muted); font-weight:600; margin-right:4px;">Umlaute:</span>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('ä')">ä</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('ö')">ö</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('ü')">ü</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('ß')">ß</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('Ä')">Ä</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('Ö')">Ö</button>
+              <button type="button" class="mock-umlaut-btn" onclick="window.MockPlayerComponent.insertSpecialChar('Ü')">Ü</button>
+            </div>
+
             <textarea
               class="mock-textarea"
               id="mock-student-text"
-              placeholder="Beginnen Sie hier mit Ihrem Text..."
+              placeholder="Schreiben Sie hier Ihren Text... (${minWords ? `Richtwert: ${minWords}–${maxWords} Wörter` : `Maximal ${maxWords} Wörter`})"
               spellcheck="false"
-            ></textarea>
+              rows="12"
+            >${this.escapeHtml(step.studentText || "")}</textarea>
+
+            <div id="mock-schreiben-error-banner" class="mock-schreiben-error-banner" style="display:none;"></div>
+
+            <div class="mock-schreiben-footnote">
+              <i data-lucide="info" style="width:14px;height:14px; color:#64748b;"></i>
+              <span>${minWords ? `Guideline: ${minWords}–${maxWords} words` : `Maximum ${maxWords} words`} · Consumes 1 weekly Schreiben credit upon evaluation</span>
+            </div>
           </div>
         </div>
       `;
@@ -734,7 +784,6 @@ window.MockPlayerComponent = {
           const val = e.target.getAttribute("data-val");
           step.userAnswers[qId] = val;
 
-          // Highlight selected label
           const parentList = e.target.closest(".mock-options-list");
           if (parentList) {
             parentList.querySelectorAll(".mock-option-label").forEach(l => l.classList.remove("selected"));
@@ -747,17 +796,57 @@ window.MockPlayerComponent = {
 
     if (mod === "Schreiben") {
       const textarea = document.getElementById("mock-student-text");
-      const counterEl = document.getElementById("mock-word-counter");
+      const pill = document.getElementById("mock-schreiben-word-pill");
+      const errorBanner = document.getElementById("mock-schreiben-error-banner");
+      const submitBtn = document.getElementById("mock-submit-btn");
 
-      if (textarea && counterEl) {
-        textarea.addEventListener("input", (e) => {
-          const text = e.target.value;
+      if (textarea) {
+        const onInput = () => {
+          const text = textarea.value || "";
           step.studentText = text;
-          const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-          counterEl.textContent = `${words} Wörter`;
-          if (words >= 30) counterEl.classList.add("target-met");
-          else counterEl.classList.remove("target-met");
-        });
+          const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean) : [];
+          const count = words.length;
+
+          const wordLimits = this.getWordLimits(step.loadedContent);
+          const maxWords = wordLimits.maximum;
+          const minWords = wordLimits.minimum;
+          const warnThreshold = Math.floor(maxWords * 0.9);
+
+          if (pill) {
+            if (count > maxWords) {
+              pill.innerHTML = `<span style="color:#b91c1c;">${count} / ${maxWords} words (Limit exceeded)</span>`;
+              pill.className = "mock-word-counter mock-word-pill-error";
+            } else {
+              if (count >= warnThreshold) {
+                pill.className = "mock-word-counter mock-word-pill-warn";
+              } else if (minWords && count >= minWords) {
+                pill.className = "mock-word-counter target-met";
+              } else {
+                pill.className = "mock-word-counter";
+              }
+
+              if (minWords && count > 0 && count < minWords) {
+                pill.textContent = `${count} / ${maxWords} words (Target: min. ${minWords})`;
+              } else {
+                pill.textContent = `${count} / ${maxWords} words`;
+              }
+            }
+          }
+
+          if (count > maxWords) {
+            if (errorBanner) {
+              errorBanner.textContent = `The maximum word limit is ${maxWords} words. Please shorten your text by ${count - maxWords} words.`;
+              errorBanner.style.display = "block";
+            }
+            if (submitBtn) submitBtn.disabled = true;
+          } else {
+            if (errorBanner) errorBanner.style.display = "none";
+            if (submitBtn && !this.isEvaluating) submitBtn.disabled = false;
+          }
+        };
+
+        textarea.addEventListener("input", onInput);
+        onInput();
       }
     }
   },
@@ -776,8 +865,123 @@ window.MockPlayerComponent = {
     if (btnEl) btnEl.classList.add("selected");
   },
 
+  insertSpecialChar: function (char) {
+    const textarea = document.getElementById("mock-student-text");
+    if (!textarea) return;
+
+    const start = textarea.selectionStart || textarea.value.length;
+    const end = textarea.selectionEnd || textarea.value.length;
+    const val = textarea.value;
+
+    textarea.value = val.substring(0, start) + char + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + char.length;
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+  },
+
   /* ============================================================
-   * 6. INDEPENDENT TEIL TIMER
+   * 6. SCHREIBEN UTILITIES
+   * ============================================================ */
+  getWordLimits: function (material) {
+    if (!material) return { minimum: null, maximum: 200 };
+
+    const taskObj = (material.task && typeof material.task === "object") ? material.task : null;
+    const wordCountObj = (taskObj?.word_count && typeof taskObj.word_count === "object")
+      ? taskObj.word_count
+      : ((material.word_count && typeof material.word_count === "object") ? material.word_count : null);
+
+    const minVal = wordCountObj?.minimum ?? material.min_words ?? material.minimum_words ?? null;
+    const maxVal = wordCountObj?.maximum ?? material.word_limit ?? material.max_words ?? material.maximum_words ?? 200;
+
+    const minimum = (typeof minVal === "number" && minVal > 0) ? minVal : null;
+    const maximum = (typeof maxVal === "number" && maxVal > 0) ? maxVal : 200;
+
+    return { minimum, maximum };
+  },
+
+  extractTaskDetails: function (material) {
+    if (!material) {
+      return {
+        situation: "",
+        aufgabe: "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung.",
+        points: [],
+        minWords: null,
+        maxWords: 200
+      };
+    }
+
+    const taskObj = (material.task && typeof material.task === "object") ? material.task : null;
+
+    const situation = String(
+      taskObj?.situation ||
+      material.situation ||
+      material.context ||
+      material.passage ||
+      ""
+    ).trim();
+
+    const aufgabe = String(
+      taskObj?.aufgabe ||
+      taskObj?.task ||
+      (typeof material.task === "string" ? material.task : "") ||
+      material.prompt ||
+      material.instructions ||
+      material.question ||
+      "Schreibe einen zusammenhängenden deutschen Text entsprechend der Aufgabenstellung."
+    ).trim();
+
+    const rawPoints = (taskObj && (taskObj.leitpunkte || taskObj.points)) ||
+      material.leitpunkte ||
+      material.points ||
+      material.bullet_points ||
+      [];
+
+    let points = [];
+    if (Array.isArray(rawPoints)) {
+      points = rawPoints
+        .map(p => {
+          if (typeof p === "string") return p.trim();
+          if (p && typeof p === "object") return String(p.requirement || p.text || p.point || "").trim();
+          return "";
+        })
+        .filter(Boolean);
+    } else if (typeof rawPoints === "string" && rawPoints.trim()) {
+      points = rawPoints
+        .split(/\r?\n/)
+        .map(line => line.replace(/^[-*•\d.)\s]+/, "").trim())
+        .filter(Boolean);
+    }
+
+    const limits = this.getWordLimits(material);
+
+    return {
+      situation,
+      aufgabe,
+      points,
+      minWords: limits.minimum,
+      maxWords: limits.maximum
+    };
+  },
+
+  sanitizeRichText: function (value) {
+    const text = String(value ?? "");
+    if (typeof document === "undefined") return this.escapeHtml(text);
+
+    const template = document.createElement("template");
+    template.innerHTML = text;
+    template.content.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach(node => node.remove());
+    return template.innerHTML;
+  },
+
+  stripHtml: function (html) {
+    if (!html) return "";
+    const div = document.createElement("div");
+    div.innerHTML = String(html);
+    return div.textContent || div.innerText || "";
+  },
+
+  /* ============================================================
+   * 7. INDEPENDENT TEIL TIMER
    * ============================================================ */
   startTeilTimer: function (durationSeconds) {
     this.stopTimer();
@@ -827,7 +1031,7 @@ window.MockPlayerComponent = {
   },
 
   /* ============================================================
-   * 7. TEIL EVALUATION & PERSISTENCE
+   * 8. TEIL EVALUATION & PERSISTENCE
    * ============================================================ */
   submitCurrentStep: async function (stepIndex, autoSubmit = false) {
     if (this.isEvaluating || !this.activeExam) return;
@@ -836,6 +1040,14 @@ window.MockPlayerComponent = {
     const step = this.activeExam.steps[stepIndex];
     if (!step) return;
 
+    if (step.module === "Schreiben") {
+      await this.evaluateSchreibenStep(step, stepIndex, autoSubmit);
+    } else {
+      await this.evaluateObjectiveStep(step, stepIndex);
+    }
+  },
+
+  evaluateObjectiveStep: async function (step, stepIndex) {
     const submitBtn = document.getElementById("mock-submit-btn");
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -845,154 +1057,231 @@ window.MockPlayerComponent = {
     this.isEvaluating = true;
 
     try {
-      if (step.module === "Schreiben") {
-        await this.evaluateSchreibenStep(step, stepIndex);
-      } else {
-        await this.evaluateObjectiveStep(step, stepIndex);
-      }
+      const material = step.loadedContent;
+      const questions = material.questions || [];
+      const userAnswers = step.userAnswers || {};
+
+      let rawScore = 0;
+      const rawTotal = Math.max(1, questions.length);
+
+      questions.forEach(q => {
+        if (userAnswers[q.id] === q.correctAnswer) {
+          rawScore++;
+        }
+      });
+
+      const multiplier = this.calculateMultiplier(material, this.activeExam.format, this.activeExam.level);
+      const earnedMarks = Math.round((rawScore * multiplier + Number.EPSILON) * 100) / 100;
+      const totalMarks = Math.round((rawTotal * multiplier + Number.EPSILON) * 100) / 100;
+      const pct = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
+
+      const stepResult = {
+        stepIndex: stepIndex,
+        module: step.module,
+        teil: step.teil,
+        materialId: material.id,
+        title: material.title,
+        rawScore: rawScore,
+        rawTotal: rawTotal,
+        multiplier: multiplier,
+        earnedMarks: earnedMarks,
+        totalMarks: totalMarks,
+        scorePercent: pct,
+        skipped: false,
+        userAnswers: userAnswers,
+        questions: questions
+      };
+
+      this.activeExam.stepResults[stepIndex] = stepResult;
+      this.saveActiveExamState();
+
+      // Save individual attempt to Supabase practice_attempts table
+      await this.savePracticeAttemptToSupabase(material, rawScore, rawTotal, pct);
+
+      // Render Review & Corrections screen for this Teil
+      this.renderTeilReviewScreen(step, stepResult, stepIndex);
+
     } catch (err) {
-      console.error("MockPlayer: Evaluation error on step:", step, err);
+      console.error("MockPlayer: Evaluation error on objective step:", step, err);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = `Submit ${step.teil}`;
       }
       if (window.PracticeApp) {
-        window.PracticeApp.showToast("Failed to evaluate Teil: " + (err.message || "Network error"), "error", 4000);
+        window.PracticeApp.showToast("Failed to submit Teil: " + (err.message || "Network error"), "error", 4000);
       }
     } finally {
       this.isEvaluating = false;
     }
   },
 
-  evaluateObjectiveStep: async function (step, stepIndex) {
+  evaluateSchreibenStep: async function (step, stepIndex, autoSubmit = false) {
     const material = step.loadedContent;
-    const questions = material.questions || [];
-    const userAnswers = step.userAnswers || {};
+    const textarea = document.getElementById("mock-student-text");
+    const studentText = String(textarea?.value || step.studentText || "").trim();
+    step.studentText = studentText;
 
-    let rawScore = 0;
-    const rawTotal = Math.max(1, questions.length);
-
-    questions.forEach(q => {
-      if (userAnswers[q.id] === q.correctAnswer) {
-        rawScore++;
+    if (!autoSubmit && !studentText) {
+      if (window.PracticeApp) {
+        window.PracticeApp.showToast("Please enter your writing before submitting.", "warning", 3500);
       }
-    });
+      return;
+    }
 
-    const multiplier = this.calculateMultiplier(material, this.activeExam.format, this.activeExam.level);
-    const earnedMarks = Math.round((rawScore * multiplier + Number.EPSILON) * 100) / 100;
-    const totalMarks = Math.round((rawTotal * multiplier + Number.EPSILON) * 100) / 100;
-    const pct = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
+    // Check Schreiben credits allowance before calling evaluation
+    if (window.AppState && typeof window.AppState.schreibenCreditsRemaining === "number" && window.AppState.schreibenCreditsRemaining <= 0) {
+      this.showSchreibenCreditModal(step, stepIndex);
+      return;
+    }
 
-    const stepResult = {
-      stepIndex: stepIndex,
-      module: step.module,
-      teil: step.teil,
-      materialId: material.id,
-      title: material.title,
-      rawScore: rawScore,
-      rawTotal: rawTotal,
-      multiplier: multiplier,
-      earnedMarks: earnedMarks,
-      totalMarks: totalMarks,
-      scorePercent: pct,
-      skipped: false,
-      userAnswers: userAnswers,
-      questions: questions
-    };
+    const submitBtn = document.getElementById("mock-submit-btn");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span class="btn-spinner"></span> Evaluating...`;
+    }
 
-    this.activeExam.stepResults[stepIndex] = stepResult;
-    this.saveActiveExamState();
+    const workspaceBody = document.getElementById("mock-workspace-body");
+    if (workspaceBody) {
+      workspaceBody.innerHTML = `
+        <div style="min-height:60vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;">
+          <div class="app-spinner" style="width:40px; height:40px; border-width:3px;"></div>
+          <h2 style="font-size:1.15rem; font-weight:700; margin:0; color:var(--ink);">Evaluating your German writing...</h2>
+          <p style="font-size:0.88rem; color:var(--muted); margin:0;">Assessing against official CEFR examination criteria for task fulfillment, vocabulary, and grammar.</p>
+        </div>
+      `;
+    }
 
-    // Save individual attempt to Supabase practice_attempts table
-    await this.savePracticeAttemptToSupabase(material, rawScore, rawTotal, pct);
+    this.isEvaluating = true;
 
-    // Render Review & Corrections screen for this Teil
-    this.renderTeilReviewScreen(step, stepResult, stepIndex);
-  },
-
-  evaluateSchreibenStep: async function (step, stepIndex) {
-    const material = step.loadedContent;
-    const studentText = String(step.studentText || "").trim();
-
-    // Call Cloudflare Worker evaluation endpoint with is_mock_exam: true
-    let evalRes = null;
     try {
+      const taskDetails = this.extractTaskDetails(material);
+      const wordLimits = this.getWordLimits(material);
+
       const idToken = (window.PracticeApp && typeof window.PracticeApp.getFirebaseIdToken === "function")
         ? await window.PracticeApp.getFirebaseIdToken()
         : "";
 
-      const workerBase = (window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function")
-        ? window.SupabaseService.getWorkerBaseUrl()
-        : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
-
-      const response = await fetch(`${workerBase.replace(/\/$/, "")}/learning/schreiben/evaluate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": idToken ? `Bearer ${idToken}` : "",
-        },
-        body: JSON.stringify({
-          material_id: material.id,
-          student_text: studentText,
-          exam: this.activeExam.format,
-          level: this.activeExam.level,
-          teil: step.teil || "Teil 1",
-          is_mock_exam: true
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Evaluation service returned HTTP ${response.status}`);
+      if (!idToken) {
+        throw new Error("You must be logged in to submit writing evaluation.");
       }
-      evalRes = await response.json();
-    } catch (e) {
-      console.warn("MockPlayer: Schreiben worker evaluation error, using local fallback evaluation:", e);
-      // Fallback rubric scoring if network / worker evaluation encounters an issue
-      const words = studentText.split(/\s+/).filter(Boolean).length;
-      const pct = words >= 30 ? 75 : Math.max(30, Math.round((words / 30) * 75));
-      evalRes = {
-        success: true,
-        evaluation: {
-          score_percent: pct,
-          feedback: "Text submitted during mock examination.",
-          criteria: [
-            { name: "Task Fulfillment", score: Math.round(pct * 0.25), max: 25 },
-            { name: "Vocabulary & Structures", score: Math.round(pct * 0.25), max: 25 }
-          ]
-        }
+
+      const payload = {
+        material_id: material.id,
+        exam: material.exam || this.activeExam.format,
+        level: material.level || this.activeExam.level,
+        teil: step.teil || "Teil 1",
+        situation: taskDetails.situation || "",
+        task: taskDetails.aufgabe || "",
+        points: taskDetails.points || [],
+        word_limit: wordLimits.maximum,
+        word_count: {
+          minimum: wordLimits.minimum,
+          maximum: wordLimits.maximum
+        },
+        answer: studentText
       };
+
+      if (material.evaluation && typeof material.evaluation === "object") {
+        payload.evaluation = material.evaluation;
+      }
+
+      // Authoritative evaluation call via SupabaseService & Cloudflare Worker
+      const evalRes = await window.SupabaseService.evaluateSchreiben(payload, idToken);
+
+      if (!evalRes || !evalRes.success) {
+        if (evalRes?.error === "insufficient_credits") {
+          this.showSchreibenCreditModal(step, stepIndex);
+          return;
+        }
+        throw new Error(evalRes?.message || "Schreiben evaluation service was unable to evaluate your response.");
+      }
+
+      // Update Schreiben credits remaining in AppState
+      if (typeof evalRes.schreiben_credits_remaining === "number" && window.AppState) {
+        window.AppState.schreibenCreditsRemaining = evalRes.schreiben_credits_remaining;
+        if (typeof evalRes.weekly_schreiben_limit === "number") {
+          window.AppState.weeklySchreibenLimit = evalRes.weekly_schreiben_limit;
+        }
+        if (window.SchreibenPlayerComponent && typeof window.SchreibenPlayerComponent.updateWeeklyCreditsDisplay === "function") {
+          window.SchreibenPlayerComponent.updateWeeklyCreditsDisplay(evalRes.schreiben_credits_remaining, evalRes.weekly_schreiben_limit);
+        }
+      }
+
+      const evalObj = evalRes.evaluation || {};
+      const scorePct = typeof evalObj.score_percent === "number" ? evalObj.score_percent : 70;
+      const totalMarks = 25; // Standard 25 marks per module in Goethe/Telc
+      const earnedMarks = Math.round(((scorePct / 100) * totalMarks + Number.EPSILON) * 100) / 100;
+
+      const stepResult = {
+        stepIndex: stepIndex,
+        module: "Schreiben",
+        teil: step.teil,
+        materialId: material.id,
+        title: material.title,
+        rawScore: Math.round(scorePct / 10),
+        rawTotal: 10,
+        multiplier: 2.5,
+        earnedMarks: earnedMarks,
+        totalMarks: totalMarks,
+        scorePercent: scorePct,
+        skipped: false,
+        studentText: studentText,
+        evaluation: evalObj
+      };
+
+      this.activeExam.stepResults[stepIndex] = stepResult;
+      this.saveActiveExamState();
+
+      // Save individual attempt to Supabase practice_attempts table
+      await this.savePracticeAttemptToSupabase(material, Math.round(scorePct / 10), 10, scorePct);
+
+      // Render Review & Corrections screen for Schreiben
+      this.renderTeilReviewScreen(step, stepResult, stepIndex);
+
+    } catch (err) {
+      console.error("MockPlayer: Schreiben evaluation error:", err);
+      if (window.PracticeApp) {
+        window.PracticeApp.showToast("Evaluation error: " + (err.message || "Network error"), "error", 4500);
+      }
+      // Re-render active workspace so user can retry or edit
+      this.renderActiveStepWorkspace(step, stepIndex, this.activeExam.steps.length);
+    } finally {
+      this.isEvaluating = false;
     }
+  },
 
-    const evalObj = evalRes?.evaluation || {};
-    const scorePct = typeof evalObj.score_percent === "number" ? evalObj.score_percent : 70;
-    const totalMarks = 25; // Standard 25 marks per module in Goethe/Telc
-    const earnedMarks = Math.round(((scorePct / 100) * totalMarks + Number.EPSILON) * 100) / 100;
+  showSchreibenCreditModal: function (step, stepIndex) {
+    const existing = document.getElementById("mock-credit-modal");
+    if (existing) existing.remove();
 
-    const stepResult = {
-      stepIndex: stepIndex,
-      module: "Schreiben",
-      teil: step.teil,
-      materialId: material.id,
-      title: material.title,
-      rawScore: Math.round(scorePct / 10),
-      rawTotal: 10,
-      multiplier: 2.5,
-      earnedMarks: earnedMarks,
-      totalMarks: totalMarks,
-      scorePercent: scorePct,
-      skipped: false,
-      studentText: studentText,
-      evaluation: evalObj
-    };
+    const overlay = document.createElement("div");
+    overlay.className = "mock-modal-overlay";
+    overlay.id = "mock-credit-modal";
 
-    this.activeExam.stepResults[stepIndex] = stepResult;
-    this.saveActiveExamState();
+    overlay.innerHTML = `
+      <div class="mock-confirm-box">
+        <h3 class="mock-confirm-title" style="color:#b91c1c;">No Schreiben Credits Remaining</h3>
+        <p class="mock-confirm-desc">
+          You have used all of your weekly Schreiben evaluation credits. To complete your examination without writing evaluation, you can skip this Teil.
+        </p>
+        <div class="mock-confirm-actions">
+          <button type="button" class="btn-secondary" id="mock-credit-cancel">Back</button>
+          <button type="button" class="btn-primary" id="mock-credit-skip">Skip this Teil</button>
+        </div>
+      </div>
+    `;
 
-    // Save individual attempt to Supabase practice_attempts table
-    await this.savePracticeAttemptToSupabase(material, Math.round(scorePct / 10), 10, scorePct);
+    document.body.appendChild(overlay);
 
-    // Render Review & Corrections screen for Schreiben
-    this.renderTeilReviewScreen(step, stepResult, stepIndex);
+    document.getElementById("mock-credit-cancel").addEventListener("click", () => {
+      overlay.remove();
+      this.renderActiveStepWorkspace(step, stepIndex, this.activeExam.steps.length);
+    });
+
+    document.getElementById("mock-credit-skip").addEventListener("click", () => {
+      overlay.remove();
+      this.skipCurrentStep(stepIndex);
+    });
   },
 
   calculateMultiplier: function (material, format, level) {
@@ -1009,7 +1298,6 @@ window.MockPlayerComponent = {
       return 1;
     }
 
-    // Telc
     if (fmt === "telc") {
       if (isA1 || isA2) return 1;
       if (isB1B2) {
@@ -1052,7 +1340,7 @@ window.MockPlayerComponent = {
   },
 
   /* ============================================================
-   * 8. TEIL REVIEW & CORRECTIONS SCREEN
+   * 9. TEIL REVIEW & CORRECTIONS SCREEN
    * ============================================================ */
   renderTeilReviewScreen: function (step, result, stepIndex) {
     const root = document.getElementById("mock-player-root");
@@ -1124,45 +1412,144 @@ window.MockPlayerComponent = {
     if (step.module === "Schreiben") {
       const ev = result.evaluation || {};
       const criteria = Array.isArray(ev.criteria) ? ev.criteria : [];
+      const tfPoints = ev.task_fulfillment && Array.isArray(ev.task_fulfillment.points) ? ev.task_fulfillment.points : [];
+      const mistakes = Array.isArray(ev.mistakes) ? ev.mistakes : [];
+      const wordUsage = Array.isArray(ev.word_usage) ? ev.word_usage : [];
       const strengths = Array.isArray(ev.feedback_details?.strengths) ? ev.feedback_details.strengths : [];
       const improvements = Array.isArray(ev.feedback_details?.improvements) ? ev.feedback_details.improvements : [];
-      const mistakes = Array.isArray(ev.mistakes) ? ev.mistakes : [];
+      const betterGerman = ev.better_german || ev.exemplary_text || "";
+      const redemittel = Array.isArray(ev.redemittel) ? ev.redemittel : [];
 
       return `
+        <!-- Submitted Student Text -->
         <div class="mock-editor-card" style="margin-bottom:20px;">
           <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 12px;">Submitted Text</h3>
-          <div style="background:var(--paper); padding:16px; border-radius:8px; font-size:0.92rem; line-height:1.6; white-space:pre-wrap;">${this.escapeHtml(result.studentText || "(No text submitted)")}</div>
+          <div style="background:var(--paper); padding:16px; border-radius:8px; font-size:0.92rem; line-height:1.65; white-space:pre-wrap;">${this.escapeHtml(result.studentText || "(No text submitted)")}</div>
         </div>
 
+        <!-- CEFR Assessment Rubric -->
         ${criteria.length > 0 ? `
           <div class="mock-editor-card" style="margin-bottom:20px;">
-            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 12px;">CEFR Assessment Rubric</h3>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 4px;">CEFR Assessment Rubric</h3>
+            <p style="font-size:0.82rem; color:var(--muted); margin:0 0 12px;">Standardized German examination criteria breakdown</p>
+            <div class="mock-rubric-grid">
               ${criteria.map(c => `
-                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
-                  <span style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; text-transform:uppercase;">${this.escapeHtml(c.name || c.criterion)}</span>
-                  <span style="font-size:1.1rem; font-weight:800; color:var(--ink);">${c.score !== undefined ? `${c.score} / ${c.max || 25}` : "Evaluated"}</span>
+                <div class="mock-rubric-card">
+                  <div class="mock-rubric-card-title">${this.escapeHtml(c.name || c.criterion)}</div>
+                  <div class="mock-rubric-card-score">${c.score !== undefined ? `${c.score} / ${c.max || 25}` : "Evaluated"}</div>
+                  ${c.feedback ? `<p style="font-size:0.8rem; color:#475569; margin:6px 0 0;">${this.escapeHtml(c.feedback)}</p>` : ""}
                 </div>
               `).join("")}
             </div>
           </div>
         ` : ""}
 
+        <!-- Task Fulfillment Bullet Points -->
+        ${tfPoints.length > 0 ? `
+          <div class="mock-editor-card" style="margin-bottom:20px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 4px;">Task Fulfillment (Bullet Points)</h3>
+            <p style="font-size:0.82rem; color:var(--muted); margin:0 0 12px;">Analysis of required exam cues and textual evidence</p>
+            <div class="mock-tf-list">
+              ${tfPoints.map(p => {
+                const st = String(p.status || "").toLowerCase();
+                const badgeClass = st === "fulfilled" ? "status-fulfilled" : (st === "partial" ? "status-partial" : "status-missing");
+                const badgeLabel = st === "fulfilled" ? "✓ Fulfilled" : (st === "partial" ? "⚠ Partial" : "✗ Missing");
+                return `
+                  <div class="mock-tf-item">
+                    <div class="mock-tf-header">
+                      <strong style="font-size:0.88rem; color:var(--ink);">Bullet Point #${p.id || 1}: ${this.escapeHtml(p.requirement || "")}</strong>
+                      <span class="mock-tf-badge ${badgeClass}">${badgeLabel}</span>
+                    </div>
+                    ${p.evidence ? `<p style="margin:8px 0 0 0; font-size:0.85rem; color:#334155; font-style:italic;">„${this.escapeHtml(p.evidence)}“</p>` : `<p style="margin:8px 0 0 0; font-size:0.82rem; color:#94a3b8;">No textual evidence found.</p>`}
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        ` : ""}
+
+        <!-- Key Mistakes & Corrections -->
+        <div class="mock-editor-card" style="margin-bottom:20px;">
+          <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 4px;">Key Mistakes & Corrections</h3>
+          <p style="font-size:0.82rem; color:var(--muted); margin:0 0 12px;">Grammar and structural corrections from your text</p>
+          ${mistakes.length > 0 ? `
+            <div class="mock-mistakes-list">
+              ${mistakes.map(m => `
+                <div class="mock-mistake-card">
+                  <div class="mock-mistake-row">
+                    <span class="mock-mistake-pill grammar">Grammar</span>
+                    <span class="mock-badge-orig">${this.escapeHtml(m.original || "")}</span>
+                    <span class="mock-arrow">➔</span>
+                    <span class="mock-badge-corr">${this.escapeHtml(m.correction || "")}</span>
+                  </div>
+                  ${m.explanation ? `<div class="mock-mistake-exp">${this.escapeHtml(m.explanation)}</div>` : ""}
+                  ${m.rule ? `<div style="font-size:0.78rem; color:#64748b; margin-top:2px;"><strong>Rule:</strong> ${this.escapeHtml(m.rule)}</div>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          ` : `
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:14px; color:#15803d; font-size:0.88rem;">
+              ✓ No major grammar errors detected. Excellent accuracy!
+            </div>
+          `}
+        </div>
+
+        <!-- Word Choice & Vocabulary Suggestions -->
+        ${wordUsage.length > 0 ? `
+          <div class="mock-editor-card" style="margin-bottom:20px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 4px;">Word Choice & Vocabulary (Word Usage)</h3>
+            <p style="font-size:0.82rem; color:var(--muted); margin:0 0 12px;">Suggestions to elevate your lexical register</p>
+            <div class="mock-mistakes-list">
+              ${wordUsage.map(wu => `
+                <div class="mock-mistake-card">
+                  <div class="mock-mistake-row">
+                    <span class="mock-mistake-pill vocab">Vocabulary</span>
+                    <span class="mock-badge-orig">${this.escapeHtml(wu.original || "")}</span>
+                    <span class="mock-arrow">➔</span>
+                    <span class="mock-badge-corr">${this.escapeHtml(wu.suggestion || wu.correction || "")}</span>
+                  </div>
+                  ${wu.explanation ? `<div class="mock-mistake-exp">${this.escapeHtml(wu.explanation)}</div>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
+
+        <!-- Better German / Exemplary Reformulation -->
+        ${betterGerman ? `
+          <div class="mock-editor-card" style="margin-bottom:20px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 4px;">Exemplary German Formulation (Better German)</h3>
+            <p style="font-size:0.82rem; color:var(--muted); margin:0 0 12px;">Model phrasing meeting full CEFR examination standards</p>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; font-size:0.9rem; line-height:1.65; white-space:pre-wrap;">${this.escapeHtml(betterGerman)}</div>
+          </div>
+        ` : ""}
+
+        <!-- Useful Redemittel -->
+        ${redemittel.length > 0 ? `
+          <div class="mock-editor-card" style="margin-bottom:20px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 12px;">Useful Redemittel (Examination Phrases)</h3>
+            <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:#334155; line-height:1.6;">
+              ${redemittel.map(r => `<li>${this.escapeHtml(r)}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
+
+        <!-- Strengths & Areas for Improvement -->
         ${strengths.length > 0 || improvements.length > 0 ? `
           <div class="mock-editor-card" style="margin-bottom:20px;">
-            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 12px;">Evaluation Details</h3>
+            <h3 style="font-size:1.05rem; font-weight:700; margin:0 0 12px;">Overall Qualitative Feedback</h3>
             ${strengths.length > 0 ? `
               <div style="margin-bottom:12px;">
-                <strong style="color:#059669; font-size:0.85rem;">Strengths:</strong>
-                <ul style="margin:4px 0 0 18px; font-size:0.88rem; color:#334155;">
+                <strong style="color:#059669; font-size:0.88rem;">Key Strengths:</strong>
+                <ul style="margin:4px 0 0 18px; font-size:0.88rem; color:#334155; line-height:1.5;">
                   ${strengths.map(s => `<li>${this.escapeHtml(s)}</li>`).join("")}
                 </ul>
               </div>
             ` : ""}
             ${improvements.length > 0 ? `
               <div>
-                <strong style="color:#d97706; font-size:0.85rem;">Areas for Improvement:</strong>
-                <ul style="margin:4px 0 0 18px; font-size:0.88rem; color:#334155;">
+                <strong style="color:#d97706; font-size:0.88rem;">Recommendations for Improvement:</strong>
+                <ul style="margin:4px 0 0 18px; font-size:0.88rem; color:#334155; line-height:1.5;">
                   ${improvements.map(imp => `<li>${this.escapeHtml(imp)}</li>`).join("")}
                 </ul>
               </div>
@@ -1172,7 +1559,7 @@ window.MockPlayerComponent = {
       `;
     }
 
-    // Objective Questions (Lesen, Hören, Grammatik)
+    // Objective Questions Review (Lesen, Hören, Grammatik)
     const questions = result.questions || [];
     const answers = result.userAnswers || {};
 
@@ -1252,7 +1639,7 @@ window.MockPlayerComponent = {
   },
 
   /* ============================================================
-   * 9. FINAL MOCK EXAM RESULT & AGGREGATION
+   * 10. FINAL MOCK EXAM RESULT & AGGREGATION
    * ============================================================ */
   finishMockExam: async function () {
     if (!this.activeExam) return;
@@ -1501,7 +1888,7 @@ window.MockPlayerComponent = {
   },
 
   /* ============================================================
-   * 10. EXIT CONFIRMATION DIALOG
+   * 11. EXIT CONFIRMATION DIALOG
    * ============================================================ */
   confirmExit: function () {
     if (this._exitModalOpen) return;

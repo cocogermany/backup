@@ -1059,10 +1059,8 @@ export default {
           body = {};
         }
 
-        const isMockExam = Boolean(body.is_mock_exam || body.is_mock);
-
-        // Re-check user's Schreiben eligibility (exempt for Mock Exam since mock credit already charged)
-        if (!isMockExam && !schreibenEnabled) {
+        // Re-check user's Schreiben eligibility
+        if (!schreibenEnabled) {
           return responseJSON(
             {
               success: false,
@@ -1149,8 +1147,8 @@ export default {
           );
         }
 
-        // Re-check remaining credits before allowing evaluation (skip for mock exam)
-        if (!isMockExam && schreibenCreditsRemaining <= 0) {
+        // Re-check remaining credits before allowing evaluation
+        if (schreibenCreditsRemaining <= 0) {
           return responseJSON(
             {
               success: false,
@@ -2332,69 +2330,65 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           );
         }
 
-        // 7. Deduct EXACTLY ONE Schreiben credit ONLY AFTER successful evaluation (skip if mock exam)
-        let finalRemaining = schreibenCreditsRemaining;
+        // 7. Deduct EXACTLY ONE Schreiben credit ONLY AFTER successful evaluation
+        const newCredits = Math.max(0, schreibenCreditsRemaining - 1);
+        const deductRes = await fetch(
+          `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&schreiben_credits_remaining=gt.0`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation",
+            },
+            body: JSON.stringify({
+              schreiben_credits_remaining: newCredits,
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
 
-        if (!isMockExam) {
-          const newCredits = Math.max(0, schreibenCreditsRemaining - 1);
-          const deductRes = await fetch(
-            `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&schreiben_credits_remaining=gt.0`,
+        if (!deductRes.ok) {
+          const errText = await deductRes.text();
+          console.error(`Supabase credit deduction error (${deductRes.status}):`, errText);
+          return responseJSON(
             {
-              method: "PATCH",
-              headers: {
-                "apikey": serviceRoleKey,
-                "Authorization": `Bearer ${serviceRoleKey}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-              },
-              body: JSON.stringify({
-                schreiben_credits_remaining: newCredits,
-                updated_at: new Date().toISOString(),
-              }),
-            }
+              success: false,
+              error: "credit_deduction_error",
+              message: `Database credit deduction error (${deductRes.status}): ${errText}`,
+            },
+            500,
+            request
           );
-
-          if (!deductRes.ok) {
-            const errText = await deductRes.text();
-            console.error(`Supabase credit deduction error (${deductRes.status}):`, errText);
-            return responseJSON(
-              {
-                success: false,
-                error: "credit_deduction_error",
-                message: `Database credit deduction error (${deductRes.status}): ${errText}`,
-              },
-              500,
-              request
-            );
-          }
-
-          let deductData = null;
-          try {
-            deductData = await deductRes.json();
-          } catch (e) {
-            deductData = null;
-          }
-          if (!deductData || !Array.isArray(deductData) || deductData.length === 0) {
-            // Zero rows affected by conditional update (schreiben_credits_remaining=gt.0)
-            // (concurrent request already consumed the last credit, or quota exhausted)
-            return responseJSON(
-              {
-                success: false,
-                error: "insufficient_credits",
-                message: "Concurrent evaluation or insufficient weekly credits: no credit was deducted.",
-                schreiben_credits_remaining: 0,
-                weekly_schreiben_limit: weeklySchreibenLimit,
-                membership: membershipCode,
-              },
-              409,
-              request
-            );
-          }
-
-          finalRemaining = (typeof deductData[0].schreiben_credits_remaining === "number")
-            ? deductData[0].schreiben_credits_remaining
-            : newCredits;
         }
+
+        let deductData = null;
+        try {
+          deductData = await deductRes.json();
+        } catch (e) {
+          deductData = null;
+        }
+        if (!deductData || !Array.isArray(deductData) || deductData.length === 0) {
+          // Zero rows affected by conditional update (schreiben_credits_remaining=gt.0)
+          // (concurrent request already consumed the last credit, or quota exhausted)
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_credits",
+              message: "Concurrent evaluation or insufficient weekly credits: no credit was deducted.",
+              schreiben_credits_remaining: 0,
+              weekly_schreiben_limit: weeklySchreibenLimit,
+              membership: membershipCode,
+            },
+            409,
+            request
+          );
+        }
+
+        const finalRemaining = (typeof deductData[0].schreiben_credits_remaining === "number")
+          ? deductData[0].schreiben_credits_remaining
+          : newCredits;
 
         return responseJSON(
           {
