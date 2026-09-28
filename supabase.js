@@ -399,6 +399,62 @@ async function evaluateSchreibenSupabase(payload, idToken) {
   return resData;
 }
 
+/**
+ * Check Mock Exam Weekly Credits via Cloudflare Worker POST /learning/mock-exams/check
+ */
+async function checkMockExamCreditsSupabase(idToken) {
+  const workerBase = getWorkerBaseUrl();
+  const endpoint = `${workerBase}/learning/mock-exams/check`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok && !resData.error) {
+    throw new Error(resData.message || `Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
+/**
+ * Atomically consume 1 Mock Exam credit via Cloudflare Worker POST /learning/mock-exams/consume
+ */
+async function consumeMockExamCreditSupabase(idToken) {
+  const workerBase = getWorkerBaseUrl();
+  const endpoint = `${workerBase}/learning/mock-exams/consume`;
+
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({}),
+  });
+
+  const resData = await response.json();
+  if (!response.ok && !resData.error) {
+    throw new Error(resData.message || `Worker returned HTTP ${response.status}`);
+  }
+
+  return resData;
+}
+
 // ===================================================
 // GLOBAL EXPORT FOR NON-MODULE SCRIPTS
 // ===================================================
@@ -419,6 +475,10 @@ const SupabaseService = {
   checkSchreibenCreditsWorker: checkSchreibenCreditsSupabase,
   evaluateSchreiben: evaluateSchreibenSupabase,
   evaluateSchreibenWorker: evaluateSchreibenSupabase,
+  checkMockExamCredits: checkMockExamCreditsSupabase,
+  checkMockExamCreditsWorker: checkMockExamCreditsSupabase,
+  consumeMockExamCredit: consumeMockExamCreditSupabase,
+  consumeMockExamCreditWorker: consumeMockExamCreditSupabase,
   getWorkerBaseUrl,
 };
 

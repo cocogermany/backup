@@ -377,6 +377,68 @@
       </div>
     </div>
 
+    <!-- MOCK EXAM CONFIRMATION / PREPARATION MODAL -->
+    <div class="modal-backdrop" id="mock-exam-modal" hidden>
+      <div class="modal-card prep-modal-card">
+        <div class="modal-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="prep-modal-badge-icon" style="background:#fef3c7; color:#d97706; border-color:#fde68a;">
+              <i data-lucide="award" style="width:18px; height:18px; color:#d97706;"></i>
+            </div>
+            <div>
+              <h3 style="margin:0; font-size:1.1rem; font-family:var(--font-heading);">Mock Examination</h3>
+              <p class="prep-modal-subtitle" id="mock-modal-subtitle" style="margin:0; font-size:0.8rem; color:var(--muted); font-weight:500;">Official Exam Simulation</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="mock-modal-close" aria-label="Close"><i data-lucide="x"></i></button>
+        </div>
+
+        <div class="prep-modal-body" style="padding: 14px 0 18px;">
+          <!-- Basic Mock Exam Info Card -->
+          <div style="background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:0.85rem; font-weight:700; color:var(--ink);" id="mock-modal-exam-name">Full Mock Exam</span>
+              <span class="badge-pill badge-gold" id="mock-modal-badge">Official Standard</span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--muted); line-height:1.45; margin:0;" id="mock-modal-desc">
+              Full timed examination simulation under official test conditions. Tests all exam modules.
+            </p>
+          </div>
+
+          <!-- Exam Metrics Grid -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div style="background:var(--white); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px;">
+              <i data-lucide="target" style="width:16px; height:16px; color:var(--gold);"></i>
+              <div>
+                <span style="display:block; font-size:0.68rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Passing Score</span>
+                <span style="font-size:0.82rem; font-weight:700; color:var(--ink);" id="mock-modal-passing">60% (60/100 pts)</span>
+              </div>
+            </div>
+            <div style="background:var(--white); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px;">
+              <i data-lucide="award" style="width:16px; height:16px; color:var(--brown);"></i>
+              <div>
+                <span style="display:block; font-size:0.68rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Cost</span>
+                <span style="font-size:0.82rem; font-weight:700; color:var(--ink);">1 Mock Credit</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Allowance Info Note -->
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--muted); padding:4px 2px;">
+            <i data-lucide="info" style="width:14px; height:14px; flex-shrink:0; color:var(--brown);"></i>
+            <span>Deducts 1 weekly mock exam credit. Resets weekly.</span>
+          </div>
+        </div>
+
+        <div class="prep-modal-footer">
+          <button type="button" class="btn-secondary" id="mock-modal-cancel" style="flex:1; justify-content:center;">Cancel</button>
+          <button type="button" class="btn-primary" id="mock-modal-start" style="flex:1.4; justify-content:center;">
+            <i data-lucide="play"></i> Start Exam
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Vendor & Core Service Dependencies -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
     <script src="../supabase.js" defer></script>

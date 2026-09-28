@@ -510,6 +510,8 @@ export default {
         // plans. A failed insert is an error, never an in-memory fallback.
         if (!userRow) {
           const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
           const newUser = {
             uid,
             membership: membershipCode,
@@ -517,8 +519,10 @@ export default {
             format: "goethe",
             credits_remaining: dailyPracticeCredits,
             last_reset: todayIsoDate,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
           };
 
           const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
@@ -647,16 +651,23 @@ export default {
         });
 
         let dailyPracticeCredits = 10;
+        let weeklyMockExams = 1;
         if (planRes.ok) {
           const planData = await planRes.json();
-          if (planData && planData[0] && typeof planData[0].daily_practice_credits === "number") {
-            dailyPracticeCredits = planData[0].daily_practice_credits;
+          if (planData && planData[0]) {
+            if (typeof planData[0].daily_practice_credits === "number") {
+              dailyPracticeCredits = planData[0].daily_practice_credits;
+            }
+            if (typeof planData[0].weekly_mock_exams === "number") {
+              weeklyMockExams = planData[0].weekly_mock_exams;
+            }
           }
         }
 
         // Initialize user if missing
         if (!userRow) {
           const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
           const newUser = {
             uid,
             membership: membershipCode,
@@ -664,8 +675,10 @@ export default {
             format: "goethe",
             credits_remaining: dailyPracticeCredits,
             last_reset: todayIsoDate,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
           };
 
           const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
@@ -882,6 +895,7 @@ export default {
         const plan = planData && planData[0];
         const schreibenEnabled = Boolean(plan && plan.schreiben_enabled);
         const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+        const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
 
         // Initialize user record if missing
         if (!userRow) {
@@ -897,6 +911,8 @@ export default {
             last_reset: todayIsoDate,
             schreiben_credits_remaining: weeklySchreibenLimit,
             schreiben_last_reset: nowIso,
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
             created_at: nowIso,
             updated_at: nowIso,
           };
@@ -1033,6 +1049,7 @@ export default {
         const plan = planData && planData[0];
         const schreibenEnabled = Boolean(plan && plan.schreiben_enabled);
         const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+        const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
 
         // Re-check user's Schreiben eligibility
         if (!schreibenEnabled) {
@@ -1064,6 +1081,8 @@ export default {
             last_reset: todayIsoDate,
             schreiben_credits_remaining: weeklySchreibenLimit,
             schreiben_last_reset: nowIso,
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
             created_at: nowIso,
             updated_at: nowIso,
           };
@@ -2384,7 +2403,368 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
         );
       }
 
-      // 8. Upload File (POST /upload)
+      // 8. Mock Exams Weekly Credits Check (POST/GET /learning/mock-exams/check or /learning/mock/check)
+      if ((request.method === "POST" || request.method === "GET") && (url.pathname === "/learning/mock-exams/check" || url.pathname === "/learning/mock/check")) {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Fetch user row
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Fetch plan details (authoritative allowance)
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
+        const dailyPracticeCredits = (plan && typeof plan.daily_practice_credits === "number") ? plan.daily_practice_credits : 10;
+        const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+
+        // Initialize user record if missing
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const newUser = {
+            uid,
+            membership: membershipCode,
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: dailyPracticeCredits,
+            last_reset: todayIsoDate,
+            schreiben_credits_remaining: weeklySchreibenLimit,
+            schreiben_last_reset: nowIso,
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (!createRes.ok) {
+            const errText = await createRes.text();
+            return responseJSON({ error: `Supabase user creation error (${createRes.status}): ${errText}` }, createRes.status, request);
+          }
+
+          const createdData = await createRes.json();
+          userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
+        }
+
+        // 3. Timezone and weekly reset check
+        const userTimezone = userRow.timezone || "UTC";
+        const currentWeekStart = getLocalCalendarWeekStart(new Date(), userTimezone);
+        let mockLastReset = userRow.mock_exams_last_reset ? String(userRow.mock_exams_last_reset) : "";
+        let mockExamsRemaining = typeof userRow.mock_exams_remaining === "number"
+          ? userRow.mock_exams_remaining
+          : weeklyMockExams;
+
+        let needsReset = false;
+        if (!mockLastReset) {
+          needsReset = true;
+        } else {
+          const lastResetWeekStart = getLocalCalendarWeekStart(mockLastReset, userTimezone);
+          if (currentWeekStart > lastResetWeekStart) {
+            needsReset = true;
+          }
+        }
+
+        if (needsReset) {
+          mockExamsRemaining = weeklyMockExams;
+          mockLastReset = new Date().toISOString();
+
+          await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`, {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              mock_exams_remaining: mockExamsRemaining,
+              mock_exams_last_reset: mockLastReset,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+        }
+
+        return responseJSON(
+          {
+            success: true,
+            uid,
+            membership: membershipCode,
+            mock_exams_remaining: mockExamsRemaining,
+            weekly_mock_exams: weeklyMockExams,
+            mock_exams_last_reset: mockLastReset,
+            timezone: userTimezone,
+          },
+          200,
+          request
+        );
+      }
+
+      // 9. Atomic Mock Exam Credit Consumption (POST /learning/mock-exams/consume or /learning/mock/consume)
+      if (request.method === "POST" && (url.pathname === "/learning/mock-exams/consume" || url.pathname === "/learning/mock/consume")) {
+        const authHeader = request.headers.get("Authorization") || "";
+        const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+        if (!idToken) {
+          return responseJSON({ error: "Unauthorized: Missing Authorization Bearer token." }, 401, request);
+        }
+
+        const tokenPayload = await verifyFirebaseToken(idToken, env);
+        if (!tokenPayload || !tokenPayload.sub) {
+          return responseJSON({ error: "Unauthorized: Invalid or unverified Firebase ID token signature." }, 401, request);
+        }
+
+        const uid = tokenPayload.sub;
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+          return responseJSON(
+            { error: "Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY environment binding is missing." },
+            500,
+            request
+          );
+        }
+        const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
+
+        // 1. Fetch user row
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        }
+
+        const userData = await userRes.json();
+        let userRow = userData && userData.length > 0 ? userData[0] : null;
+        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+
+        // 2. Fetch plan details (authoritative allowance)
+        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
+          headers: {
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+        });
+
+        if (!planRes.ok) {
+          const errText = await planRes.text();
+          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        }
+
+        const planData = await planRes.json();
+        const plan = planData && planData[0];
+        const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
+        const dailyPracticeCredits = (plan && typeof plan.daily_practice_credits === "number") ? plan.daily_practice_credits : 10;
+        const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
+
+        // Initialize user record if missing
+        if (!userRow) {
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const newUser = {
+            uid,
+            membership: membershipCode,
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: dailyPracticeCredits,
+            last_reset: todayIsoDate,
+            schreiben_credits_remaining: weeklySchreibenLimit,
+            schreiben_last_reset: nowIso,
+            mock_exams_remaining: weeklyMockExams,
+            mock_exams_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (!createRes.ok) {
+            const errText = await createRes.text();
+            return responseJSON({ error: `Supabase user creation error (${createRes.status}): ${errText}` }, createRes.status, request);
+          }
+
+          const createdData = await createRes.json();
+          userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
+        }
+
+        // 3. Timezone and weekly reset check
+        const userTimezone = userRow.timezone || "UTC";
+        const currentWeekStart = getLocalCalendarWeekStart(new Date(), userTimezone);
+        let mockLastReset = userRow.mock_exams_last_reset ? String(userRow.mock_exams_last_reset) : "";
+        let mockExamsRemaining = typeof userRow.mock_exams_remaining === "number"
+          ? userRow.mock_exams_remaining
+          : weeklyMockExams;
+
+        let needsReset = false;
+        if (!mockLastReset) {
+          needsReset = true;
+        } else {
+          const lastResetWeekStart = getLocalCalendarWeekStart(mockLastReset, userTimezone);
+          if (currentWeekStart > lastResetWeekStart) {
+            needsReset = true;
+          }
+        }
+
+        // If new week has started, reset allowance before checking balance
+        if (needsReset) {
+          mockExamsRemaining = weeklyMockExams;
+          mockLastReset = new Date().toISOString();
+
+          await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`, {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              mock_exams_remaining: mockExamsRemaining,
+              mock_exams_last_reset: mockLastReset,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+        }
+
+        // 4. Verify user has at least 1 mock exam credit remaining
+        if (mockExamsRemaining <= 0) {
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_mock_credits",
+              message: "You have used all your weekly mock exams. Upgrade your plan or wait until next week for your quota to reset.",
+              mock_exams_remaining: 0,
+              weekly_mock_exams: weeklyMockExams,
+              membership: membershipCode,
+            },
+            200,
+            request
+          );
+        }
+
+        // 5. ATOMIC conditional decrement on mock_exams_remaining
+        const newCredits = mockExamsRemaining - 1;
+        const deductRes = await fetch(
+          `${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&mock_exams_remaining=gt.0`,
+          {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation",
+            },
+            body: JSON.stringify({
+              mock_exams_remaining: newCredits,
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+
+        if (!deductRes.ok) {
+          const errText = await deductRes.text();
+          return responseJSON({ error: `Supabase mock credit update error (${deductRes.status}): ${errText}` }, deductRes.status, request);
+        }
+
+        const deductData = await deductRes.json();
+        if (!deductData || deductData.length === 0) {
+          // Concurrency: already consumed by another request
+          return responseJSON(
+            {
+              success: false,
+              error: "insufficient_mock_credits",
+              message: "You have used all your weekly mock exams. Upgrade your plan or wait until next week for your quota to reset.",
+              mock_exams_remaining: 0,
+              weekly_mock_exams: weeklyMockExams,
+              membership: membershipCode,
+            },
+            200,
+            request
+          );
+        }
+
+        const updatedUser = deductData[0];
+        return responseJSON(
+          {
+            success: true,
+            mock_exams_remaining: updatedUser.mock_exams_remaining,
+            weekly_mock_exams: weeklyMockExams,
+            membership: updatedUser.membership || membershipCode,
+            uid,
+          },
+          200,
+          request
+        );
+      }
+
+      // 10. Upload File (POST /upload)
       if (request.method === "POST" && (url.pathname === "/upload" || url.pathname === "/")) {
         const contentType = request.headers.get("content-type") || "";
 

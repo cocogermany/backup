@@ -151,6 +151,8 @@
       total: null,
       lastReset: null
     },
+    mockExamsRemaining: null,
+    weeklyMockLimit: null,
     streakDays: parseInt(localStorage.getItem("coco_streak") || "0", 10),
     userProfile: {
       name: "Learner",
@@ -400,6 +402,16 @@
             }
           }).catch(() => {});
         }
+
+        // Fetch dynamic weekly Mock Exam credits in background
+        if (window.SupabaseService && typeof window.SupabaseService.checkMockExamCreditsWorker === "function") {
+          window.SupabaseService.checkMockExamCreditsWorker(idToken).then((mockRes) => {
+            if (mockRes && typeof mockRes.mock_exams_remaining === "number") {
+              AppState.mockExamsRemaining = mockRes.mock_exams_remaining;
+              AppState.weeklyMockLimit = mockRes.weekly_mock_exams;
+            }
+          }).catch(() => {});
+        }
       } catch (err) {
         // Keep the UI in its unloaded state rather than showing a fabricated
         // allowance. A later page load will retry the authenticated request.
@@ -539,6 +551,19 @@
         });
       }
 
+      const mockModal = document.getElementById("mock-exam-modal");
+      const mockClose = document.getElementById("mock-modal-close");
+      const mockCancel = document.getElementById("mock-modal-cancel");
+      const mockStart = document.getElementById("mock-modal-start");
+
+      if (mockClose) mockClose.addEventListener("click", () => this.closeMockExamModal());
+      if (mockCancel) mockCancel.addEventListener("click", () => this.closeMockExamModal());
+      if (mockStart) {
+        mockStart.addEventListener("click", () => {
+          this.startMockExamConfirmed(this.pendingMockExamId);
+        });
+      }
+
       // Close modals on clicking backdrop background
       if (actionsModal) {
         actionsModal.addEventListener("click", (e) => {
@@ -555,6 +580,12 @@
       if (prepModal) {
         prepModal.addEventListener("click", (e) => {
           if (e.target === prepModal) this.closePrepModal();
+        });
+      }
+
+      if (mockModal) {
+        mockModal.addEventListener("click", (e) => {
+          if (e.target === mockModal) this.closeMockExamModal();
         });
       }
     }
@@ -1185,41 +1216,105 @@
       window.location.hash = `#player?id=${material.id}`;
     }
 
-    async startMockExam(mockId) {
+    openMockExamModal(mockId) {
       if (!this.requireLogin("Please log in to access this feature.", `#player?id=${mockId}`)) {
         return;
       }
 
+      this.pendingMockExamId = mockId;
+
+      const level = (AppState.currentLevel || "A1").toUpperCase();
+      const rawFormat = (AppState.currentFormat || "goethe").toLowerCase();
+      const formatKey = rawFormat.includes("telc") ? "telc" : "goethe";
+      const formatLabel = formatKey === "telc" ? "TELC" : "Goethe";
+
+      const meta = (typeof EXAM_META !== "undefined" && EXAM_META[formatKey] && EXAM_META[formatKey][level])
+        ? EXAM_META[formatKey][level]
+        : null;
+
+      const subTitleEl = document.getElementById("mock-modal-subtitle");
+      const examNameEl = document.getElementById("mock-modal-exam-name");
+      const badgeEl = document.getElementById("mock-modal-badge");
+      const passingEl = document.getElementById("mock-modal-passing");
+      const descEl = document.getElementById("mock-modal-desc");
+
+      if (subTitleEl) subTitleEl.textContent = meta?.subtitle || `${formatLabel}-Zertifikat ${level}`;
+      if (examNameEl) examNameEl.textContent = meta?.title || `${formatLabel} ${level} Full Mock Simulation`;
+      if (badgeEl) badgeEl.textContent = `${formatLabel} Official Standard`;
+      if (passingEl) passingEl.textContent = meta?.passingScore || "60% (60/100 pts)";
+      if (descEl) descEl.textContent = meta?.desc || `Full timed examination simulation for ${formatLabel} Level ${level} under official test conditions. Tests all exam modules.`;
+
+      const mockModal = document.getElementById("mock-exam-modal");
+      if (mockModal) {
+        mockModal.hidden = false;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+
+    closeMockExamModal() {
+      const mockModal = document.getElementById("mock-exam-modal");
+      if (mockModal) mockModal.hidden = true;
+      this.pendingMockExamId = null;
+    }
+
+    startMockExam(mockId) {
+      // First open confirmation/info box - do NOT deduct anything upon opening
+      this.openMockExamModal(mockId);
+    }
+
+    async startMockExamConfirmed(mockId) {
+      const targetId = mockId || this.pendingMockExamId;
+      if (!targetId) return;
+
+      const startBtn = document.getElementById("mock-modal-start");
+      const originalText = startBtn ? startBtn.innerHTML : '<i data-lucide="play"></i> Start Exam';
+      if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.innerHTML = `<span class="btn-spinner"></span> Verifying...`;
+      }
+
       let deductOk = false;
-      let newRemaining = null;
+      let checkRes = null;
+
       try {
         const idToken = await this.getFirebaseIdToken();
-        if (window.SupabaseService && window.SupabaseService.consumeCreditWorker) {
-          const res = await window.SupabaseService.consumeCreditWorker(idToken);
-          if (res && res.success) {
+        if (window.SupabaseService && window.SupabaseService.consumeMockExamCreditWorker) {
+          checkRes = await window.SupabaseService.consumeMockExamCreditWorker(idToken);
+          if (checkRes && checkRes.success) {
             deductOk = true;
-            newRemaining = typeof res.credits_remaining === "number" ? res.credits_remaining : null;
           }
         }
-      } catch (e) {
-        console.warn("PracticeApp: Mock exam credit deduction error:", e);
+      } catch (err) {
+        console.warn("PracticeApp: Mock exam credit deduction error:", err);
+      }
+
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.innerHTML = originalText;
       }
 
       if (!deductOk) {
-        this.showToast("⚡ You're out of daily credits. Upgrade your plan to continue.", "warning", 3500);
+        this.closeMockExamModal();
+        const msg = (checkRes && checkRes.message)
+          ? checkRes.message
+          : "⚡ You've reached your weekly Mock Exam limit. Upgrade your plan to continue.";
+        this.showToast(msg, "warning", 4500);
+
         const creditsModal = document.getElementById("credits-detail-modal");
         this.updateCreditsModalUI();
         if (creditsModal) creditsModal.hidden = false;
         return;
       }
 
-      if (newRemaining !== null) {
-        AppState.dailyCredits.remaining = newRemaining;
-        this.saveState();
-        this.updateHeaderUI();
+      if (checkRes && typeof checkRes.mock_exams_remaining === "number") {
+        AppState.mockExamsRemaining = checkRes.mock_exams_remaining;
+        AppState.weeklyMockLimit = checkRes.weekly_mock_exams;
       }
 
-      window.location.hash = `#player?id=${mockId}`;
+      this.closeMockExamModal();
+
+      // Continue into existing Mock Exam flow exactly as it currently works
+      window.location.hash = `#player?id=${encodeURIComponent(targetId)}`;
     }
 
     async openPlayer(materialId) {
