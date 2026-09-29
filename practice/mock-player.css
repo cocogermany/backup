@@ -226,6 +226,77 @@ body.mock-player-mode #app-viewport {
   box-sizing: border-box;
 }
 
+/* SMALL LOADER BETWEEN TEILS */
+.mock-step-loader-container {
+  min-height: 65vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  animation: mockFadeIn 0.2s ease;
+}
+
+.mock-step-loader-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #e7e5e4);
+  border-radius: 16px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.mock-step-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3.5px solid #f3f4f6;
+  border-top-color: var(--gold, #d97706);
+  border-radius: 50%;
+  animation: mockSpin 0.75s linear infinite;
+  margin-bottom: 16px;
+}
+
+.mock-step-loader-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mock-step-loader-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink, #1c1917);
+  margin: 0 0 6px;
+  font-family: var(--font-heading, 'Montserrat', sans-serif);
+}
+
+.mock-step-loader-sub {
+  font-size: 0.85rem;
+  color: var(--muted, #78716c);
+  margin: 0;
+  line-height: 1.45;
+}
+
+@keyframes mockFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mockSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* SKIPPED / ALL SOLVED SCREEN */
 .mock-skipped-card {
   background: #ffffff;

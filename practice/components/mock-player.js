@@ -386,23 +386,37 @@ window.MockPlayerComponent = {
     const step = this.activeExam.steps[stepIndex];
     const totalSteps = this.activeExam.steps.length;
 
+    // Render small loader card between each Teil loading
+    root.innerHTML = `
+      <div class="mock-workspace">
+        <div class="mock-step-loader-container">
+          <div class="mock-step-loader-card">
+            <div class="mock-step-spinner"></div>
+            <span class="mock-step-loader-pill">Teil ${stepIndex + 1} / ${totalSteps}</span>
+            <h3 class="mock-step-loader-title">Loading ${this.escapeHtml(step.module)} · ${this.escapeHtml(step.teil)}</h3>
+            <p class="mock-step-loader-sub">Preparing examination task and timer...</p>
+          </div>
+        </div>
+      </div>
+    `;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
     // 1. If Teil was flagged to skip (solved all or missing from DB)
     if (step.isSkipped || step.isSolvedAll || step.isMissingDb) {
+      await new Promise(r => setTimeout(r, 400));
       this.renderSkippedStepView(step, stepIndex, totalSteps);
       return;
     }
 
     // 2. Fetch full material content JSON from R2 via Worker
-    root.innerHTML = `
-      <div class="mock-workspace" style="min-height:80vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;">
-        <div class="app-spinner" style="width:36px; height:36px; border-width:3px;"></div>
-        <p style="font-size:0.9rem; font-weight:600; color:var(--muted);">Loading ${step.module} ${step.teil}...</p>
-      </div>
-    `;
-
     try {
       const meta = step.materialMeta;
-      const content = await this.fetchMaterialJson(meta.content_path);
+      const minLoaderDelay = new Promise(r => setTimeout(r, 450));
+      const [content] = await Promise.all([
+        this.fetchMaterialJson(meta.content_path),
+        minLoaderDelay
+      ]);
+
       const fullMaterial = {
         ...meta,
         ...content,
@@ -491,7 +505,7 @@ window.MockPlayerComponent = {
           </div>
         </div>
         <div class="mock-header-right">
-          <button type="button" class="mock-btn-submit-teil" onclick="window.MockPlayerComponent.skipCurrentStep(${stepIndex})">
+          <button type="button" class="mock-btn-submit-teil" onclick="window.MockPlayerComponent.skipCurrentStep(${stepIndex}, this)">
             Skip to Next Teil <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
           </button>
         </div>
@@ -507,7 +521,7 @@ window.MockPlayerComponent = {
           <p class="mock-skipped-desc">
             You can proceed to the next examination Teil. Skipping this Teil will not count as a failure or prevent your exam from being scored.
           </p>
-          <button type="button" class="mock-btn-next-teil" style="margin:0 auto;" onclick="window.MockPlayerComponent.skipCurrentStep(${stepIndex})">
+          <button type="button" class="mock-btn-next-teil" style="margin:0 auto;" onclick="window.MockPlayerComponent.skipCurrentStep(${stepIndex}, this)">
             <span>Skip to Next Teil</span>
             <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
           </button>
@@ -1369,7 +1383,7 @@ window.MockPlayerComponent = {
         </div>
 
         <div class="mock-header-right">
-          <button type="button" class="mock-btn-next-teil" onclick="window.MockPlayerComponent.nextStep()">
+          <button type="button" class="mock-btn-next-teil" onclick="window.MockPlayerComponent.nextStep(this)">
             <span>${nextLabel}</span>
             <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
           </button>
@@ -1393,7 +1407,7 @@ window.MockPlayerComponent = {
                 <i data-lucide="${isPass ? 'check' : 'x'}" style="width:14px;height:14px;"></i>
                 ${isPass ? 'Bestanden (Passed)' : 'Needs Review'}
               </span>
-              <button type="button" class="mock-btn-next-teil" onclick="window.MockPlayerComponent.nextStep()">
+              <button type="button" class="mock-btn-next-teil" onclick="window.MockPlayerComponent.nextStep(this)">
                 <span>${nextLabel}</span>
                 <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
               </button>
@@ -1606,8 +1620,12 @@ window.MockPlayerComponent = {
     `;
   },
 
-  skipCurrentStep: function (stepIndex) {
+  skipCurrentStep: function (stepIndex, btnEl = null) {
     if (!this.activeExam) return;
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<span class="btn-spinner"></span> Skipping...`;
+    }
 
     const step = this.activeExam.steps[stepIndex];
     if (step) {
@@ -1630,8 +1648,12 @@ window.MockPlayerComponent = {
     this.nextStep();
   },
 
-  nextStep: function () {
+  nextStep: function (btnEl = null) {
     if (!this.activeExam) return;
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<span class="btn-spinner"></span> Loading...`;
+    }
     const nextIdx = this.activeExam.currentStepIndex + 1;
     if (nextIdx >= this.activeExam.steps.length) {
       this.finishMockExam();
