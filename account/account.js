@@ -105,6 +105,20 @@ const authReadyPromise = new Promise((resolve) => {
   authReadyResolve = resolve;
 });
 
+function profileIsComplete(profile = currentAccountProfile) {
+  return Boolean(profile && profile.country && profile.currency);
+}
+
+function referrerSource() {
+  const referrer = document.referrer || "";
+  if (!referrer) return "direct";
+  try {
+    return new URL(referrer).hostname.replace(/^www\./, "");
+  } catch {
+    return "direct";
+  }
+}
+
 const defaultTabTemplates = {
   orders: `
     <div class="account-section-header">
@@ -896,12 +910,20 @@ async function initAccountAuth() {
     updateAccountNavAuth(user);
 
     if (!user) {
+      hideProfileSetup();
       handleUnauthenticatedState();
       refreshModalIfActive();
       return;
     }
 
     await loadAccountProfile(user);
+
+    if (!profileIsComplete(currentAccountProfile)) {
+      renderProfileSetup(user);
+      return;
+    }
+
+    hideProfileSetup();
 
     // Page-specific initializers
     initProfileForm(user);
@@ -1249,7 +1271,7 @@ async function loadAccountProfile(user) {
         format: localStorage.getItem("coco_practice_format") || "goethe",
         level: localStorage.getItem("coco_practice_level") || "A1",
         country: localStorage.getItem("coco_user_country") || "",
-        currency: localStorage.getItem("coco_user_currency") || "INR",
+        currency: localStorage.getItem("coco_user_currency") || "",
       };
     }
     await ensureUserReferralCode(user, currentAccountProfile, tools);
@@ -1257,6 +1279,219 @@ async function loadAccountProfile(user) {
   } catch (error) {
     console.error("Failed to load user profile:", error);
   }
+}
+
+function hideProfileSetup() {
+  const setupWrap = document.getElementById("account-profile-setup-wrap");
+  if (setupWrap) {
+    setupWrap.style.display = "none";
+  }
+  const mainContainer = document.getElementById("account-main-container") || document.querySelector(".account-container");
+  if (mainContainer) {
+    mainContainer.style.display = "";
+  }
+}
+
+function renderProfileSetup(user) {
+  if (!user) return;
+
+  const mainContainer = document.getElementById("account-main-container") || document.querySelector(".account-container");
+  if (mainContainer) {
+    mainContainer.style.display = "none";
+  }
+
+  const tabModal = document.getElementById("account-tab-modal");
+  if (tabModal) {
+    tabModal.classList.remove("active");
+    tabModal.setAttribute("aria-hidden", "true");
+  }
+
+  let setupWrap = document.getElementById("account-profile-setup-wrap");
+  if (!setupWrap) {
+    setupWrap = document.createElement("section");
+    setupWrap.id = "account-profile-setup-wrap";
+    setupWrap.className = "section auth-wrap";
+    setupWrap.innerHTML = `
+      <div class="auth-card profile-setup-card">
+        <img class="auth-logo" src="../public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+        <p class="eyebrow">One-time setup</p>
+        <h1>Profile &amp; Learning Setup</h1>
+        <p class="intro">Choose your exam format, German level, country, and preferred currency.</p>
+        <form class="form auth-form" id="profile-setup-form">
+          <label class="field">
+            Exam Format
+            <select name="format" required>
+              <option value="">Select exam format</option>
+            </select>
+          </label>
+          <label class="field">
+            Current German Level
+            <select name="level" required>
+              <option value="">Select level</option>
+            </select>
+          </label>
+          <label class="field">
+            Country
+            <select name="country" required>
+              <option value="">Select country</option>
+            </select>
+          </label>
+          <label class="field">
+            Currency
+            <select name="currency" required>
+              <option value="">Select currency</option>
+            </select>
+          </label>
+          <button class="button-primary" type="submit">
+            <i data-lucide="save"></i> Save preferences
+          </button>
+          <p id="profile-setup-message" aria-live="polite"></p>
+        </form>
+      </div>
+    `;
+    if (mainContainer && mainContainer.parentNode) {
+      mainContainer.parentNode.insertBefore(setupWrap, mainContainer);
+    } else {
+      document.body.appendChild(setupWrap);
+    }
+  }
+
+  setupWrap.style.display = "flex";
+
+  const form = setupWrap.querySelector("#profile-setup-form");
+  if (!form) return;
+
+  populateProfileFormFields(form);
+  initIcons();
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
+  if (form.dataset.bound === "true") return;
+  form.dataset.bound = "true";
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = form.querySelector("#profile-setup-message");
+    const data = new FormData(form);
+    const country = String(data.get("country") || "").trim();
+    const currency = String(data.get("currency") || "").trim();
+    const format = String(data.get("format") || "goethe").toLowerCase().trim();
+    const level = String(data.get("level") || "A1").toUpperCase().trim();
+
+    if (!country || !currency || !format || !level) {
+      if (msg) {
+        msg.className = "error";
+        msg.textContent = "Please complete all fields (Exam Format, Level, Country, Currency).";
+        msg.style.display = "block";
+      }
+      return;
+    }
+
+    const submitBtn = form.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      localStorage.setItem("coco_practice_level", level);
+      localStorage.setItem("coco_practice_format", format.toLowerCase());
+      localStorage.setItem("coco_user_country", country);
+      localStorage.setItem("coco_user_currency", currency);
+      localStorage.setItem("coco_last_target_update", Date.now().toString());
+
+      if (window.CocoStateSync && typeof window.CocoStateSync.notifyTargetChanged === "function") {
+        window.CocoStateSync.notifyTargetChanged(level, format);
+      }
+
+      currentAccountProfile = {
+        ...(currentAccountProfile || {}),
+        uid: user.uid,
+        email: user.email || "",
+        country,
+        currency,
+        format,
+        level,
+        current_level: level,
+      };
+
+      const tools = await getFirebaseTools();
+      if (tools) {
+        await tools.firestoreModule.setDoc(
+          tools.firestoreModule.doc(tools.db, "userProfiles", user.uid),
+          {
+            uid: user.uid,
+            email: user.email || "",
+            country,
+            currency,
+            format,
+            level,
+            referrer: currentAccountProfile?.referrer || referrerSource(),
+            firstVisitAtLocal: currentAccountProfile?.firstVisitAtLocal || new Date().toISOString(),
+            updatedAt: tools.firestoreModule.serverTimestamp(),
+            ...(currentAccountProfile?.firstVisitAt ? {} : { firstVisitAt: tools.firestoreModule.serverTimestamp() }),
+          },
+          { merge: true }
+        );
+
+        try {
+          const timezone =
+            typeof Intl !== "undefined" && Intl.DateTimeFormat
+              ? Intl.DateTimeFormat().resolvedOptions().timeZone
+              : "UTC";
+          const idToken = await user.getIdToken(true);
+          await fetch(
+            "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev/learning/onboarding",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({ level, format, timezone }),
+            }
+          ).catch((err) => console.warn("Worker onboarding ping warning:", err));
+        } catch (pingErr) {
+          console.warn("Onboarding ping failed:", pingErr);
+        }
+
+        await processPendingReferralAttribution(user, currentAccountProfile, tools);
+      }
+
+      if (msg) {
+        msg.className = "success";
+        msg.textContent = "Preferences saved.";
+        msg.style.display = "block";
+      }
+
+      const destination = localStorage.getItem("loginRedirect");
+      if (destination && !destination.includes("account/index.html") && destination !== "#/account") {
+        localStorage.removeItem("loginRedirect");
+        if (destination.includes("practice") || destination.startsWith("http")) {
+          window.location.href = destination;
+          return;
+        }
+        if (destination.includes("refer")) {
+          window.location.href = destination.startsWith("/") ? destination.slice(1) : destination;
+          return;
+        }
+      }
+
+      setTimeout(() => {
+        hideProfileSetup();
+        initProfileForm(user);
+        initOrdersList(user);
+        initPurchasedList(user);
+        initIcons();
+        refreshModalIfActive();
+      }, 500);
+    } catch (err) {
+      console.error("Failed to save profile preferences:", err);
+      if (msg) {
+        msg.className = "error";
+        msg.textContent = "Failed to save preferences. Please try again.";
+        msg.style.display = "block";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
 }
 
 function populateProfileFormFields(form) {
@@ -1287,7 +1522,7 @@ function populateProfileFormFields(form) {
   const currentCurrency =
     currentAccountProfile?.currency ||
     localStorage.getItem("coco_user_currency") ||
-    "INR";
+    "";
 
   if (formatSelect) {
     formatSelect.innerHTML =

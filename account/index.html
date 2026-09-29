@@ -40,8 +40,48 @@
       </nav>
     </header>
 
+    <!-- One-Time Setup: Profile & Learning Setup (Dynamically shown if profile incomplete) -->
+    <section class="section auth-wrap" id="account-profile-setup-wrap" style="display: none;">
+      <div class="auth-card profile-setup-card">
+        <img class="auth-logo" src="../public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+        <p class="eyebrow">One-time setup</p>
+        <h1>Profile &amp; Learning Setup</h1>
+        <p class="intro">Choose your exam format, German level, country, and preferred currency.</p>
+        <form class="form auth-form" id="profile-setup-form">
+          <label class="field">
+            Exam Format
+            <select name="format" required>
+              <option value="">Select exam format</option>
+            </select>
+          </label>
+          <label class="field">
+            Current German Level
+            <select name="level" required>
+              <option value="">Select level</option>
+            </select>
+          </label>
+          <label class="field">
+            Country
+            <select name="country" required>
+              <option value="">Select country</option>
+            </select>
+          </label>
+          <label class="field">
+            Currency
+            <select name="currency" required>
+              <option value="">Select currency</option>
+            </select>
+          </label>
+          <button class="button-primary" type="submit">
+            <i data-lucide="save"></i> Save preferences
+          </button>
+          <p id="profile-setup-message" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
     <!-- Main Account Dashboard -->
-    <main class="account-container">
+    <main class="account-container" id="account-main-container">
       <!-- Breadcrumbs -->
       <nav class="breadcrumb-nav" aria-label="Breadcrumb">
         <a href="../index.html">Home</a>
