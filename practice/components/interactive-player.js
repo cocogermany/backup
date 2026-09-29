@@ -214,36 +214,135 @@ window.InteractivePlayerComponent = {
   normalizeMaterialContent: function (content) {
     if (!content || typeof content !== "object") return {};
 
+    // ---------------------------------------------------------------
+    // Build questions list — preserve ALL question types, not just
+    // those with options. QuestionRenderer handles all 12 CEFR types.
+    // ---------------------------------------------------------------
     const sourceQuestions = Array.isArray(content.questions) ? content.questions : [];
-    const questions = sourceQuestions.map((question, index) => {
-      const options = Array.isArray(question?.options)
-        ? question.options.map((option) => String(option ?? "")).filter(Boolean)
-        : [];
-      if (!options.length) return null;
+    const questions = sourceQuestions
+      .map((question, index) => {
+        if (!question || typeof question !== "object") return null;
 
-      return {
-        id: String(question.id || `q-${index + 1}`),
-        question: String(question.question || question.prompt || ""),
-        options,
-        correctAnswer: String(question.correctAnswer ?? question.correct_answer ?? ""),
-        explanation: String(question.explanation || ""),
-      };
-    }).filter(Boolean);
+        // A question is renderable if it has any of: question text, fields, options,
+        // a recognized type key, or any special-type pool.
+        const hasText = Boolean(question.question || question.statement || question.prompt || question.paragraph || question.situation || question.label || question.title);
+        const hasOptions = Array.isArray(question.options) && question.options.length > 0;
+        const hasType = Boolean(question.questionType || question.question_type || question.type);
+        const hasFields = Array.isArray(question.fields) && question.fields.length > 0;
+        const hasPool = Boolean(
+          question.matchingPool || question.matchingOptions ||
+          question.sentencePool || question.sentences ||
+          question.headingsPool || question.headings ||
+          question.persons || question.images ||
+          question.acceptedAnswers
+        );
 
+        if (!hasText && !hasOptions && !hasType && !hasFields && !hasPool) return null;
+
+        // Normalize options array when present (keep original objects for QuestionRenderer)
+        const normalizedOptions = hasOptions
+          ? question.options.map(opt => {
+              if (opt === null || opt === undefined) return null;
+              return opt; // preserve objects (image_matching, matching with id/label, etc.)
+            }).filter(opt => opt !== null && opt !== undefined)
+          : undefined;
+
+        return {
+          id: String(question.id || `q-${index + 1}`),
+          // Core question text fields
+          question: String(question.question || question.prompt || question.statement || question.paragraph || question.situation || question.label || ""),
+          statement: question.statement !== undefined ? question.statement : undefined,
+          paragraph: question.paragraph !== undefined ? question.paragraph : undefined,
+          situation: question.situation !== undefined ? question.situation : undefined,
+          // Answer fields
+          correctAnswer: question.correctAnswer !== undefined ? question.correctAnswer : (question.correct_answer !== undefined ? question.correct_answer : undefined),
+          acceptedAnswers: question.acceptedAnswers || question.accepted_answers || undefined,
+          explanation: question.explanation ? String(question.explanation) : undefined,
+          // Type discriminators
+          questionType: question.questionType || question.question_type || question.type || undefined,
+          type: question.type || undefined,
+          multiple: question.multiple || undefined,
+          inputType: question.inputType || undefined,
+          // Options (preserved as-is for objects, or as string array for plain options)
+          options: normalizedOptions,
+          // Type-specific pool / complex data
+          matchingPool: question.matchingPool || question.matchingOptions || undefined,
+          matchingOptions: question.matchingOptions || undefined,
+          sentencePool: question.sentencePool || question.sentences || undefined,
+          sentences: question.sentences || undefined,
+          headingsPool: question.headingsPool || question.headings || undefined,
+          headings: question.headings || undefined,
+          persons: question.persons || undefined,
+          images: question.images || undefined,
+          fields: hasFields ? question.fields : undefined,
+          // Writing task data on question level
+          task: question.task !== undefined ? question.task : undefined,
+          title: question.title !== undefined ? question.title : undefined,
+          label: question.label !== undefined ? question.label : undefined,
+          placeholder: question.placeholder !== undefined ? question.placeholder : undefined,
+          gapContext: question.gapContext !== undefined ? question.gapContext : undefined,
+        };
+      })
+      // strip nulls and undefined-only entries
+      .filter(Boolean)
+      .map(q => {
+        // Remove undefined-valued keys for a clean object
+        const cleaned = {};
+        Object.keys(q).forEach(k => { if (q[k] !== undefined) cleaned[k] = q[k]; });
+        return cleaned;
+      });
+
+    // ---------------------------------------------------------------
+    // Audio resolution
+    // ---------------------------------------------------------------
     let rawAudio = content.audioUrl || content.audio_url || content.audioPath || content.audio_path || content.audio;
     if (typeof rawAudio === "object" && rawAudio !== null) {
       rawAudio = rawAudio.url || rawAudio.src || rawAudio.path || "";
     }
     const resolvedAudio = rawAudio ? this.resolveWorkerUrl(rawAudio) : "";
-    return {
+
+    // ---------------------------------------------------------------
+    // Build normalized material — forward all material-level properties
+    // that QuestionRenderer may need (form_fields, matchingPool, task
+    // object, persons, etc.)
+    // ---------------------------------------------------------------
+    const normalized = {
+      // Reading / text body
       ...(typeof content.passage === "string" ? { passage: content.passage } : {}),
-      ...(typeof content.prompt === "string" ? { prompt: content.prompt } : {}),
-      ...(typeof content.task === "string" ? { task: content.task } : {}),
+      // Prompt (Speaking / Writing top-level)
+      ...(content.prompt !== undefined ? { prompt: content.prompt } : {}),
+      // Task — can be string OR object (Schreiben task with leitpunkte)
+      ...(content.task !== undefined ? { task: content.task } : {}),
+      // Question (top-level single question material)
       ...(typeof content.question === "string" ? { question: content.question } : {}),
+      // Title
       ...(typeof content.title === "string" ? { contentTitle: content.title } : {}),
+      // Questions
       ...(questions.length ? { questions } : {}),
+      // Audio
       ...(resolvedAudio ? { audioUrl: resolvedAudio, audio_url: resolvedAudio } : {}),
+      // Material-level type pools (shared across questions)
+      ...(content.matchingPool ? { matchingPool: content.matchingPool } : {}),
+      ...(content.matchingOptions ? { matchingOptions: content.matchingOptions } : {}),
+      ...(content.availableSentences ? { availableSentences: content.availableSentences } : {}),
+      ...(content.sentencePool ? { sentencePool: content.sentencePool } : {}),
+      ...(content.availableHeadings ? { availableHeadings: content.availableHeadings } : {}),
+      ...(content.headingPool ? { headingPool: content.headingPool } : {}),
+      ...(content.headings ? { headings: content.headings } : {}),
+      ...(content.persons ? { persons: content.persons } : {}),
+      ...(content.people ? { people: content.people } : {}),
+      // Material-level form fields
+      ...(Array.isArray(content.fields) && content.fields.length ? { fields: content.fields } : {}),
+      ...(Array.isArray(content.form_fields) && content.form_fields.length ? { form_fields: content.form_fields } : {}),
+      // Material-level question type discriminator
+      ...(content.questionType ? { questionType: content.questionType } : {}),
+      ...(content.question_type ? { question_type: content.question_type } : {}),
+      // Writing / word-count meta
+      ...(content.word_count ? { word_count: content.word_count } : {}),
+      ...(content.situation ? { situation: content.situation } : {}),
     };
+
+    return normalized;
   },
 
   fetchMaterialContent: async function (contentPath) {
