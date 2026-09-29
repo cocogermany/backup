@@ -860,6 +860,13 @@ window.InteractivePlayerComponent = {
     contentArea.innerHTML = this.renderMaterialWorkspace(material);
     this.bindQuestionOptionEvents(contentArea);
     if (window.lucide) window.lucide.createIcons();
+
+    if (isHoeren && window.QuestionRenderer) {
+      const audioEl = contentArea.querySelector(".hoeren-audio-player");
+      const badgeEl = contentArea.querySelector("#hoeren-audio-play-badge");
+      window.QuestionRenderer.setupAudioPlaybackControl(audioEl, material, badgeEl);
+    }
+
     if (isHoeren) {
       this.setHoerenLayoutMode(this.hoerenLayoutMode || "default");
     } else {
@@ -867,6 +874,28 @@ window.InteractivePlayerComponent = {
     }
     this.updateLayoutPopover();
     this.updateMobileTabQuestionCount();
+  },
+
+  renderMatchingPoolBox: function (material) {
+    if (!material) return "";
+    const pool = material.matchingPool || material.availableSentences || material.availableHeadings || material.matchingOptions;
+    if (!Array.isArray(pool) || pool.length === 0) return "";
+    const title = material.matchingPoolTitle || "Verfügbare Optionen (Option Pool):";
+    return `
+      <div class="exam-matching-pool-box">
+        <div class="exam-matching-pool-title">
+          <i data-lucide="layers" style="width:14px;height:14px;"></i>
+          <span>${this.escapeHtml(title)}</span>
+        </div>
+        <div class="exam-matching-pool-list">
+          ${pool.map(item => {
+            const val = window.QuestionRenderer ? window.QuestionRenderer.getOptionValue(item) : (item.id || item.code || item);
+            const lbl = window.QuestionRenderer ? window.QuestionRenderer.getOptionLabel(item) : (item.label || item.text || item);
+            return `<div class="exam-matching-pool-item"><strong>${this.escapeHtml(val)}:</strong> ${this.escapeHtml(lbl)}</div>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
   },
 
   renderFixedProgressBar: function (questions) {
@@ -915,6 +944,7 @@ window.InteractivePlayerComponent = {
 
           <!-- Questions List -->
           <div class="exam-questions-list">
+            ${this.renderMatchingPoolBox(material)}
             ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
           </div>
 
@@ -952,7 +982,10 @@ window.InteractivePlayerComponent = {
               <i data-lucide="headphones" style="width:18px;height:18px;color:var(--exam-ink-color);"></i>
               <span>Audio Track</span>
             </div>
-            <span class="hoeren-audio-badge">Hören</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="hoeren-audio-play-badge" class="exam-audio-play-badge" style="display:none;"></span>
+              <span class="hoeren-audio-badge">Hören</span>
+            </div>
           </div>
           ${material.audioUrl
             ? `<audio class="hoeren-audio-player" controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
@@ -967,6 +1000,7 @@ window.InteractivePlayerComponent = {
 
         <!-- Questions List -->
         <div class="exam-questions-list hoeren-questions-list">
+          ${this.renderMatchingPoolBox(material)}
           ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
         </div>
 
@@ -980,7 +1014,6 @@ window.InteractivePlayerComponent = {
       </div>
     `;
   },
-
 
   renderQuestionsOnlyInterface: function (material) {
     const questions = material.questions || [];
@@ -997,6 +1030,7 @@ window.InteractivePlayerComponent = {
         <h1 class="exam-doc-title" style="margin-bottom:20px;">${this.escapeHtml(material.contentTitle || material.title || "Grammatik Drill")}</h1>
 
         <div class="exam-questions-list">
+          ${this.renderMatchingPoolBox(material)}
           ${questions.map((q, idx) => this.renderQuestionBlock(q, idx, totalQuestions)).join("")}
         </div>
 
@@ -1013,18 +1047,21 @@ window.InteractivePlayerComponent = {
   renderGrammatikInterface: function (material) {
     const questions = material.questions || [];
     const totalQuestions = questions.length;
+    const isTelc = String(material.exam || "").toLowerCase().trim() === "telc";
+    const modLabel = isTelc ? "Sprachbausteine" : (material.module || "Grammatik");
 
     return `
       <div class="exam-grammatik-workspace player-view-grammatik exam-single-panel-workspace" id="exam-cbt-workspace">
         <div class="exam-doc-meta">
           <span>${this.escapeHtml((material.exam || "Goethe").toUpperCase())} ${this.escapeHtml(material.level || "A1")}</span>
           <span>·</span>
-          <span>Grammatik</span>
+          <span>${this.escapeHtml(modLabel)}</span>
         </div>
 
-        <h1 class="exam-doc-title" style="margin-bottom:24px;">${this.escapeHtml(material.contentTitle || material.title || "Grammatik Drill")}</h1>
+        <h1 class="exam-doc-title" style="margin-bottom:24px;">${this.escapeHtml(material.contentTitle || material.title || modLabel)}</h1>
 
         <div class="exam-questions-list">
+          ${this.renderMatchingPoolBox(material)}
           ${questions.map((q, idx) => this.renderGrammatikQuestionBlock(q, idx, totalQuestions)).join("")}
         </div>
 
@@ -1039,8 +1076,11 @@ window.InteractivePlayerComponent = {
   },
 
   renderGrammatikQuestionBlock: function (q, idx, total) {
+    if (window.QuestionRenderer && (q.questionType || q.type || !q.options || q.options.length > 4 || q.fields || q.matchingPool || q.sentencePool)) {
+      return this.renderQuestionBlock(q, idx, total);
+    }
+
     const questionId = String(q.id || `q-${idx + 1}`);
-    // Display exactly one _____ in the question text without adding extra underline/border-bottom elements
     const sentenceHtml = this.escapeHtml(q.question || "").replace(/_{2,}/g, "_____");
 
     return `
@@ -1054,7 +1094,7 @@ window.InteractivePlayerComponent = {
 
         <!-- Objective answer choice buttons -->
         <div class="gram-options-row">
-          ${q.options.map((opt) => {
+          ${(q.options || []).map((opt) => {
             const isSelected = this.userAnswers[q.id] === opt;
             return `
               <button
@@ -1073,9 +1113,14 @@ window.InteractivePlayerComponent = {
     `;
   },
 
-
   renderQuestionBlock: function (q, idx, total) {
-    const isAnswered = Boolean(this.userAnswers[q.id]);
+    if (window.QuestionRenderer) {
+      return window.QuestionRenderer.renderQuestion(q, idx, total, this.userAnswers, this.isReviewMode, {
+        playerType: "interactive",
+        material: this.currentMaterial
+      });
+    }
+
     const questionId = String(q.id || `q-${idx + 1}`);
 
     return `
@@ -1084,7 +1129,7 @@ window.InteractivePlayerComponent = {
         <div class="exam-q-text">${this.escapeHtml(q.question)}</div>
 
         <div class="exam-radio-list">
-          ${q.options.map((opt) => {
+          ${(q.options || []).map((opt) => {
             const isSelected = this.userAnswers[q.id] === opt;
             return `
               <label class="exam-radio-item ${isSelected ? 'selected' : ''}">
@@ -1151,6 +1196,13 @@ window.InteractivePlayerComponent = {
 
   bindQuestionOptionEvents: function (root) {
     if (!root) return;
+
+    if (window.QuestionRenderer) {
+      window.QuestionRenderer.bindEvents(root, (qId, val) => {
+        this.recordAnswer(qId, val);
+      });
+    }
+
     if (this._questionEventRoot && this._questionChangeHandler) {
       this._questionEventRoot.removeEventListener("change", this._questionChangeHandler);
     }
@@ -1162,6 +1214,21 @@ window.InteractivePlayerComponent = {
       this.selectOption(input.dataset.questionId, input.dataset.optionValue, input);
     };
     root.addEventListener("change", this._questionChangeHandler);
+  },
+
+  recordAnswer: function (qId, val) {
+    if (this.isSubmitted && this.isReviewMode) return;
+    this.userAnswers[qId] = val;
+    this.playClickSound("select");
+
+    // Update fixed progress pill
+    const baseQId = String(qId).split("__")[0];
+    const pill = document.getElementById(`nav-pill-${baseQId}`) || document.getElementById(`nav-pill-${qId}`);
+    if (pill) {
+      pill.classList.add("answered");
+    }
+
+    this.updateMobileTabQuestionCount();
   },
 
   selectOption: function (qId, optionValue, element) {
@@ -1228,14 +1295,23 @@ window.InteractivePlayerComponent = {
 
     const material = this.currentMaterial || this.getFallbackMaterialContent(materialId);
     const questions = material.questions || [];
-    const actualTotal = questions.length || 1;
     let rawScore = 0;
+    let actualTotal = 0;
 
     questions.forEach(q => {
-      if (this.userAnswers[q.id] === q.correctAnswer) {
-        rawScore++;
+      if (window.QuestionRenderer) {
+        const res = window.QuestionRenderer.evaluateQuestion(q, this.userAnswers);
+        rawScore += res.earnedScore;
+        actualTotal += res.maxScore;
+      } else {
+        if (this.userAnswers[q.id] === q.correctAnswer) {
+          rawScore++;
+        }
+        actualTotal++;
       }
     });
+
+    if (actualTotal <= 0) actualTotal = Math.max(1, questions.length);
 
     const multiplier = this.calculateMultiplier(material);
     const earnedMarks = Math.round((rawScore * multiplier + Number.EPSILON) * 100) / 100;
@@ -1385,20 +1461,31 @@ window.InteractivePlayerComponent = {
     const showExpl = this.currentSettings ? this.currentSettings.showExplanations !== false : true;
 
     questions.forEach(q => {
-      const userAns = this.userAnswers[q.id];
       const fb = document.getElementById(`feedback-${q.id}`);
       const navPill = document.getElementById(`nav-pill-${q.id}`);
-      const isCorrect = userAns === q.correctAnswer;
-      const explHtml = (showExpl && q.explanation) ? `<div style="margin-top:6px; font-size:0.8rem; opacity:0.9;">${this.escapeHtml(q.explanation)}</div>` : "";
 
-      if (fb) {
-        fb.hidden = false;
-        if (isCorrect) {
-          fb.className = "exam-review-feedback feedback-correct";
-          fb.innerHTML = `<strong>✓ Richtig (Correct)!</strong>${explHtml}`;
-        } else {
-          fb.className = "exam-review-feedback feedback-incorrect";
-          fb.innerHTML = `<strong>✗ Falsch (Incorrect).</strong> Richtige Antwort: <strong>${this.escapeHtml(q.correctAnswer)}</strong>.${explHtml}`;
+      let isCorrect = false;
+      if (window.QuestionRenderer) {
+        const evalRes = window.QuestionRenderer.evaluateQuestion(q, this.userAnswers);
+        isCorrect = evalRes.isCorrect;
+        if (fb) {
+          fb.hidden = false;
+          fb.innerHTML = window.QuestionRenderer.renderReviewFeedback(q, this.userAnswers, showExpl);
+        }
+      } else {
+        const userAns = this.userAnswers[q.id];
+        isCorrect = userAns === q.correctAnswer;
+        const explHtml = (showExpl && q.explanation) ? `<div style="margin-top:6px; font-size:0.8rem; opacity:0.9;">${this.escapeHtml(q.explanation)}</div>` : "";
+
+        if (fb) {
+          fb.hidden = false;
+          if (isCorrect) {
+            fb.className = "exam-review-feedback feedback-correct";
+            fb.innerHTML = `<strong>✓ Richtig (Correct)!</strong>${explHtml}`;
+          } else {
+            fb.className = "exam-review-feedback feedback-incorrect";
+            fb.innerHTML = `<strong>✗ Falsch (Incorrect).</strong> Richtige Antwort: <strong>${this.escapeHtml(q.correctAnswer)}</strong>.${explHtml}`;
+          }
         }
       }
 

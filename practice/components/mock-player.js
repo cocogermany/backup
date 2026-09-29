@@ -578,11 +578,41 @@ window.MockPlayerComponent = {
 
     if (window.lucide) window.lucide.createIcons();
     this.bindWorkspaceInputs(step);
+
+    if (step.module === "Hören" && window.QuestionRenderer) {
+      const audioEl = document.querySelector(".mock-audio-player");
+      const badgeEl = document.getElementById("mock-audio-play-badge");
+      window.QuestionRenderer.setupAudioPlaybackControl(audioEl, material, badgeEl);
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
+  },
+
+  renderMatchingPoolBox: function (material) {
+    if (!material) return "";
+    const pool = material.matchingPool || material.availableSentences || material.availableHeadings || material.matchingOptions;
+    if (!Array.isArray(pool) || pool.length === 0) return "";
+    const title = material.matchingPoolTitle || "Verfügbare Optionen (Option Pool):";
+    return `
+      <div class="exam-matching-pool-box" style="margin-bottom:16px;">
+        <div class="exam-matching-pool-title">
+          <i data-lucide="layers" style="width:14px;height:14px;"></i>
+          <span>${this.escapeHtml(title)}</span>
+        </div>
+        <div class="exam-matching-pool-list">
+          ${pool.map(item => {
+            const val = window.QuestionRenderer ? window.QuestionRenderer.getOptionValue(item) : (item.id || item.code || item);
+            const lbl = window.QuestionRenderer ? window.QuestionRenderer.getOptionLabel(item) : (item.label || item.text || item);
+            return `<div class="exam-matching-pool-item"><strong>${this.escapeHtml(val)}:</strong> ${this.escapeHtml(lbl)}</div>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
   },
 
   renderModuleWorkspaceHtml: function (step, material) {
     const mod = step.module;
+    const isTelc = String(this.activeExam?.format || "").toLowerCase().trim() === "telc";
 
     if (mod === "Lesen") {
       const passageHtml = material.passage || material.text || "Kein Lesetext vorhanden.";
@@ -603,6 +633,7 @@ window.MockPlayerComponent = {
               <h2 class="mock-questions-title">Fragen (${questions.length})</h2>
               <span style="font-size:0.8rem; color:var(--muted);">Select the correct answer</span>
             </div>
+            ${this.renderMatchingPoolBox(material)}
             <div class="mock-questions-list">
               ${questions.map((q, idx) => this.renderObjectiveQuestionCard(q, idx, questions.length)).join("")}
             </div>
@@ -623,7 +654,10 @@ window.MockPlayerComponent = {
                 <i data-lucide="headphones"></i>
                 <span>Hördatei · ${step.teil}</span>
               </div>
-              <span class="badge-pill badge-gold">Timed Listening</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="mock-audio-play-badge" class="exam-audio-play-badge" style="display:none;"></span>
+                <span class="badge-pill badge-gold">Timed Listening</span>
+              </div>
             </div>
             ${audioUrl
               ? `<audio class="mock-audio-player" controls preload="metadata" src="${this.escapeHtml(audioUrl)}">Your browser does not support audio playback.</audio>`
@@ -635,6 +669,7 @@ window.MockPlayerComponent = {
               <h2 class="mock-questions-title">Fragen (${questions.length})</h2>
               <span style="font-size:0.8rem; color:var(--muted);">Listen carefully and choose the correct answers</span>
             </div>
+            ${this.renderMatchingPoolBox(material)}
             <div class="mock-questions-list">
               ${questions.map((q, idx) => this.renderObjectiveQuestionCard(q, idx, questions.length)).join("")}
             </div>
@@ -643,16 +678,18 @@ window.MockPlayerComponent = {
       `;
     }
 
-    if (mod === "Grammatik") {
+    if (mod === "Grammatik" || mod === "Sprachbausteine") {
       const questions = material.questions || [];
+      const modTitle = isTelc ? "Sprachbausteine" : "Grammatik";
 
       return `
         <div class="mock-grammatik-container">
           <div style="margin-bottom:16px;">
-            <h1 style="font-size:1.25rem; font-weight:700; margin:0 0 4px; font-family:var(--font-heading);">${this.escapeHtml(material.title || "Grammatik & Sprachbausteine")}</h1>
-            <p style="font-size:0.85rem; color:var(--muted); margin:0;">Choose the correct word or grammatical form to complete each sentence.</p>
+            <h1 style="font-size:1.25rem; font-weight:700; margin:0 0 4px; font-family:var(--font-heading);">${this.escapeHtml(material.title || modTitle)}</h1>
+            <p style="font-size:0.85rem; color:var(--muted); margin:0;">Choose the correct word or grammatical form to complete each task.</p>
           </div>
 
+          ${this.renderMatchingPoolBox(material)}
           <div class="mock-gram-list">
             ${questions.map((q, idx) => this.renderGrammatikQuestionCard(q, idx, questions.length)).join("")}
           </div>
@@ -661,6 +698,28 @@ window.MockPlayerComponent = {
     }
 
     if (mod === "Schreiben") {
+      // Check if writing task is a Formular (e.g. Goethe A1 / Telc A1 Schreiben Teil 1)
+      if (material.questionType === "form" || (Array.isArray(material.fields) && material.fields.length > 0)) {
+        const dummyQ = {
+          id: material.id || "formular-1",
+          questionType: "form",
+          title: material.title || "Formular ausfüllen",
+          fields: material.fields || []
+        };
+        return `
+          <div class="mock-schreiben-container">
+            <div class="mock-prompt-card">
+              <span class="mock-prompt-badge">${this.escapeHtml(step.teil)} · Formular</span>
+              <h2 class="mock-prompt-title">${this.escapeHtml(material.title || "Formular ausfüllen")}</h2>
+              ${material.passage || material.text || material.task?.situation ? `
+                <div class="mock-prompt-situation">${this.sanitizeRichText(material.passage || material.text || material.task?.situation || "")}</div>
+              ` : ""}
+            </div>
+            ${window.QuestionRenderer ? window.QuestionRenderer.renderQuestion(dummyQ, 0, 1, step.userAnswers || {}, false, { playerType: "mock", material: material }) : ''}
+          </div>
+        `;
+      }
+
       const taskDetails = this.extractTaskDetails(material);
       const wordLimits = this.getWordLimits(material);
       const minWords = wordLimits.minimum;
@@ -731,6 +790,14 @@ window.MockPlayerComponent = {
   },
 
   renderObjectiveQuestionCard: function (q, idx, total) {
+    if (window.QuestionRenderer) {
+      const curStep = this.activeExam ? this.activeExam.steps[this.activeExam.currentStepIndex] : null;
+      return window.QuestionRenderer.renderQuestion(q, idx, total, curStep?.userAnswers || {}, false, {
+        playerType: "mock",
+        material: curStep?.loadedContent
+      });
+    }
+
     const qId = String(q.id || `q-${idx + 1}`);
     const options = Array.isArray(q.options) ? q.options : [];
 
@@ -761,6 +828,9 @@ window.MockPlayerComponent = {
   },
 
   renderGrammatikQuestionCard: function (q, idx, total) {
+    if (window.QuestionRenderer && (q.questionType || q.type || !q.options || q.options.length > 4 || q.fields || q.matchingPool || q.sentencePool)) {
+      return this.renderObjectiveQuestionCard(q, idx, total);
+    }
     const qId = String(q.id || `q-${idx + 1}`);
     const options = Array.isArray(q.options) ? q.options : [];
     const sentence = this.escapeHtml(q.question || "").replace(/_{2,}/g, "_____");
@@ -791,6 +861,13 @@ window.MockPlayerComponent = {
 
   bindWorkspaceInputs: function (step) {
     const mod = step.module;
+    const root = document.getElementById("mock-player-root");
+
+    if (window.QuestionRenderer && root) {
+      window.QuestionRenderer.bindEvents(root, (qId, val) => {
+        step.userAnswers[qId] = val;
+      });
+    }
 
     if (mod === "Lesen" || mod === "Hören") {
       const radioInputs = document.querySelectorAll(".mock-radio-input");
@@ -1074,17 +1151,25 @@ window.MockPlayerComponent = {
 
     try {
       const material = step.loadedContent;
-      const questions = material.questions || [];
+      const questions = material.questions || (material.fields ? [{ id: material.id || "formular-1", questionType: "form", fields: material.fields }] : []);
       const userAnswers = step.userAnswers || {};
 
       let rawScore = 0;
-      const rawTotal = Math.max(1, questions.length);
+      let rawTotal = 0;
 
       questions.forEach(q => {
-        if (userAnswers[q.id] === q.correctAnswer) {
-          rawScore++;
+        if (window.QuestionRenderer) {
+          const res = window.QuestionRenderer.evaluateQuestion(q, userAnswers);
+          rawScore += res.earnedScore;
+          rawTotal += res.maxScore;
+        } else {
+          if (userAnswers[q.id] === q.correctAnswer) {
+            rawScore++;
+          }
+          rawTotal++;
         }
       });
+      if (rawTotal <= 0) rawTotal = Math.max(1, questions.length);
 
       const multiplier = this.calculateMultiplier(material, this.activeExam.format, this.activeExam.level);
       const earnedMarks = Math.round((rawScore * multiplier + Number.EPSILON) * 100) / 100;
@@ -1582,6 +1667,25 @@ window.MockPlayerComponent = {
     return `
       <div class="mock-questions-list">
         ${questions.map((q, idx) => {
+          if (window.QuestionRenderer) {
+            const evalRes = window.QuestionRenderer.evaluateQuestion(q, answers);
+            const isCorrect = evalRes.isCorrect;
+            const fbHtml = window.QuestionRenderer.renderReviewFeedback(q, answers, true);
+
+            return `
+              <div class="mock-q-card" style="border-left: 4px solid ${isCorrect ? '#10b981' : '#f43f5e'};">
+                <div class="mock-q-header">
+                  <span class="mock-q-num">Frage ${idx + 1}</span>
+                  <span class="badge-pill ${isCorrect ? 'badge-emerald' : 'badge-rose'}">
+                    ${isCorrect ? '✓ Richtig' : '✗ Falsch'}
+                  </span>
+                </div>
+                <div class="mock-q-text">${this.escapeHtml(q.question || q.statement || q.situation || "")}</div>
+                ${fbHtml}
+              </div>
+            `;
+          }
+
           const userAns = answers[q.id];
           const isCorrect = userAns === q.correctAnswer;
           const expl = q.explanation ? `<div style="margin-top:6px; font-size:0.82rem; opacity:0.9;"><strong>Explanation:</strong> ${this.escapeHtml(q.explanation)}</div>` : "";
@@ -1681,7 +1785,10 @@ window.MockPlayerComponent = {
 
     const exam = this.activeExam;
     const results = exam.stepResults || {};
-    const modules = ["Lesen", "Grammatik", "Hören", "Schreiben"];
+    const isTelc = String(exam.format || "").toLowerCase().trim() === "telc";
+    const modules = isTelc
+      ? ["Lesen", "Sprachbausteine", "Hören", "Schreiben"]
+      : ["Lesen", "Grammatik", "Hören", "Schreiben"];
 
     const sectionScores = {};
     let totalScore = 0;
@@ -1693,7 +1800,11 @@ window.MockPlayerComponent = {
       let count = 0;
 
       Object.values(results).forEach(res => {
-        if (res.module === mod && !res.skipped) {
+        const resMod = (isTelc && (res.module === "Grammatik" || res.module === "Sprachbausteine"))
+          ? "Sprachbausteine"
+          : res.module;
+
+        if (resMod === mod && !res.skipped) {
           modEarned += Number(res.earnedMarks || 0);
           modTotal += Number(res.totalMarks || 0);
           count++;

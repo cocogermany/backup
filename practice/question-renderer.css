@@ -1,0 +1,468 @@
+/* ==========================================================================
+   COCO GERMANY - DYNAMIC QUESTION RENDERER STYLES
+   question-renderer.css
+   
+   Supports 12 CEFR Examination Question Formats:
+     1. Single Choice (Radio)
+     2. True / False (Richtig / Falsch)
+     3. Yes / No (Ja / Nein)
+     4. Matching (Left items -> Right pool / "X")
+     5. Multiple Choice (Checkboxes)
+     6. Sentence Insertion (Text gaps -> Sentence pool)
+     7. Heading Matching (Paragraphs -> Headings)
+     8. Person Matching / Who Says What
+     9. Image Matching (Grid of image options)
+    10. Text Input (Short answer / notes)
+    11. Form (Multi-field Formular)
+    12. Long Text (Writing prompt & textarea)
+   ========================================================================== */
+
+/* Universal Question Block Enhancements */
+.exam-q-type-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--exam-ink-muted, #64748b);
+  background: var(--exam-paper-bg, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* 2. TRUE / FALSE & 3. YES / NO TOGGLES */
+.exam-tf-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+  max-width: 440px;
+}
+
+.exam-tf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid var(--exam-border-color, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--exam-ink-color, #0f172a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.exam-tf-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.exam-tf-btn.selected {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #92400e;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #d97706;
+}
+
+.exam-tf-btn.is-correct-choice {
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
+}
+
+.exam-tf-btn.is-incorrect-choice {
+  background: #fff1f2 !important;
+  border-color: #f43f5e !important;
+  color: #9f1239 !important;
+}
+
+/* 4. MATCHING & 6. SENTENCE INSERTION & 7. HEADING MATCHING */
+.exam-matching-card {
+  background: #ffffff;
+  border: 1.5px solid var(--exam-border-color, #e2e8f0);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.exam-matching-card:hover {
+  border-color: #cbd5e1;
+}
+
+.exam-matching-pool-box {
+  background: #f8fafc;
+  border: 1px solid var(--exam-border-color, #e2e8f0);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.exam-matching-pool-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--exam-ink-muted, #475569);
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exam-matching-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--exam-ink-color, #1e293b);
+}
+
+.exam-matching-pool-item {
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.exam-matching-select-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.exam-matching-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--exam-ink-muted, #64748b);
+}
+
+.exam-matching-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--exam-border-color, #cbd5e1);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: var(--exam-ink-color, #0f172a);
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.exam-matching-select:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.15);
+}
+
+.exam-matching-select.selected {
+  border-color: #d97706;
+  background-color: #fffbeb;
+  font-weight: 600;
+}
+
+/* 5. MULTIPLE CHOICE (CHECKBOXES) */
+.exam-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exam-checkbox-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1.5px solid var(--exam-border-color, #cbd5e1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.exam-checkbox-item:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.exam-checkbox-item.selected {
+  background: #fffbeb;
+  border-color: #d97706;
+}
+
+.exam-checkbox-item input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.exam-checkbox-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+  background: #ffffff;
+}
+
+.exam-checkbox-item.selected .exam-checkbox-box {
+  background: #d97706;
+  border-color: #d97706;
+  color: #ffffff;
+}
+
+.exam-checkbox-item.selected .exam-checkbox-box::after {
+  content: "✓";
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* 9. IMAGE MATCHING */
+.exam-img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.exam-img-card {
+  position: relative;
+  border: 2px solid var(--exam-border-color, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.exam-img-card:hover {
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.exam-img-card.selected {
+  border-color: #d97706;
+  background: #fffbeb;
+  box-shadow: 0 0 0 1px #d97706;
+}
+
+.exam-img-card.is-correct-choice {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px #10b981 !important;
+}
+
+.exam-img-card.is-incorrect-choice {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 2px #f43f5e !important;
+}
+
+.exam-img-preview {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #f1f5f9;
+}
+
+.exam-img-footer {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--exam-ink-color, #0f172a);
+}
+
+.exam-img-badge {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exam-img-card.selected .exam-img-badge {
+  background: #d97706;
+  color: #ffffff;
+}
+
+/* 10. TEXT INPUT (SHORT FREE TEXT) */
+.exam-text-input-wrap {
+  margin-top: 10px;
+  max-width: 480px;
+}
+
+.exam-text-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--exam-border-color, #cbd5e1);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--exam-ink-color, #0f172a);
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.exam-text-input:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.15);
+}
+
+.exam-text-input.is-correct-input {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.exam-text-input.is-incorrect-input {
+  border-color: #f43f5e;
+  background: #fff1f2;
+}
+
+/* 11. FORM (MULTI-FIELD FORMULAR) */
+.exam-form-container {
+  background: #ffffff;
+  border: 1.5px solid var(--exam-border-color, #e2e8f0);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.exam-form-header {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--exam-ink-color, #1e293b);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--exam-border-color, #e2e8f0);
+}
+
+.exam-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exam-form-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .exam-form-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+.exam-form-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--exam-ink-muted, #475569);
+}
+
+.exam-form-field-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--exam-border-color, #cbd5e1);
+  border-radius: 6px;
+  font-size: 0.92rem;
+  color: var(--exam-ink-color, #0f172a);
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.exam-form-field-input:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.15);
+}
+
+.exam-form-field-input.is-correct-field {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.exam-form-field-input.is-incorrect-field {
+  border-color: #f43f5e;
+  background: #fff1f2;
+}
+
+.exam-form-field-corr {
+  font-size: 0.78rem;
+  color: #065f46;
+  margin-top: 3px;
+}
+
+/* AUDIO PLAYBACK CONTROLLER BADGE */
+.exam-audio-play-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.exam-audio-play-badge.completed {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+/* UNSUPPORTED QUESTION FALLBACK */
+.exam-unsupported-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fffbeb;
+  border: 1.5px dashed #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 8px;
+}
