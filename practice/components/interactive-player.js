@@ -186,16 +186,29 @@ window.InteractivePlayerComponent = {
   resolveWorkerUrl: function (path) {
     const value = String(path || "").trim();
     if (!value) return "";
+    if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:") || value.startsWith("data:")) {
+      return value;
+    }
 
     try {
-      const workerBase = window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function"
+      const workerBase = (window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function")
         ? window.SupabaseService.getWorkerBaseUrl()
-        : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
-      return new URL(value, `${workerBase.replace(/\/$/, "")}/`).href;
+        : (typeof getWorkerBaseUrl === "function" ? getWorkerBaseUrl() : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev");
+      const clean = value.replace(/^\/+/, "");
+      return new URL(clean, `${workerBase.replace(/\/$/, "")}/`).href;
     } catch (error) {
       console.warn("Player: Invalid material asset URL:", value);
       return "";
     }
+  },
+
+  getAudioMimeType: function (url) {
+    const clean = String(url || "").split("?")[0].toLowerCase();
+    if (clean.endsWith(".wav")) return "audio/wav";
+    if (clean.endsWith(".ogg") || clean.endsWith(".oga")) return "audio/ogg";
+    if (clean.endsWith(".m4a") || clean.endsWith(".aac") || clean.endsWith(".mp4")) return "audio/mp4";
+    if (clean.endsWith(".webm")) return "audio/webm";
+    return "audio/mpeg";
   },
 
   normalizeMaterialContent: function (content) {
@@ -217,7 +230,11 @@ window.InteractivePlayerComponent = {
       };
     }).filter(Boolean);
 
-    const audioPath = content.audioUrl || content.audio_url || content.audioPath || content.audio_path;
+    let rawAudio = content.audioUrl || content.audio_url || content.audioPath || content.audio_path || content.audio;
+    if (typeof rawAudio === "object" && rawAudio !== null) {
+      rawAudio = rawAudio.url || rawAudio.src || rawAudio.path || "";
+    }
+    const resolvedAudio = rawAudio ? this.resolveWorkerUrl(rawAudio) : "";
     return {
       ...(typeof content.passage === "string" ? { passage: content.passage } : {}),
       ...(typeof content.prompt === "string" ? { prompt: content.prompt } : {}),
@@ -225,7 +242,7 @@ window.InteractivePlayerComponent = {
       ...(typeof content.question === "string" ? { question: content.question } : {}),
       ...(typeof content.title === "string" ? { contentTitle: content.title } : {}),
       ...(questions.length ? { questions } : {}),
-      ...(audioPath ? { audioUrl: this.resolveWorkerUrl(audioPath) } : {}),
+      ...(resolvedAudio ? { audioUrl: resolvedAudio, audio_url: resolvedAudio } : {}),
     };
   },
 
@@ -776,6 +793,17 @@ window.InteractivePlayerComponent = {
         level: material?.level || content?.level || level,
         module: material?.module || content?.module || "Lesen"
       };
+      if (material.module === "Hören" || !material.audioUrl) {
+        let rawAudio = material.audioUrl || material.audio_url || material.audioPath || material.audio_path || material.audio;
+        if (typeof rawAudio === "object" && rawAudio !== null) {
+          rawAudio = rawAudio.url || rawAudio.src || rawAudio.path || "";
+        }
+        if (rawAudio) {
+          const resolvedAudio = this.resolveWorkerUrl(rawAudio);
+          material.audioUrl = resolvedAudio;
+          material.audio_url = resolvedAudio;
+        }
+      }
     }
 
     if (!material) {
@@ -988,7 +1016,11 @@ window.InteractivePlayerComponent = {
             </div>
           </div>
           ${material.audioUrl
-            ? `<audio class="hoeren-audio-player" controls preload="metadata" style="width:100%;"><source src="${this.escapeHtml(material.audioUrl)}" type="audio/mpeg">Your browser does not support audio playback.</audio>`
+            ? `<audio class="hoeren-audio-player" controls preload="metadata" src="${this.escapeHtml(material.audioUrl)}" style="width:100%;">
+                 <source src="${this.escapeHtml(material.audioUrl)}" type="${this.getAudioMimeType(material.audioUrl)}">
+                 <source src="${this.escapeHtml(material.audioUrl)}">
+                 Your browser does not support audio playback.
+               </audio>`
             : `<p class="exam-audio-unavailable">Audio is not available for this practice set yet.</p>`}
         </div>
 

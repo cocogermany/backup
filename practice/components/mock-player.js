@@ -417,6 +417,24 @@ window.MockPlayerComponent = {
         minLoaderDelay
       ]);
 
+      // Resolve any audio URL or path from content or meta
+      let rawAudio =
+        content?.audioUrl ||
+        content?.audio_url ||
+        content?.audioPath ||
+        content?.audio_path ||
+        content?.audio ||
+        meta?.audioUrl ||
+        meta?.audio_url ||
+        meta?.audioPath ||
+        meta?.audio_path ||
+        meta?.audio ||
+        "";
+      if (typeof rawAudio === "object" && rawAudio !== null) {
+        rawAudio = rawAudio.url || rawAudio.src || rawAudio.path || "";
+      }
+      const resolvedAudioUrl = rawAudio ? this.resolveWorkerUrl(rawAudio) : "";
+
       const fullMaterial = {
         ...meta,
         ...content,
@@ -425,6 +443,8 @@ window.MockPlayerComponent = {
         teil: step.teil || meta.teil || "Teil 1",
         level: this.activeExam.level,
         exam: this.activeExam.format,
+        audioUrl: resolvedAudioUrl,
+        audio_url: resolvedAudioUrl,
         questions: Array.isArray(content?.questions) ? content.questions : []
       };
 
@@ -461,14 +481,40 @@ window.MockPlayerComponent = {
     return 10 * 60; // Lesen 10 mins per Teil
   },
 
+  resolveWorkerUrl: function (path) {
+    const value = String(path || "").trim();
+    if (!value) return "";
+    if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:") || value.startsWith("data:")) {
+      return value;
+    }
+
+    try {
+      const workerBase = (window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function")
+        ? window.SupabaseService.getWorkerBaseUrl()
+        : (typeof getWorkerBaseUrl === "function" ? getWorkerBaseUrl() : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev");
+      const cleanPath = value.replace(/^\/+/, "");
+      return new URL(cleanPath, `${workerBase.replace(/\/$/, "")}/`).href;
+    } catch (error) {
+      console.warn("MockPlayer: Invalid asset URL:", value);
+      return "";
+    }
+  },
+
+  getAudioMimeType: function (url) {
+    const clean = String(url || "").split("?")[0].toLowerCase();
+    if (clean.endsWith(".wav")) return "audio/wav";
+    if (clean.endsWith(".ogg") || clean.endsWith(".oga")) return "audio/ogg";
+    if (clean.endsWith(".m4a") || clean.endsWith(".aac") || clean.endsWith(".mp4")) return "audio/mp4";
+    if (clean.endsWith(".webm")) return "audio/webm";
+    return "audio/mpeg";
+  },
+
   fetchMaterialJson: async function (contentPath) {
     if (!contentPath) return {};
-    const workerBase = (window.SupabaseService && typeof window.SupabaseService.getWorkerBaseUrl === "function")
-      ? window.SupabaseService.getWorkerBaseUrl()
-      : "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+    const fullUrl = this.resolveWorkerUrl(contentPath);
+    if (!fullUrl) return {};
 
-    const cleanPath = String(contentPath).replace(/^\/+/, "");
-    const url = new URL(cleanPath, `${workerBase.replace(/\/$/, "")}/`);
+    const url = new URL(fullUrl);
     url.searchParams.set("v", Date.now().toString());
 
     const res = await fetch(url.href, {
@@ -644,7 +690,26 @@ window.MockPlayerComponent = {
 
     if (mod === "Hören") {
       const questions = material.questions || [];
-      const audioUrl = material.audioUrl || material.audio_url || "";
+      let rawAudio =
+        material.audioUrl ||
+        material.audio_url ||
+        material.audioPath ||
+        material.audio_path ||
+        material.audio ||
+        step?.materialMeta?.audio_url ||
+        step?.materialMeta?.audio_path ||
+        step?.materialMeta?.audioUrl ||
+        step?.materialMeta?.audioPath ||
+        "";
+      if (typeof rawAudio === "object" && rawAudio !== null) {
+        rawAudio = rawAudio.url || rawAudio.src || rawAudio.path || "";
+      }
+      const audioUrl = rawAudio ? this.resolveWorkerUrl(rawAudio) : "";
+      if (audioUrl) {
+        material.audioUrl = audioUrl;
+        material.audio_url = audioUrl;
+      }
+      const audioMime = this.getAudioMimeType(audioUrl);
 
       return `
         <div class="mock-hoeren-container">
@@ -660,7 +725,11 @@ window.MockPlayerComponent = {
               </div>
             </div>
             ${audioUrl
-              ? `<audio class="mock-audio-player" controls preload="metadata" src="${this.escapeHtml(audioUrl)}">Your browser does not support audio playback.</audio>`
+              ? `<audio class="mock-audio-player" controls preload="metadata" src="${this.escapeHtml(audioUrl)}" style="width:100%;">
+                   <source src="${this.escapeHtml(audioUrl)}" type="${audioMime}">
+                   <source src="${this.escapeHtml(audioUrl)}">
+                   Your browser does not support audio playback.
+                 </audio>`
               : `<p style="font-size:0.85rem; color:var(--muted); margin:0;">Audio file is not available for this set.</p>`}
           </div>
 
