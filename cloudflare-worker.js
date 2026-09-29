@@ -3428,8 +3428,13 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             }, 200, request);
           }
 
-          // Calculate reward
-          const commissionPercent = Number(env.REFERRAL_COMMISSION_PERCENT || 10);
+          // Calculate reward — use per-user referralCommission if set, else global env fallback, else 10%
+          const referrerProfile = await getFirestoreDoc("userProfiles", referrerUid, env, idToken).catch(() => null);
+          const perUserCommission = referrerProfile?.referralCommission;
+          const commissionPercent = (perUserCommission != null && !isNaN(Number(perUserCommission)))
+            ? Number(perUserCommission)
+            : Number(env.REFERRAL_COMMISSION_PERCENT || 10);
+          console.log(`[Worker/referral/process-order] referrerUid=${referrerUid} commissionPercent=${commissionPercent} (source=${perUserCommission != null ? "user-profile" : "env-default"})`);
           const { amount, currency } = parsePurchasePrice(order.price || order.amount || 0);
           const coins = calculateReferralCoins(amount, currency, commissionPercent);
 

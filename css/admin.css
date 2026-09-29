@@ -529,9 +529,203 @@
     align-items: stretch;
   }
 
+
   .admin-row,
   .admin-order-row {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .admin-referral-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
+
+/* ==========================================================================
+   REFER & EARN ADMIN PANEL
+   ========================================================================== */
+
+/* ─── Summary Stats Strip ────────────────────────────────────────────────── */
+.admin-referral-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-referral-stat {
+  background: var(--surface);
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-referral-stat strong {
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.admin-referral-stat span {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Referral Table ─────────────────────────────────────────────────────── */
+.admin-referral-table {
+  overflow-x: auto;
+}
+
+.admin-referral-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 2px solid var(--line-light);
+  padding: 10px 16px;
+}
+
+.admin-referral-row {
+  display: grid;
+  grid-template-columns: 2.5fr 0.8fr 2fr 1.6fr 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-light);
+  transition: background var(--transition-fast);
+}
+
+.admin-referral-header {
+  display: grid;
+  grid-template-columns: 2.5fr 0.8fr 2fr 1.6fr 1fr;
+  gap: 12px;
+}
+
+.admin-referral-row:hover {
+  background: var(--surface-hover, rgba(0,0,0,0.02));
+}
+
+.admin-referral-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-referral-identity strong {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-referral-referredby {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-referral-referrer-email {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.admin-referral-code {
+  font-family: monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Commission Input Cell ──────────────────────────────────────────────── */
+.admin-referral-commission-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.commission-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--input-bg, var(--surface));
+  border: 1px solid var(--line-light);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  transition: border-color var(--transition-fast);
+}
+
+.commission-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(105, 92, 235, 0.13);
+}
+
+.commission-input {
+  border: none;
+  background: transparent;
+  width: 56px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 0;
+  color: var(--text);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.commission-input::-webkit-outer-spin-button,
+.commission-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.commission-pct-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  user-select: none;
+}
+
+.save-commission-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-referral-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-referral-row,
+  .admin-referral-header {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .admin-referral-commission-cell {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-referral-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+

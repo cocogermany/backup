@@ -2529,6 +2529,7 @@ function adminShell(active, title, intro, content) {
     ["exam-materials", "Exam Materials", "file-text"],
     ["analytics", "Analytics", "chart-column"],
     ["customers", "Customers", "users"],
+    ["refer-earn", "Refer & Earn", "gift"],
     ["videos", "Videos", "video"],
     ["settings", "Settings", "settings"],
   ];
@@ -2742,6 +2743,167 @@ function renderAdminCustomers() {
       </section>
     `,
   );
+}
+
+async function renderAdminReferrals() {
+  if (!requireAdminPage()) return;
+
+  // Show loading shell first
+  adminShell(
+    "refer-earn",
+    "Refer & Earn",
+    "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
+    html`<section class="admin-section"><p class="muted">Loading referral data from Firebase…</p></section>`,
+  );
+
+  try {
+    const tools = await getFirebaseTools();
+    if (!tools) throw new Error("Firebase not available");
+
+    // Load all userProfiles
+    const snap = await tools.firestoreModule.getDocs(
+      tools.firestoreModule.collection(tools.db, "userProfiles")
+    );
+
+    const profiles = [];
+    snap.forEach((doc) => profiles.push({ uid: doc.id, ...doc.data() }));
+
+    // Build UID→email lookup for referrer resolution
+    const uidToEmail = {};
+    profiles.forEach((p) => { if (p.email) uidToEmail[p.uid] = p.email; });
+
+    const tableRows = profiles.map((p) => {
+      const referrerEmail = p.referredBy
+        ? (uidToEmail[p.referredBy] || p.referredBy)
+        : "—";
+      const commission = p.referralCommission !== undefined && p.referralCommission !== null
+        ? String(p.referralCommission)
+        : "";
+      return html`
+        <div class="admin-row admin-referral-row" data-uid="${p.uid}">
+          <div class="admin-referral-identity">
+            <strong title="${p.uid}">${p.email || "(no email)"}</strong>
+            <span class="muted" style="font-size:0.75rem">${p.uid}</span>
+          </div>
+          <span class="admin-referral-country">${p.country || "—"}</span>
+          <div class="admin-referral-referredby">
+            <span class="admin-referral-referrer-email">${referrerEmail}</span>
+            ${p.referredBy ? `<span class="muted" style="font-size:0.72rem">${p.referredBy}</span>` : ""}
+          </div>
+          <div class="admin-referral-commission-cell">
+            <div class="commission-input-wrap">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                class="commission-input"
+                data-uid="${p.uid}"
+                value="${commission}"
+                placeholder="e.g. 10"
+              />
+              <span class="commission-pct-label">%</span>
+            </div>
+            <button class="button-secondary save-commission-btn" data-uid="${p.uid}" type="button">Save</button>
+            <span class="commission-saved-msg" data-uid="${p.uid}" style="display:none;color:var(--success,#22c55e);font-size:0.8rem">✓ Saved</span>
+          </div>
+          <span class="admin-referral-code muted">${p.referralCode || "—"}</span>
+        </div>
+      `;
+    });
+
+    const totalWithCode = profiles.filter((p) => p.referralCode).length;
+    const totalReferred = profiles.filter((p) => p.referredBy).length;
+    const totalWithCommission = profiles.filter((p) => p.referralCommission != null && p.referralCommission !== "").length;
+
+    adminShell(
+      "refer-earn",
+      "Refer & Earn",
+      "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
+      html`
+        <section class="admin-section">
+          <!-- Summary Stats -->
+          <div class="admin-referral-summary">
+            <div class="admin-referral-stat">
+              <strong>${profiles.length}</strong><span>Total Users</span>
+            </div>
+            <div class="admin-referral-stat">
+              <strong>${totalWithCode}</strong><span>Have Referral Code</span>
+            </div>
+            <div class="admin-referral-stat">
+              <strong>${totalReferred}</strong><span>Were Referred</span>
+            </div>
+            <div class="admin-referral-stat">
+              <strong>${totalWithCommission}</strong><span>Custom Commission Set</span>
+            </div>
+          </div>
+
+          <!-- Table Header -->
+          <div class="admin-table admin-referral-table">
+            <div class="admin-row admin-referral-header">
+              <div>User (Email / UID)</div>
+              <span>Country</span>
+              <div>Referred By</div>
+              <div>Commission %</div>
+              <span>Referral Code</span>
+            </div>
+            ${profiles.length
+              ? tableRows.join("")
+              : `<p class="muted" style="padding:1rem">No user profiles found in Firebase.</p>`}
+          </div>
+        </section>
+      `,
+    );
+
+    // Attach save handlers
+    document.querySelectorAll(".save-commission-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const uid = btn.dataset.uid;
+        const input = document.querySelector(`.commission-input[data-uid="${uid}"]`);
+        const savedMsg = document.querySelector(`.commission-saved-msg[data-uid="${uid}"]`);
+        if (!input || !uid) return;
+
+        const rawVal = input.value.trim();
+        const commissionVal = rawVal === "" ? null : parseFloat(rawVal);
+        if (rawVal !== "" && (isNaN(commissionVal) || commissionVal < 0 || commissionVal > 100)) {
+          alert("Commission must be a number between 0 and 100.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Saving…";
+        try {
+          const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", uid);
+          await tools.firestoreModule.setDoc(
+            profileRef,
+            {
+              referralCommission: commissionVal,
+              updatedAt: tools.firestoreModule.serverTimestamp(),
+            },
+            { merge: true }
+          );
+          if (savedMsg) {
+            savedMsg.style.display = "inline";
+            setTimeout(() => { savedMsg.style.display = "none"; }, 3000);
+          }
+          btn.textContent = "Save";
+          btn.disabled = false;
+        } catch (err) {
+          alert("Failed to save commission: " + (err.message || err));
+          btn.textContent = "Save";
+          btn.disabled = false;
+        }
+      });
+    });
+
+  } catch (err) {
+    adminShell(
+      "refer-earn",
+      "Refer & Earn",
+      "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
+      html`<section class="admin-section"><p class="error">Failed to load referral data: ${err.message || err}</p></section>`,
+    );
+  }
 }
 
 function renderVideoForm() {
@@ -5154,6 +5316,7 @@ async function executeRoute() {
   else if (path === "/admin/videos") renderAdminVideos();
   else if (path === "/admin/exam-materials") renderAdminExamMaterials();
   else if (path === "/admin/settings") renderAdminSettings();
+  else if (path === "/admin/refer-earn") renderAdminReferrals();
   else if (parts[0] === "checkout" && parts[1]) renderPurchase(parts[1]);
   else if (path === "/purchase") renderPurchase(products[0].id);
   else if (parts[0] === "purchase" && parts[1]) renderPurchase(parts[1]);
