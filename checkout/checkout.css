@@ -916,6 +916,193 @@ body::before {
   border-radius: var(--radius-sm);
 }
 
+/* Spinner Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Pre-payment Prompt Box (READY_TO_PAY State) */
+.pre-payment-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 24px;
+  background: var(--surface-muted);
+  border: 1.5px dashed rgba(97, 88, 223, 0.28);
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+}
+
+.prompt-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.prompt-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(97, 88, 223, 0.12);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.prompt-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.prompt-text h4 {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.prompt-text p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pre-payment-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.continue-to-payment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: var(--radius-md);
+  background: var(--brand-gradient);
+  color: #ffffff;
+  border: none;
+  font-family: var(--font-heading);
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(97, 88, 223, 0.28);
+  transition: all var(--transition-normal);
+}
+
+.continue-to-payment-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(97, 88, 223, 0.38);
+}
+
+.continue-to-payment-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading Payment Options State */
+.payment-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 38px 24px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  gap: 14px;
+}
+
+.payment-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(97, 88, 223, 0.1);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+}
+
+.payment-loading-spinner svg {
+  width: 26px;
+  height: 26px;
+}
+
+.payment-loading-card h4 {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.payment-loading-card p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Processing Payment Overlay / State */
+.payment-processing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  background: var(--surface-muted);
+  border: 1.5px solid var(--brand);
+  border-radius: var(--radius-md);
+  gap: 16px;
+}
+
+.payment-processing-spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--brand-glow);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+}
+
+.payment-processing-spinner svg {
+  width: 28px;
+  height: 28px;
+}
+
+.payment-processing-card h4 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.payment-processing-card p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 0;
+  max-width: 420px;
+  line-height: 1.5;
+}
+
 /* Preview / Developer Simulator Strip */
 .checkout-dev-simulator {
   margin-top: 32px;
@@ -1089,5 +1276,16 @@ body::before {
 
   .btn-primary, .btn-secondary {
     width: 100%;
+  }
+
+  .pre-payment-prompt {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+
+  .continue-to-payment-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14.5px;
   }
 }

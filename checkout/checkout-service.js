@@ -460,6 +460,42 @@
     });
   }
 
+  /**
+   * Abstracted Worker / Payment Provider Client: Process Payment
+   *
+   * The frontend NEVER executes transactions directly or stores secrets.
+   * In future production, this forwards the authorization token or order intent
+   * to the Cloudflare Worker.
+   */
+  async function processPayment(session, selectedMethodId) {
+    // ------------------------------------------------------------------------
+    // FUTURE WORKER INTEGRATION POINT:
+    // const res = await fetch(`${WORKER_URL}/api/checkout/process`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     session_id: session?.session_id,
+    //     order_id: session?.order_id,
+    //     method_id: selectedMethodId,
+    //   }),
+    // });
+    // return await res.json();
+    // ------------------------------------------------------------------------
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          status: "confirmed",
+          order_id: session?.order_id || `CG-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+          session_id: session?.session_id || "",
+          method_id: selectedMethodId,
+          timestamp: new Date().toISOString(),
+        });
+      }, 750);
+    });
+  }
+
   // Export module globally
   window.CheckoutService = {
     parsePurchaseContext,
@@ -467,8 +503,12 @@
     clearPurchaseContext,
     checkReturnState,
     initiateCheckoutSession,
+    processPayment,
     verifyPaymentSession,
     formatCurrency,
     getCurrencySymbol,
+    getDefaultPrice,
+    getItemDescription,
+    getItemFeatures,
   };
 })(window);
