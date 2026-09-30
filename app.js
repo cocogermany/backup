@@ -211,6 +211,9 @@ async function getFirebaseTools() {
     firestoreModule,
   };
 
+  if (typeof window !== "undefined") {
+    window.getFirebaseTools = getFirebaseTools;
+  }
   return firebaseTools;
 }
 
@@ -988,6 +991,9 @@ async function ensureUserProfile(user, provider = "firebase") {
 
   if (snapshot.exists()) {
     currentUserProfile = { ...baseProfile, ...snapshot.data() };
+    if (typeof window !== "undefined") {
+      window.currentUserProfile = currentUserProfile;
+    }
     if (!snapshot.data().email) {
       await tools.firestoreModule.setDoc(
         profileRef,
@@ -1004,6 +1010,9 @@ async function ensureUserProfile(user, provider = "firebase") {
     ...baseProfile,
     firstVisitAtLocal: new Date().toISOString(),
   };
+  if (typeof window !== "undefined") {
+    window.currentUserProfile = currentUserProfile;
+  }
 
   await tools.firestoreModule.setDoc(profileRef, {
     ...currentUserProfile,
@@ -5399,10 +5408,16 @@ async function startSite() {
       if (window.__isTesting) return;
       const prevUid = currentUser ? currentUser.uid : null;
       currentUser = user;
+      if (typeof window !== "undefined") {
+        window.currentUser = user;
+      }
       if (user) {
         await ensureUserProfile(user);
       } else {
         currentUserProfile = null;
+        if (typeof window !== "undefined") {
+          window.currentUserProfile = null;
+        }
       }
       updateAuthNavigation();
 

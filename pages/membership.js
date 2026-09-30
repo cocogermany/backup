@@ -61,20 +61,106 @@ const PLAN_TIER_FEATURES = {
 };
 
 /**
+ * Wait up to maxMs for window.SupabaseService to initialize from the module script.
+ */
+async function waitForSupabaseService(maxMs = 1500) {
+  if (window.SupabaseService && typeof window.SupabaseService.checkLearningCredits === "function") {
+    return window.SupabaseService;
+  }
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxMs) {
+    await new Promise((r) => setTimeout(r, 25));
+    if (window.SupabaseService && typeof window.SupabaseService.checkLearningCredits === "function") {
+      return window.SupabaseService;
+    }
+  }
+  return window.SupabaseService || null;
+}
+
+/**
+ * Resolve the authenticated Firebase user, waiting for initial auth resolution if needed.
+ */
+async function getResolvedAuthUser(timeoutMs = 2500) {
+  // 1. In-memory user checks
+  if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
+    if (typeof window !== "undefined") window.currentUser = currentUser;
+    return currentUser;
+  }
+  if (typeof window !== "undefined" && window.currentUser && window.currentUser.uid) {
+    return window.currentUser;
+  }
+
+  // 2. Resolve via Firebase Auth instance
+  const getTools = typeof getFirebaseTools === "function"
+    ? getFirebaseTools
+    : (typeof window !== "undefined" && typeof window.getFirebaseTools === "function" ? window.getFirebaseTools : null);
+
+  if (getTools) {
+    try {
+      const tools = await getTools();
+      if (tools && tools.auth) {
+        if (tools.auth.currentUser && tools.auth.currentUser.uid) {
+          if (typeof window !== "undefined") window.currentUser = tools.auth.currentUser;
+          return tools.auth.currentUser;
+        }
+
+        if (typeof tools.auth.authStateReady === "function") {
+          await Promise.race([
+            tools.auth.authStateReady(),
+            new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+          ]);
+          if (tools.auth.currentUser && tools.auth.currentUser.uid) {
+            if (typeof window !== "undefined") window.currentUser = tools.auth.currentUser;
+            return tools.auth.currentUser;
+          }
+        } else if (tools.authModule && typeof tools.authModule.onAuthStateChanged === "function") {
+          const user = await new Promise((resolve) => {
+            let unsub = null;
+            const timer = setTimeout(() => {
+              try { if (unsub) unsub(); } catch (_) {}
+              resolve(tools.auth.currentUser || null);
+            }, timeoutMs);
+
+            unsub = tools.authModule.onAuthStateChanged(tools.auth, (u) => {
+              clearTimeout(timer);
+              try { if (unsub) unsub(); } catch (_) {}
+              resolve(u || null);
+            });
+          });
+          if (user && user.uid) {
+            if (typeof window !== "undefined") window.currentUser = user;
+            return user;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Membership: Note on auth user resolution:", e);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Retrieve country and currency from Firestore for logged-in users,
  * with localStorage fallback for guests, defaulting to INR.
  */
-async function getUserCountryAndCurrency() {
+async function getUserCountryAndCurrency(authUser) {
   let country = "";
   let currency = "";
 
+  const user = authUser || (await getResolvedAuthUser(1000));
+
   // 1. If user is authenticated, query Firestore userProfiles/{uid}
-  if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
+  if (user && user.uid) {
     try {
-      if (typeof getFirebaseTools === "function") {
-        const tools = await getFirebaseTools();
+      const getTools = typeof getFirebaseTools === "function"
+        ? getFirebaseTools
+        : (typeof window !== "undefined" && typeof window.getFirebaseTools === "function" ? window.getFirebaseTools : null);
+      if (getTools) {
+        const tools = await getTools();
         if (tools && tools.firestoreModule && tools.db) {
-          const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", currentUser.uid);
+          const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", user.uid);
           const snap = await tools.firestoreModule.getDoc(profileRef);
           if (snap.exists()) {
             const data = snap.data();
@@ -112,23 +198,29 @@ async function getUserCountryAndCurrency() {
 }
 
 /**
- * Fetch database plans, active user tier, and currency from Supabase plans & Firestore.
+ * Fetch database plans, active user tier, and currency from Supabase plans & authoritative credit Worker.
  */
 async function fetchMembershipData() {
   let plans = [];
   let userPlanCode = null;
   let userCredits = null;
 
-  // Retrieve user currency and country
-  const { country: userCountry, currency: userCurrency } = await getUserCountryAndCurrency();
+  // 1. Concurrently wait for SupabaseService and resolve authenticated user
+  const [supabaseService, authUser] = await Promise.all([
+    waitForSupabaseService(1500),
+    getResolvedAuthUser(2500),
+  ]);
 
+  // 2. Retrieve user currency and country
+  const { country: userCountry, currency: userCurrency } = await getUserCountryAndCurrency(authUser);
+
+  // 3. Fetch active plans with prices and limits from Supabase plans table ONLY
   try {
-    const supabase = window.SupabaseService && typeof window.SupabaseService.getSupabaseClient === "function"
-      ? await window.SupabaseService.getSupabaseClient()
+    const supabase = supabaseService && typeof supabaseService.getSupabaseClient === "function"
+      ? await supabaseService.getSupabaseClient()
       : null;
 
     if (supabase) {
-      // 1. Fetch active plans with prices and limits from Supabase plans table ONLY
       const { data: plansData, error: plansErr } = await supabase
         .from("plans")
         .select("code, name, daily_practice_credits, weekly_mock_exams, schreiben_enabled, weekly_schreiben_limit, prices")
@@ -137,28 +229,109 @@ async function fetchMembershipData() {
       if (!plansErr && Array.isArray(plansData) && plansData.length > 0) {
         plans = plansData;
       }
-
-      // 2. If user is authenticated, read their active plan from learning_users table
-      if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
-        const { data: userData, error: userErr } = await supabase
-          .from("learning_users")
-          .select("membership, credits_remaining, current_level, format")
-          .eq("uid", currentUser.uid)
-          .maybeSingle();
-
-        if (!userErr && userData) {
-          userPlanCode = (userData.membership || "FREE").toUpperCase().trim();
-          userCredits = typeof userData.credits_remaining === "number" ? userData.credits_remaining : null;
-        } else {
-          userPlanCode = "FREE";
-        }
-      }
     }
   } catch (e) {
     console.warn("Membership: Error loading database plans:", e);
   }
 
-  return { plans, userPlanCode, userCredits, userCurrency, userCountry };
+  // 4. If user is authenticated, authoritatively query membership tier
+  if (authUser && authUser.uid) {
+    let resolvedPlan = null;
+    let resolvedCredits = null;
+
+    // A. Query authoritative Cloudflare Worker via SupabaseService.checkLearningCredits(idToken)
+    try {
+      if (typeof authUser.getIdToken === "function" && supabaseService && typeof supabaseService.checkLearningCredits === "function") {
+        const idToken = await authUser.getIdToken();
+        const creditRes = await supabaseService.checkLearningCredits(idToken);
+        if (creditRes && creditRes.success) {
+          if (creditRes.membership) {
+            resolvedPlan = String(creditRes.membership).toUpperCase().trim();
+          }
+          if (typeof creditRes.credits_remaining === "number") {
+            resolvedCredits = creditRes.credits_remaining;
+          }
+        }
+      }
+    } catch (workerErr) {
+      console.warn("Membership: Worker credits check note:", workerErr);
+    }
+
+    // B. Fallback 1: Firestore userProfiles/{uid}
+    if (!resolvedPlan) {
+      try {
+        const getTools = typeof getFirebaseTools === "function"
+          ? getFirebaseTools
+          : (typeof window !== "undefined" && typeof window.getFirebaseTools === "function" ? window.getFirebaseTools : null);
+        if (getTools) {
+          const tools = await getTools();
+          if (tools && tools.firestoreModule && tools.db) {
+            const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", authUser.uid);
+            const snap = await tools.firestoreModule.getDoc(profileRef);
+            if (snap.exists()) {
+              const data = snap.data();
+              const profilePlan = data.membership || data.plan || data.tier;
+              if (profilePlan && typeof profilePlan === "string") {
+                resolvedPlan = profilePlan.toUpperCase().trim();
+              }
+            }
+          }
+        }
+      } catch (fsErr) {
+        console.warn("Membership: Firestore plan fallback note:", fsErr);
+      }
+    }
+
+    // C. Fallback 2: currentUserProfile from app.js
+    if (!resolvedPlan && typeof currentUserProfile !== "undefined" && currentUserProfile) {
+      const pPlan = currentUserProfile.membership || currentUserProfile.plan || currentUserProfile.tier;
+      if (pPlan && typeof pPlan === "string") {
+        resolvedPlan = pPlan.toUpperCase().trim();
+      }
+    }
+
+    // D. Fallback 3: localStorage cache (e.g. from practice app or previous session)
+    if (!resolvedPlan) {
+      const cached = localStorage.getItem("coco_user_plan") || localStorage.getItem("coco_practice_plan");
+      if (cached && typeof cached === "string") {
+        resolvedPlan = cached.toUpperCase().trim();
+      }
+    }
+
+    // E. Fallback 4: Direct Supabase client query
+    if (!resolvedPlan && supabaseService && typeof supabaseService.getSupabaseClient === "function") {
+      try {
+        const supabase = await supabaseService.getSupabaseClient();
+        if (supabase) {
+          const { data: userData } = await supabase
+            .from("learning_users")
+            .select("membership, credits_remaining")
+            .eq("uid", authUser.uid)
+            .maybeSingle();
+          if (userData && userData.membership) {
+            resolvedPlan = String(userData.membership).toUpperCase().trim();
+            if (typeof userData.credits_remaining === "number") {
+              resolvedCredits = userData.credits_remaining;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    userPlanCode = resolvedPlan || "FREE";
+    userCredits = resolvedCredits;
+
+    // Cache locally for fast retrieval across views
+    try {
+      localStorage.setItem("coco_user_plan", userPlanCode);
+      localStorage.setItem("coco_practice_plan", userPlanCode);
+    } catch (_) {}
+  } else {
+    userPlanCode = null;
+    userCredits = null;
+  }
+
+  return { plans, userPlanCode, userCredits, userCurrency, userCountry, authUser };
 }
 
 /**
@@ -486,7 +659,7 @@ async function renderMembership() {
   renderIcons();
 
   // 2. Fetch read-only data from Supabase & user currency from Firestore/localStorage
-  const { plans, userPlanCode, userCredits, userCurrency, userCountry } = await fetchMembershipData();
+  const { plans, userPlanCode, userCredits, userCurrency, userCountry, authUser } = await fetchMembershipData();
 
   // Cache data globally for checkout button context
   window.__cocoMembershipPlans = plans;
@@ -519,15 +692,17 @@ async function renderMembership() {
   }
 
   // 4. Render Main Membership Page with Dynamic Plans
-  const isLoggedIn = Boolean(typeof currentUser !== "undefined" && currentUser);
+  const activeUser = authUser || (typeof currentUser !== "undefined" && currentUser ? currentUser : null) || (typeof window !== "undefined" && window.currentUser ? window.currentUser : null);
+  const isLoggedIn = Boolean(activeUser && activeUser.uid);
   const normalizedUserPlan = (userPlanCode || "FREE").toUpperCase();
+  const userEmail = activeUser?.email || "Learner";
 
   const userStatusBadge = isLoggedIn
     ? html`
         <div class="membership-user-status" role="status">
           <span class="membership-status-dot" aria-hidden="true"></span>
           <span class="membership-status-text">
-            <span>Logged in as <strong>${currentUser.email}</strong></span>
+            <span>Logged in as <strong>${userEmail}</strong></span>
             <span class="membership-status-divider" aria-hidden="true">&bull;</span>
             <span>Current tier: <strong>${normalizedUserPlan}</strong></span>
             ${userCredits !== null ? html`<span class="membership-status-divider" aria-hidden="true">&bull;</span><span><strong>${userCredits}</strong> credits left today</span>` : ""}
