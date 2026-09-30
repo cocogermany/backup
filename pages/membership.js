@@ -187,7 +187,7 @@ function renderPlanPrice(plan, userCurrency) {
   const isFree = code === "FREE";
 
   if (isFree) {
-    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">Forever</span></div>`;
+    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">/forever</span></div>`;
   }
 
   // Parse prices object from database plan record
@@ -217,30 +217,27 @@ function renderPlanPrice(plan, userCurrency) {
     return `
       <div class="membership-card-price-row">
         <span class="membership-card-price" style="font-size: clamp(16px, 1.8vw, 20px); letter-spacing: -0.01em;">Contact us for pricing</span>
-        <span class="membership-card-cadence">Custom Access</span>
       </div>
     `;
   }
 
   const num = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
   if (num === 0) {
-    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">Forever</span></div>`;
+    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">/forever</span></div>`;
   }
 
   if (Number.isFinite(num)) {
     const formatted = formatCurrencyPrice(num, curr);
     return `
       <div class="membership-card-price-row">
-        <span class="membership-card-price">${formatted}</span>
-        <span class="membership-card-cadence">/ month</span>
+        <span class="membership-card-price">${formatted}</span><span class="membership-card-cadence">/month</span>
       </div>
     `;
   }
 
   return `
     <div class="membership-card-price-row">
-      <span class="membership-card-price">${rawPrice}</span>
-      <span class="membership-card-cadence">/ month</span>
+      <span class="membership-card-price">${rawPrice}</span><span class="membership-card-cadence">/month</span>
     </div>
   `;
 }
@@ -520,11 +517,16 @@ async function renderMembership() {
 
   const userStatusBadge = isLoggedIn
     ? html`
-        <div class="membership-user-status">
-          <span class="membership-status-dot"></span>
-          <span>Logged in as <strong>${currentUser.email}</strong> &bull; Current tier: <strong>${normalizedUserPlan}</strong></span>
-          ${userCredits !== null ? ` &bull; <span>${userCredits} credits remaining today</span>` : ""}
-          &bull; <span>Currency: <strong>${userCurrency}</strong></span>
+        <div class="membership-user-status" role="status">
+          <span class="membership-status-dot" aria-hidden="true"></span>
+          <span class="membership-status-text">
+            <span>Logged in as <strong>${currentUser.email}</strong></span>
+            <span class="membership-status-divider" aria-hidden="true">&bull;</span>
+            <span>Current tier: <strong>${normalizedUserPlan}</strong></span>
+            ${userCredits !== null ? html`<span class="membership-status-divider" aria-hidden="true">&bull;</span><span><strong>${userCredits}</strong> credits left today</span>` : ""}
+            <span class="membership-status-divider" aria-hidden="true">&bull;</span>
+            <span>Currency: <strong>${userCurrency}</strong></span>
+          </span>
         </div>
       `
     : "";
