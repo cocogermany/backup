@@ -15,53 +15,57 @@
  * - Strictly read-only: does not modify database schema or payment logic.
  */
 
-// Static Schreiben feature data per plan tier
-const SCHREIBEN_STATIC_FEATURES = {
+// Plan feature templates aligned with DB limits and inspected Schreiben configuration
+const PLAN_TIER_FEATURES = {
   FREE: [
-    "Full task fulfillment",
-    "Limited grammar/vocabulary feedback",
-    "Key corrections",
-    "Summary strengths/improvements",
-    "Limited Redemittel",
-    "First 2 sentences improved",
-    "Register analysis",
+    { text: "Grammar feedback — up to 2", enabled: true },
+    { text: "Key corrections — up to 3", enabled: true },
+    { text: "Useful phrases — up to 2", enabled: true },
+    { text: "Improved text — first 2 sentences only", enabled: true },
+    { text: "Tone & register analysis", enabled: false },
+    { text: "Recurring error patterns", enabled: false },
+    { text: "Long-term weakness tracking", enabled: false },
+    { text: "Personalized remedial study plan", enabled: false },
   ],
   BASIC: [
-    "Full task fulfillment",
-    "Medium grammar/vocabulary analysis",
-    "Detailed corrections",
-    "Detailed strengths/improvements",
-    "Medium structure/Redemittel analysis",
-    "Full improved version",
-    "Register analysis",
+    { text: "Grammar feedback — up to 4", enabled: true },
+    { text: "Detailed corrections — up to 5", enabled: true },
+    { text: "Useful phrases — up to 4", enabled: true },
+    { text: "Improved text — first 2 sentences only", enabled: true },
+    { text: "Tone & register analysis", enabled: true },
+    { text: "Recurring error patterns identified", enabled: true },
+    { text: "Long-term weakness tracking", enabled: false },
+    { text: "Personalized remedial study plan", enabled: false },
   ],
   PRO: [
-    "Full grammar/vocabulary analysis",
-    "Comprehensive corrections",
-    "Full strengths/improvements",
-    "Full structure/extensive Redemittel analysis",
-    "Enhanced improved version",
-    "Recurring error patterns",
-    "Register analysis",
+    { text: "Full grammar & vocabulary analysis", enabled: true },
+    { text: "Comprehensive corrections — up to 10", enabled: true },
+    { text: "Extensive exam phrases & connectors", enabled: true },
+    { text: "Full rewritten improved text", enabled: true },
+    { text: "Tone & register analysis", enabled: true },
+    { text: "Recurring error patterns identified", enabled: true },
+    { text: "Long-term weakness tracking across submissions", enabled: true },
+    { text: "Personalized remedial study plan", enabled: false },
   ],
   ADVANCED: [
-    "Full grammar/vocabulary analysis",
-    "Comprehensive corrections",
-    "Full strengths/improvements",
-    "Full structure/extensive Redemittel analysis",
-    "Enhanced improved version",
-    "Recurring error patterns",
-    "Register analysis",
+    { text: "Full grammar & vocabulary analysis", enabled: true },
+    { text: "Comprehensive corrections — up to 15", enabled: true },
+    { text: "Extensive exam phrases & connectors", enabled: true },
+    { text: "Full rewritten improved text", enabled: true },
+    { text: "Tone & register analysis", enabled: true },
+    { text: "Recurring error patterns identified", enabled: true },
+    { text: "Long-term weakness tracking across submissions", enabled: true },
+    { text: "Personalized remedial study plan", enabled: true },
   ],
   PERSONAL: [
-    "Deep personalized grammar/vocabulary",
-    "Personalized corrections and improvements",
-    "Personalized structure/Redemittel",
-    "Personalized improved version",
-    "Recurring error patterns",
-    "Long-term weaknesses",
-    "Personalized learning plan",
-    "Register analysis",
+    { text: "Deep personalized grammar & vocabulary", enabled: true },
+    { text: "Personalized line-by-line corrections", enabled: true },
+    { text: "Personalized phrases & vocabulary mastery", enabled: true },
+    { text: "Full personalized model rewrite", enabled: true },
+    { text: "Tone & register analysis", enabled: true },
+    { text: "Recurring error patterns identified", enabled: true },
+    { text: "Long-term weakness tracking across submissions", enabled: true },
+    { text: "Personalized remedial study plan & focus areas", enabled: true },
   ],
 };
 
@@ -251,7 +255,7 @@ function renderPlanPrice(plan, userCurrency) {
 }
 
 /**
- * Generate plan features dynamically from database plan limits & static Schreiben features
+ * Generate plan features dynamically from database plan limits & tiered capabilities
  */
 function generatePlanFeatures(plan) {
   const features = [];
@@ -261,19 +265,16 @@ function generatePlanFeatures(plan) {
   const credits = plan.daily_practice_credits;
   if (typeof credits === "number" && credits >= 100) {
     features.push({
-      icon: "check-circle-2",
-      text: "Unlimited interactive practice sessions",
+      text: "Unlimited practice sessions",
       enabled: true,
     });
   } else if (typeof credits === "number" && credits > 0) {
     features.push({
-      icon: "check-circle-2",
-      text: `<strong>${credits}</strong> interactive practice credits daily`,
+      text: `<strong>${credits}</strong> practice credits daily`,
       enabled: true,
     });
   } else {
     features.push({
-      icon: "check-circle-2",
       text: "Interactive practice exercises",
       enabled: true,
     });
@@ -283,59 +284,61 @@ function generatePlanFeatures(plan) {
   const exams = plan.weekly_mock_exams;
   if (typeof exams === "number" && exams >= 50) {
     features.push({
-      icon: "award",
       text: "Unlimited full Goethe & telc mock exams",
       enabled: true,
     });
   } else if (typeof exams === "number" && exams > 0) {
     features.push({
-      icon: "award",
-      text: `<strong>${exams}</strong> full Goethe & telc mock exam${exams > 1 ? "s" : ""} per week`,
+      text: `<strong>${exams}</strong> full mock exam${exams > 1 ? "s" : ""} / week`,
       enabled: true,
     });
   } else {
     features.push({
-      icon: "award",
-      text: "Mock exams not included",
+      text: "Full mock exams",
       enabled: false,
+      icon: "x",
     });
   }
 
-  // 3. Weekly writing submission quota if configured in plans table
+  // 3. Weekly writing submission quota from plans table
   const limit = plan.weekly_schreiben_limit;
-  if (typeof limit === "number" && limit >= 50) {
+  if (!plan.schreiben_enabled) {
     features.push({
-      icon: "file-text",
-      text: "Unlimited Writing evaluation submissions",
+      text: "Writing evaluations",
+      enabled: false,
+      icon: "x",
+    });
+  } else if (typeof limit === "number" && limit >= 50) {
+    features.push({
+      text: "Unlimited writing evaluations",
       enabled: true,
     });
   } else if (typeof limit === "number" && limit > 0) {
     features.push({
-      icon: "file-text",
-      text: `<strong>${limit}</strong> Writing submission${limit > 1 ? "s" : ""} per week`,
+      text: `<strong>${limit}</strong> writing evaluation${limit > 1 ? "s" : ""} / week`,
       enabled: true,
+    });
+  } else {
+    features.push({
+      text: "Writing evaluations",
+      enabled: false,
+      icon: "x",
     });
   }
 
-  // 4. Static Schreiben features per tier (Free, Basic, Pro, Personal)
-  const staticItems = SCHREIBEN_STATIC_FEATURES[code] || SCHREIBEN_STATIC_FEATURES.FREE;
-  staticItems.forEach((itemText) => {
+  // 4. Tiered capabilities (Limited -> Detailed -> Full -> Personalized)
+  const tierItems = PLAN_TIER_FEATURES[code] || PLAN_TIER_FEATURES.FREE;
+  tierItems.forEach((item) => {
     features.push({
-      icon: "check-circle-2",
-      text: itemText,
-      enabled: true,
+      text: item.text,
+      enabled: Boolean(item.enabled),
+      icon: item.enabled ? "check" : (item.icon || "x"),
     });
   });
 
-  // 5. Core platform learning features
+  // 5. Curated study exercises
   features.push({
-    icon: "book-open",
-    text: "Curated Lesen, Hören, and Grammatik sets",
-    enabled: true,
-  });
-  features.push({
-    icon: "bar-chart-2",
-    text: "Personalized accuracy & CEFR progress tracking",
+    text: "Curated reading, listening & grammar sets",
     enabled: true,
   });
 
@@ -437,7 +440,7 @@ function renderPlanCard(plan, userPlanCode, isLoggedIn, userCurrency, allPlans) 
             (feat) => html`
               <li class="membership-feature-item ${feat.enabled ? "" : "item-disabled"}">
                 <span class="membership-feature-icon ${feat.enabled ? "" : "icon-disabled"}">
-                  ${icon(feat.icon)}
+                  ${icon(feat.enabled ? "check" : (feat.icon || "x"))}
                 </span>
                 <span class="membership-feature-text">${feat.text}</span>
               </li>

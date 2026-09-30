@@ -208,8 +208,13 @@
   color: var(--muted-light);
 }
 
+.membership-feature-item.item-disabled strong {
+  color: inherit;
+  font-weight: 500;
+}
+
 .membership-feature-icon {
-  color: var(--brand);
+  color: var(--emerald);
   flex-shrink: 0;
   margin-top: 1px;
 }
