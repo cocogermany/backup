@@ -4,9 +4,9 @@
  *
  * Database-Driven Membership & Plans View:
  * - Fetches active plans (code, name, daily_practice_credits, weekly_mock_exams,
- *   schreiben_enabled, weekly_schreiben_limit, prices) from Supabase 'plans' table.
- * - Enriches plans with matching 'schreiben_plan_config' configuration for
- *   writing evaluation depths, error patterns, long-term weaknesses, and personalized learning.
+ *   schreiben_enabled, weekly_schreiben_limit, prices) directly from Supabase 'plans' table.
+ * - Does not query, fetch, merge, or reference the 'schreiben_plan_config' table.
+ * - Uses static Schreiben feature text per plan tier (Free, Basic, Pro, Personal).
  * - Resolves user country and currency from Firestore userProfiles/{uid} for authenticated
  *   users, falling back to localStorage (coco_user_country/coco_user_currency) for guests,
  *   and defaulting to INR if no currency exists.
@@ -15,58 +15,54 @@
  * - Strictly read-only: does not modify database schema or payment logic.
  */
 
-// Baseline defaults for schreiben_plan_config across standard CEFR tiers
-const DEFAULT_SCHREIBEN_CONFIGS = {
-  FREE: {
-    plan_code: "FREE",
-    task_fulfillment_depth: "summary",
-    grammar_depth: "limited",
-    correction_depth: "limited",
-    show_error_patterns: false,
-    show_long_term_weaknesses: false,
-    show_personalized_learning_plan: false,
-    register_analysis: false,
-  },
-  BASIC: {
-    plan_code: "BASIC",
-    task_fulfillment_depth: "medium",
-    grammar_depth: "medium",
-    correction_depth: "medium",
-    show_error_patterns: true,
-    show_long_term_weaknesses: false,
-    show_personalized_learning_plan: false,
-    register_analysis: true,
-  },
-  PRO: {
-    plan_code: "PRO",
-    task_fulfillment_depth: "full",
-    grammar_depth: "full",
-    correction_depth: "full",
-    show_error_patterns: true,
-    show_long_term_weaknesses: true,
-    show_personalized_learning_plan: false,
-    register_analysis: true,
-  },
-  ADVANCED: {
-    plan_code: "ADVANCED",
-    task_fulfillment_depth: "deep",
-    grammar_depth: "deep",
-    correction_depth: "deep",
-    show_error_patterns: true,
-    show_long_term_weaknesses: true,
-    show_personalized_learning_plan: true,
-    register_analysis: true,
-  },
-  PERSONAL: {
-    plan_code: "PERSONAL",
-    task_fulfillment_depth: "deep_personal",
-    grammar_depth: "deep_personal",
-    correction_depth: "deep_personal",
-    show_error_patterns: true,
-    show_long_term_weaknesses: true,
-    show_personalized_learning_plan: true,
-    register_analysis: true,
-  },
+// Static Schreiben feature data per plan tier
+const SCHREIBEN_STATIC_FEATURES = {
+  FREE: [
+    "Full task fulfillment",
+    "Limited grammar/vocabulary feedback",
+    "Key corrections",
+    "Summary strengths/improvements",
+    "Limited Redemittel",
+    "First 2 sentences improved",
+    "Register analysis",
+  ],
+  BASIC: [
+    "Full task fulfillment",
+    "Medium grammar/vocabulary analysis",
+    "Detailed corrections",
+    "Detailed strengths/improvements",
+    "Medium structure/Redemittel analysis",
+    "Full improved version",
+    "Register analysis",
+  ],
+  PRO: [
+    "Full grammar/vocabulary analysis",
+    "Comprehensive corrections",
+    "Full strengths/improvements",
+    "Full structure/extensive Redemittel analysis",
+    "Enhanced improved version",
+    "Recurring error patterns",
+    "Register analysis",
+  ],
+  ADVANCED: [
+    "Full grammar/vocabulary analysis",
+    "Comprehensive corrections",
+    "Full strengths/improvements",
+    "Full structure/extensive Redemittel analysis",
+    "Enhanced improved version",
+    "Recurring error patterns",
+    "Register analysis",
+  ],
+  PERSONAL: [
+    "Deep personalized grammar/vocabulary",
+    "Personalized corrections and improvements",
+    "Personalized structure/Redemittel",
+    "Personalized improved version",
+    "Recurring error patterns",
+    "Long-term weaknesses",
+    "Personalized learning plan",
+    "Register analysis",
+  ],
 };
 
 /**
@@ -121,7 +117,7 @@ async function getUserCountryAndCurrency() {
 }
 
 /**
- * Fetch database plans, matching schreiben configs, active user tier, and currency.
+ * Fetch database plans, active user tier, and currency from Supabase plans & Firestore.
  */
 async function fetchMembershipData() {
   let plans = [];
@@ -137,45 +133,17 @@ async function fetchMembershipData() {
       : null;
 
     if (supabase) {
-      // 1. Fetch active plans with prices and limits from Supabase
+      // 1. Fetch active plans with prices and limits from Supabase plans table ONLY
       const { data: plansData, error: plansErr } = await supabase
         .from("plans")
         .select("code, name, daily_practice_credits, weekly_mock_exams, schreiben_enabled, weekly_schreiben_limit, prices")
         .order("daily_practice_credits", { ascending: true });
 
-      // 2. Fetch matching schreiben_plan_config data
-      let schreibenConfigs = {};
-      try {
-        const { data: configData, error: configErr } = await supabase
-          .from("schreiben_plan_config")
-          .select("*");
-
-        if (!configErr && Array.isArray(configData)) {
-          configData.forEach((row) => {
-            if (row && row.plan_code) {
-              schreibenConfigs[row.plan_code.toUpperCase().trim()] = row;
-            }
-          });
-        }
-      } catch (cfgErr) {
-        console.warn("Membership: Error loading schreiben_plan_config:", cfgErr);
-      }
-
       if (!plansErr && Array.isArray(plansData) && plansData.length > 0) {
-        plans = plansData.map((plan) => {
-          const codeKey = (plan.code || "").toUpperCase().trim();
-          const fallbackConfig = DEFAULT_SCHREIBEN_CONFIGS[codeKey] || DEFAULT_SCHREIBEN_CONFIGS.FREE;
-          return {
-            ...plan,
-            schreiben_config: {
-              ...fallbackConfig,
-              ...(schreibenConfigs[codeKey] || {}),
-            },
-          };
-        });
+        plans = plansData;
       }
 
-      // 3. If user is authenticated, read their active plan from learning_users table
+      // 2. If user is authenticated, read their active plan from learning_users table
       if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
         const { data: userData, error: userErr } = await supabase
           .from("learning_users")
@@ -283,13 +251,13 @@ function renderPlanPrice(plan, userCurrency) {
 }
 
 /**
- * Generate plan features dynamically from database limits & schreiben_plan_config
+ * Generate plan features dynamically from database plan limits & static Schreiben features
  */
 function generatePlanFeatures(plan) {
   const features = [];
-  const cfg = plan.schreiben_config || {};
+  const code = (plan.code || "").toUpperCase().trim();
 
-  // 1. Daily practice credits from DB
+  // 1. Daily practice credits from plans table
   const credits = plan.daily_practice_credits;
   if (typeof credits === "number" && credits >= 100) {
     features.push({
@@ -311,7 +279,7 @@ function generatePlanFeatures(plan) {
     });
   }
 
-  // 2. Full mock exams from DB
+  // 2. Full mock exams from plans table
   const exams = plan.weekly_mock_exams;
   if (typeof exams === "number" && exams >= 50) {
     features.push({
@@ -333,80 +301,33 @@ function generatePlanFeatures(plan) {
     });
   }
 
-  // 3. Schreiben evaluation & weekly limit from DB
-  if (!plan.schreiben_enabled) {
+  // 3. Weekly writing submission quota if configured in plans table
+  const limit = plan.weekly_schreiben_limit;
+  if (typeof limit === "number" && limit >= 50) {
     features.push({
-      icon: "lock",
-      text: "Advanced Writing (Schreiben) evaluation locked",
-      enabled: false,
+      icon: "file-text",
+      text: "Unlimited Writing evaluation submissions",
+      enabled: true,
     });
-  } else {
-    const limit = plan.weekly_schreiben_limit;
-    if (typeof limit === "number" && limit > 0 && limit < 50) {
-      features.push({
-        icon: "file-text",
-        text: `<strong>${limit}</strong> Advanced Writing submission${limit > 1 ? "s" : ""} & examiner evaluations / week`,
-        enabled: true,
-      });
-    } else {
-      features.push({
-        icon: "file-text",
-        text: "Unlimited Advanced Writing evaluations with detailed scoring",
-        enabled: true,
-      });
-    }
-
-    // 4. Deeper analysis based on DB depth config
-    const depth = cfg.grammar_depth || cfg.correction_depth || cfg.task_fulfillment_depth || "";
-    if (depth === "deep" || depth === "deep_personal") {
-      features.push({
-        icon: "file-check",
-        text: "Deep structural & register analysis with line-by-line corrections",
-        enabled: true,
-      });
-    } else if (depth === "full") {
-      features.push({
-        icon: "file-check",
-        text: "Detailed Leitpunkte task fulfillment & CEFR scoring rubric",
-        enabled: true,
-      });
-    } else if (depth === "medium") {
-      features.push({
-        icon: "file-check",
-        text: "Grammar accuracy, sentence structure & vocabulary feedback",
-        enabled: true,
-      });
-    }
-
-    // 5. Error patterns when enabled in DB config
-    if (cfg.show_error_patterns) {
-      features.push({
-        icon: "search",
-        text: "Recurring grammar & vocabulary error patterns identified",
-        enabled: true,
-      });
-    }
-
-    // 6. Long-term weaknesses when enabled in DB config
-    if (cfg.show_long_term_weaknesses) {
-      features.push({
-        icon: "trending-up",
-        text: "Long-term weakness tracking across submissions",
-        enabled: true,
-      });
-    }
-
-    // 7. Personalized learning plan when enabled in DB config
-    if (cfg.show_personalized_learning_plan) {
-      features.push({
-        icon: "sparkles",
-        text: "Personalized remedial study plan & target focus areas",
-        enabled: true,
-      });
-    }
+  } else if (typeof limit === "number" && limit > 0) {
+    features.push({
+      icon: "file-text",
+      text: `<strong>${limit}</strong> Writing submission${limit > 1 ? "s" : ""} per week`,
+      enabled: true,
+    });
   }
 
-  // 8. General curriculum features
+  // 4. Static Schreiben features per tier (Free, Basic, Pro, Personal)
+  const staticItems = SCHREIBEN_STATIC_FEATURES[code] || SCHREIBEN_STATIC_FEATURES.FREE;
+  staticItems.forEach((itemText) => {
+    features.push({
+      icon: "check-circle-2",
+      text: itemText,
+      enabled: true,
+    });
+  });
+
+  // 5. Core platform learning features
   features.push({
     icon: "book-open",
     text: "Curated Lesen, Hören, and Grammatik sets",
