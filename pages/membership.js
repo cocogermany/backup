@@ -56,6 +56,7 @@ const PLAN_TIER_FEATURES = {
     { text: "Recurring error patterns identified", enabled: true },
     { text: "Long-term weakness tracking across submissions", enabled: true },
     { text: "Personalized remedial study plan & focus areas", enabled: true },
+    { text: "Human assisted support through whatsapp", enabled: true },
   ],
 };
 
