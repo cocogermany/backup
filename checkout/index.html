@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Secure checkout for Coco Germany memberships, digital exam materials, and German language courses." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Secure Checkout | Coco Germany</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Dedicated Checkout Stylesheet -->
+    <link rel="stylesheet" href="checkout.css" />
+  </head>
+  <body>
+    <!-- Site Header -->
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="logo" href="../index.html">
+          <img class="logo-mark" src="../public/images/cocoLogo.jpg" alt="Coco Germany logo" />
+          <span>
+            <strong>Coco Germany</strong>
+            <small>Education &amp; Publishing</small>
+          </span>
+        </a>
+
+        <div class="header-trust-badge">
+          <i data-lucide="lock"></i>
+          <span>256-Bit SSL Encrypted</span>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Dynamic Checkout Mount Point -->
+    <div id="checkout-mount" class="checkout-container">
+      <!-- Dynamically populated by checkout.js (Loading, Ready, Success, Pending, Failure, Cancelled, Unavailable) -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="checkout-service.js"></script>
+    <script src="checkout.js"></script>
+  </body>
+</html>

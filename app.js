@@ -5318,7 +5318,11 @@ async function executeRoute() {
   else if (path === "/admin/exam-materials") renderAdminExamMaterials();
   else if (path === "/admin/settings") renderAdminSettings();
   else if (path === "/admin/refer-earn") renderAdminReferrals();
-  else if (parts[0] === "checkout" && parts[1]) renderPurchase(parts[1]);
+  else if (path === "/checkout" || parts[0] === "checkout") {
+    const q = queryString ? `?${queryString}` : (parts[1] ? `?type=product&id=${encodeURIComponent(parts[1])}` : "");
+    window.location.href = `checkout/index.html${q}`;
+    return;
+  }
   else if (path === "/purchase") renderPurchase(products[0].id);
   else if (parts[0] === "purchase" && parts[1]) renderPurchase(parts[1]);
   else if (path === "/success") renderSuccess();

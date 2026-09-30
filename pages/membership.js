@@ -383,12 +383,13 @@ function renderPlanCard(plan, userPlanCode, isLoggedIn, userCurrency, allPlans) 
   let actionNote = "";
 
   if (!isLoggedIn) {
+    const checkoutUrl = `checkout/index.html?type=membership&id=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&currency=${encodeURIComponent(userCurrency || "INR")}`;
     actionButton = `
-      <a class="button ${isFree ? "button-light" : ""}" href="#/login" data-membership-login>
-        ${icon("log-in")} Log in to continue
+      <a class="button ${isFree ? "button-light" : ""}" href="#/login" data-membership-login data-redirect="${encodeURIComponent(checkoutUrl)}">
+        ${icon("log-in")} ${isFree ? "Log in to continue" : `Log in to upgrade to ${name}`}
       </a>
     `;
-    actionNote = isFree ? "Get started with free daily credits" : "Log in to view upgrade options";
+    actionNote = isFree ? "Get started with free daily credits" : "Instant activation after login";
   } else if (isCurrentPlan) {
     actionButton = `
       <button class="button button-light membership-button-current" type="button" disabled>
@@ -404,13 +405,14 @@ function renderPlanCard(plan, userPlanCode, isLoggedIn, userCurrency, allPlans) 
     `;
     actionNote = "Included with every Coco Germany account";
   } else {
-    // Logged-in user looking at a paid upgrade
+    // Logged-in user looking at a paid upgrade -> Opens Standalone Checkout!
+    const checkoutUrl = `checkout/index.html?type=membership&id=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&currency=${encodeURIComponent(userCurrency || "INR")}`;
     actionButton = `
-      <a class="button" href="https://wa.me/917907211108?text=Hello%20Coco%20Germany,%20I%20would%20like%20to%20upgrade%20my%20membership%20to%20${encodeURIComponent(name)}" target="_blank" rel="noopener">
+      <a class="button" href="${checkoutUrl}" data-membership-upgrade data-plan-code="${code}" data-plan-name="${encodeURIComponent(name)}">
         ${icon("sparkles")} Upgrade to ${name}
       </a>
     `;
-    actionNote = "Direct coordinator support & activation";
+    actionNote = "Instant activation & secure checkout";
   }
 
   return html`
@@ -484,7 +486,12 @@ async function renderMembership() {
   renderIcons();
 
   // 2. Fetch read-only data from Supabase & user currency from Firestore/localStorage
-  const { plans, userPlanCode, userCredits, userCurrency } = await fetchMembershipData();
+  const { plans, userPlanCode, userCredits, userCurrency, userCountry } = await fetchMembershipData();
+
+  // Cache data globally for checkout button context
+  window.__cocoMembershipPlans = plans;
+  window.__cocoUserCurrency = userCurrency;
+  window.__cocoUserCountry = userCountry;
 
   // 3. Handle Empty State if database plans could not be retrieved
   if (!plans || plans.length === 0) {
@@ -619,7 +626,45 @@ async function renderMembership() {
 function attachMembershipHandlers() {
   document.querySelectorAll("[data-membership-login]").forEach((link) => {
     link.addEventListener("click", () => {
-      localStorage.setItem("loginRedirect", "#/membership");
+      const redirect = link.getAttribute("data-redirect") || "#/membership";
+      localStorage.setItem("loginRedirect", redirect);
+    });
+  });
+
+  document.querySelectorAll("[data-membership-upgrade]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const code = btn.getAttribute("data-plan-code");
+      const name = decodeURIComponent(btn.getAttribute("data-plan-name") || `${code} Member`);
+      const plans = window.__cocoMembershipPlans || [];
+      const plan = plans.find((p) => (p.code || "").toUpperCase() === (code || "").toUpperCase());
+      const userCurr = window.__cocoUserCurrency || "INR";
+      const userCountry = window.__cocoUserCountry || "";
+      let price = null;
+      if (plan && plan.prices) {
+        price = plan.prices[userCurr] ?? plan.prices[userCurr.toUpperCase()] ?? null;
+      }
+
+      const context = {
+        purchase_type: "membership",
+        item_id: code,
+        item_name: name,
+        quantity: 1,
+        country: userCountry,
+        currency: userCurr,
+        displayed_price: price,
+        period: "/month",
+        metadata: {
+          plan_code: code,
+          source: "membership_page",
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      try {
+        sessionStorage.setItem("coco_checkout_context", JSON.stringify(context));
+      } catch (e) {
+        console.warn("Could not cache checkout context to sessionStorage:", e);
+      }
     });
   });
 }
