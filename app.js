@@ -396,6 +396,7 @@ const countryOptions = [
   "Turkey",
   "Uganda",
   "United Arab Emirates",
+  "UAE",
   "Other",
 ];
 
