@@ -18,7 +18,7 @@
 // Plan feature templates aligned with DB limits and inspected Schreiben configuration
 const PLAN_TIER_FEATURES = {
   FREE: [
-    { text: "Grammar feedback — up to 2", enabled: true },
+    { text: "Grammar feedback — Limited", enabled: false },
     { text: "Key corrections — up to 3", enabled: true },
     { text: "Useful phrases — up to 2", enabled: true },
     { text: "Improved text — first 2 sentences only", enabled: true },
