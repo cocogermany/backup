@@ -2,17 +2,134 @@
  * Coco Germany - Membership Page
  * pages/membership.js
  *
- * Strictly Read-Only:
- * - Fetches plans dynamically from Supabase 'plans' table.
- * - Detects logged-in user's membership from 'learning_users' table.
- * - Never modifies, inserts, or updates any database records.
- * - Converts database limits into clear human-friendly text.
+ * Database-Driven Membership & Plans View:
+ * - Fetches active plans (code, name, daily_practice_credits, weekly_mock_exams,
+ *   schreiben_enabled, weekly_schreiben_limit, prices) from Supabase 'plans' table.
+ * - Enriches plans with matching 'schreiben_plan_config' configuration for
+ *   writing evaluation depths, error patterns, long-term weaknesses, and personalized learning.
+ * - Resolves user country and currency from Firestore userProfiles/{uid} for authenticated
+ *   users, falling back to localStorage (coco_user_country/coco_user_currency) for guests,
+ *   and defaulting to INR if no currency exists.
+ * - Displays plan price directly from plan.prices[userCurrency] without currency conversion.
+ *   Shows 'Free' for free tiers and 'Contact us for pricing' if currency price is missing.
+ * - Strictly read-only: does not modify database schema or payment logic.
  */
 
+// Baseline defaults for schreiben_plan_config across standard CEFR tiers
+const DEFAULT_SCHREIBEN_CONFIGS = {
+  FREE: {
+    plan_code: "FREE",
+    task_fulfillment_depth: "summary",
+    grammar_depth: "limited",
+    correction_depth: "limited",
+    show_error_patterns: false,
+    show_long_term_weaknesses: false,
+    show_personalized_learning_plan: false,
+    register_analysis: false,
+  },
+  BASIC: {
+    plan_code: "BASIC",
+    task_fulfillment_depth: "medium",
+    grammar_depth: "medium",
+    correction_depth: "medium",
+    show_error_patterns: true,
+    show_long_term_weaknesses: false,
+    show_personalized_learning_plan: false,
+    register_analysis: true,
+  },
+  PRO: {
+    plan_code: "PRO",
+    task_fulfillment_depth: "full",
+    grammar_depth: "full",
+    correction_depth: "full",
+    show_error_patterns: true,
+    show_long_term_weaknesses: true,
+    show_personalized_learning_plan: false,
+    register_analysis: true,
+  },
+  ADVANCED: {
+    plan_code: "ADVANCED",
+    task_fulfillment_depth: "deep",
+    grammar_depth: "deep",
+    correction_depth: "deep",
+    show_error_patterns: true,
+    show_long_term_weaknesses: true,
+    show_personalized_learning_plan: true,
+    register_analysis: true,
+  },
+  PERSONAL: {
+    plan_code: "PERSONAL",
+    task_fulfillment_depth: "deep_personal",
+    grammar_depth: "deep_personal",
+    correction_depth: "deep_personal",
+    show_error_patterns: true,
+    show_long_term_weaknesses: true,
+    show_personalized_learning_plan: true,
+    register_analysis: true,
+  },
+};
+
+/**
+ * Retrieve country and currency from Firestore for logged-in users,
+ * with localStorage fallback for guests, defaulting to INR.
+ */
+async function getUserCountryAndCurrency() {
+  let country = "";
+  let currency = "";
+
+  // 1. If user is authenticated, query Firestore userProfiles/{uid}
+  if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
+    try {
+      if (typeof getFirebaseTools === "function") {
+        const tools = await getFirebaseTools();
+        if (tools && tools.firestoreModule && tools.db) {
+          const profileRef = tools.firestoreModule.doc(tools.db, "userProfiles", currentUser.uid);
+          const snap = await tools.firestoreModule.getDoc(profileRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.country) country = String(data.country).trim();
+            if (data.currency) currency = String(data.currency).trim();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Membership: Error loading user profile from Firestore:", err);
+    }
+
+    if (!currency && typeof currentUserProfile !== "undefined" && currentUserProfile?.currency) {
+      currency = String(currentUserProfile.currency).trim();
+    }
+    if (!country && typeof currentUserProfile !== "undefined" && currentUserProfile?.country) {
+      country = String(currentUserProfile.country).trim();
+    }
+  }
+
+  // 2. For guests or if profile values are missing, read from localStorage
+  if (!country) {
+    country = localStorage.getItem("coco_user_country") || "";
+  }
+  if (!currency) {
+    currency = localStorage.getItem("coco_user_currency") || "";
+  }
+
+  // 3. Fall back to INR if no currency exists or if currency is "Other"
+  if (!currency || currency === "Other") {
+    currency = "INR";
+  }
+
+  return { country, currency };
+}
+
+/**
+ * Fetch database plans, matching schreiben configs, active user tier, and currency.
+ */
 async function fetchMembershipData() {
   let plans = [];
   let userPlanCode = null;
   let userCredits = null;
+
+  // Retrieve user currency and country
+  const { country: userCountry, currency: userCurrency } = await getUserCountryAndCurrency();
 
   try {
     const supabase = window.SupabaseService && typeof window.SupabaseService.getSupabaseClient === "function"
@@ -20,18 +137,46 @@ async function fetchMembershipData() {
       : null;
 
     if (supabase) {
-      // 1. Strictly Read-Only query for active plans from Supabase plans table
+      // 1. Fetch active plans with prices and limits from Supabase
       const { data: plansData, error: plansErr } = await supabase
         .from("plans")
-        .select("code, name, daily_practice_credits, weekly_mock_exams, schreiben_enabled, weekly_schreiben_limit")
+        .select("code, name, daily_practice_credits, weekly_mock_exams, schreiben_enabled, weekly_schreiben_limit, prices")
         .order("daily_practice_credits", { ascending: true });
 
-      if (!plansErr && Array.isArray(plansData) && plansData.length > 0) {
-        plans = plansData;
+      // 2. Fetch matching schreiben_plan_config data
+      let schreibenConfigs = {};
+      try {
+        const { data: configData, error: configErr } = await supabase
+          .from("schreiben_plan_config")
+          .select("*");
+
+        if (!configErr && Array.isArray(configData)) {
+          configData.forEach((row) => {
+            if (row && row.plan_code) {
+              schreibenConfigs[row.plan_code.toUpperCase().trim()] = row;
+            }
+          });
+        }
+      } catch (cfgErr) {
+        console.warn("Membership: Error loading schreiben_plan_config:", cfgErr);
       }
 
-      // 2. If user is authenticated, read their active plan from learning_users table (Strictly Read-Only)
-      if (currentUser && currentUser.uid) {
+      if (!plansErr && Array.isArray(plansData) && plansData.length > 0) {
+        plans = plansData.map((plan) => {
+          const codeKey = (plan.code || "").toUpperCase().trim();
+          const fallbackConfig = DEFAULT_SCHREIBEN_CONFIGS[codeKey] || DEFAULT_SCHREIBEN_CONFIGS.FREE;
+          return {
+            ...plan,
+            schreiben_config: {
+              ...fallbackConfig,
+              ...(schreibenConfigs[codeKey] || {}),
+            },
+          };
+        });
+      }
+
+      // 3. If user is authenticated, read their active plan from learning_users table
+      if (typeof currentUser !== "undefined" && currentUser && currentUser.uid) {
         const { data: userData, error: userErr } = await supabase
           .from("learning_users")
           .select("membership, credits_remaining, current_level, format")
@@ -50,49 +195,342 @@ async function fetchMembershipData() {
     console.warn("Membership: Error loading database plans:", e);
   }
 
-  return { plans, userPlanCode, userCredits };
+  return { plans, userPlanCode, userCredits, userCurrency, userCountry };
 }
 
 /**
- * Format plan limits into natural, human-friendly German study descriptions
+ * Format currency price using browser Intl.NumberFormat without rate conversions.
  */
-function formatPracticeCredits(credits) {
-  if (typeof credits !== "number" || credits <= 0) {
-    return "Unlimited daily practice exercises";
+function formatCurrencyPrice(amount, currency) {
+  try {
+    const locale = typeof currencyLocale === "function" ? currencyLocale(currency) : "en-US";
+    const noFraction = ["INR", "JPY", "HUF", "TWD", "KRW", "UGX"].includes(currency);
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+      maximumFractionDigits: noFraction ? 0 : 2,
+    }).format(amount);
+  } catch (e) {
+    return `${currency} ${amount}`;
   }
-  if (credits >= 100) {
-    return "Unlimited interactive practice sessions";
-  }
-  return `<strong>${credits}</strong> interactive practice credits daily`;
 }
 
-function formatMockExams(exams) {
-  if (typeof exams !== "number" || exams <= 0) {
-    return "Mock exams not included";
+/**
+ * Render price row using plan.prices[userCurrency].
+ * Free plans always display 'Free'. Missing prices display 'Contact us for pricing'.
+ */
+function renderPlanPrice(plan, userCurrency) {
+  const code = (plan.code || "").toUpperCase().trim();
+  const isFree = code === "FREE";
+
+  if (isFree) {
+    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">Forever</span></div>`;
   }
-  if (exams >= 50) {
-    return "Unlimited full Goethe & telc mock exams";
+
+  // Parse prices object from database plan record
+  let prices = {};
+  if (typeof plan.prices === "object" && plan.prices !== null) {
+    prices = plan.prices;
+  } else if (typeof plan.prices === "string") {
+    try {
+      prices = JSON.parse(plan.prices);
+    } catch {
+      prices = {};
+    }
   }
-  return `<strong>${exams}</strong> full Goethe & telc mock exam${exams > 1 ? "s" : ""} per week`;
+
+  const curr = (userCurrency || "INR").trim();
+  let rawPrice = undefined;
+  if (prices[curr] !== undefined && prices[curr] !== null) {
+    rawPrice = prices[curr];
+  } else if (prices[curr.toUpperCase()] !== undefined && prices[curr.toUpperCase()] !== null) {
+    rawPrice = prices[curr.toUpperCase()];
+  } else if (prices[curr.toLowerCase()] !== undefined && prices[curr.toLowerCase()] !== null) {
+    rawPrice = prices[curr.toLowerCase()];
+  }
+
+  // Missing price in user's currency -> clear fallback
+  if (rawPrice === undefined || rawPrice === null || rawPrice === "") {
+    return `
+      <div class="membership-card-price-row">
+        <span class="membership-card-price" style="font-size: clamp(16px, 1.8vw, 20px); letter-spacing: -0.01em;">Contact us for pricing</span>
+        <span class="membership-card-cadence">Custom Access</span>
+      </div>
+    `;
+  }
+
+  const num = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
+  if (num === 0) {
+    return `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">Forever</span></div>`;
+  }
+
+  if (Number.isFinite(num)) {
+    const formatted = formatCurrencyPrice(num, curr);
+    return `
+      <div class="membership-card-price-row">
+        <span class="membership-card-price">${formatted}</span>
+        <span class="membership-card-cadence">/ month</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="membership-card-price-row">
+      <span class="membership-card-price">${rawPrice}</span>
+      <span class="membership-card-cadence">/ month</span>
+    </div>
+  `;
 }
 
-function formatSchreibenFeature(enabled, limit) {
-  if (!enabled) {
-    return {
+/**
+ * Generate plan features dynamically from database limits & schreiben_plan_config
+ */
+function generatePlanFeatures(plan) {
+  const features = [];
+  const cfg = plan.schreiben_config || {};
+
+  // 1. Daily practice credits from DB
+  const credits = plan.daily_practice_credits;
+  if (typeof credits === "number" && credits >= 100) {
+    features.push({
+      icon: "check-circle-2",
+      text: "Unlimited interactive practice sessions",
+      enabled: true,
+    });
+  } else if (typeof credits === "number" && credits > 0) {
+    features.push({
+      icon: "check-circle-2",
+      text: `<strong>${credits}</strong> interactive practice credits daily`,
+      enabled: true,
+    });
+  } else {
+    features.push({
+      icon: "check-circle-2",
+      text: "Interactive practice exercises",
+      enabled: true,
+    });
+  }
+
+  // 2. Full mock exams from DB
+  const exams = plan.weekly_mock_exams;
+  if (typeof exams === "number" && exams >= 50) {
+    features.push({
+      icon: "award",
+      text: "Unlimited full Goethe & telc mock exams",
+      enabled: true,
+    });
+  } else if (typeof exams === "number" && exams > 0) {
+    features.push({
+      icon: "award",
+      text: `<strong>${exams}</strong> full Goethe & telc mock exam${exams > 1 ? "s" : ""} per week`,
+      enabled: true,
+    });
+  } else {
+    features.push({
+      icon: "award",
+      text: "Mock exams not included",
+      enabled: false,
+    });
+  }
+
+  // 3. Schreiben evaluation & weekly limit from DB
+  if (!plan.schreiben_enabled) {
+    features.push({
+      icon: "lock",
       text: "Advanced Writing (Schreiben) evaluation locked",
       enabled: false,
-    };
+    });
+  } else {
+    const limit = plan.weekly_schreiben_limit;
+    if (typeof limit === "number" && limit > 0 && limit < 50) {
+      features.push({
+        icon: "file-text",
+        text: `<strong>${limit}</strong> Advanced Writing submission${limit > 1 ? "s" : ""} & examiner evaluations / week`,
+        enabled: true,
+      });
+    } else {
+      features.push({
+        icon: "file-text",
+        text: "Unlimited Advanced Writing evaluations with detailed scoring",
+        enabled: true,
+      });
+    }
+
+    // 4. Deeper analysis based on DB depth config
+    const depth = cfg.grammar_depth || cfg.correction_depth || cfg.task_fulfillment_depth || "";
+    if (depth === "deep" || depth === "deep_personal") {
+      features.push({
+        icon: "file-check",
+        text: "Deep structural & register analysis with line-by-line corrections",
+        enabled: true,
+      });
+    } else if (depth === "full") {
+      features.push({
+        icon: "file-check",
+        text: "Detailed Leitpunkte task fulfillment & CEFR scoring rubric",
+        enabled: true,
+      });
+    } else if (depth === "medium") {
+      features.push({
+        icon: "file-check",
+        text: "Grammar accuracy, sentence structure & vocabulary feedback",
+        enabled: true,
+      });
+    }
+
+    // 5. Error patterns when enabled in DB config
+    if (cfg.show_error_patterns) {
+      features.push({
+        icon: "search",
+        text: "Recurring grammar & vocabulary error patterns identified",
+        enabled: true,
+      });
+    }
+
+    // 6. Long-term weaknesses when enabled in DB config
+    if (cfg.show_long_term_weaknesses) {
+      features.push({
+        icon: "trending-up",
+        text: "Long-term weakness tracking across submissions",
+        enabled: true,
+      });
+    }
+
+    // 7. Personalized learning plan when enabled in DB config
+    if (cfg.show_personalized_learning_plan) {
+      features.push({
+        icon: "sparkles",
+        text: "Personalized remedial study plan & target focus areas",
+        enabled: true,
+      });
+    }
   }
-  if (typeof limit === "number" && limit > 0) {
-    return {
-      text: `<strong>${limit}</strong> Advanced Writing submission${limit > 1 ? "s" : ""} & examiner evaluations / week`,
-      enabled: true,
-    };
-  }
-  return {
-    text: "Unlimited Advanced Writing evaluations with detailed scoring",
+
+  // 8. General curriculum features
+  features.push({
+    icon: "book-open",
+    text: "Curated Lesen, Hören, and Grammatik sets",
     enabled: true,
-  };
+  });
+  features.push({
+    icon: "bar-chart-2",
+    text: "Personalized accuracy & CEFR progress tracking",
+    enabled: true,
+  });
+
+  return features;
+}
+
+/**
+ * Generate plan subtitle dynamically from database plan values
+ */
+function getPlanSubtitle(plan) {
+  const code = (plan.code || "").toUpperCase().trim();
+  if (code === "FREE") {
+    return "Essential daily practice sessions and foundational German exam preparation.";
+  }
+  const parts = [];
+  if (plan.weekly_mock_exams && plan.weekly_mock_exams > 0) {
+    parts.push(plan.weekly_mock_exams >= 50 ? "full mock exams" : `${plan.weekly_mock_exams} weekly mock exams`);
+  }
+  if (plan.schreiben_enabled) {
+    parts.push(plan.weekly_schreiben_limit > 0 && plan.weekly_schreiben_limit < 50 ? `${plan.weekly_schreiben_limit} weekly writing evaluations` : "examiner writing evaluations");
+  }
+  if (parts.length > 0) {
+    return `Comprehensive Goethe & telc preparation with ${parts.join(" and ")}.`;
+  }
+  return "Comprehensive Goethe & telc preparation with structured exam practice.";
+}
+
+/**
+ * Render individual plan card dynamically from database record
+ */
+function renderPlanCard(plan, userPlanCode, isLoggedIn, userCurrency, allPlans) {
+  const code = (plan.code || "").toUpperCase().trim();
+  const name = plan.name || (code === "FREE" ? "Free Learner" : `${code} Member`);
+  const isCurrentPlan = isLoggedIn && userPlanCode === code;
+  const isFree = code === "FREE";
+
+  // Recommend PRO, or the first paid plan if PRO is not present
+  const isFeatured = !isFree && (code === "PRO" || (allPlans && !allPlans.some((p) => (p.code || "").toUpperCase() === "PRO") && plan === allPlans.find((p) => (p.code || "").toUpperCase() !== "FREE")));
+
+  const subtitle = getPlanSubtitle(plan);
+  const priceDisplay = renderPlanPrice(plan, userCurrency);
+  const features = generatePlanFeatures(plan);
+
+  // Status tag at top of card
+  let tagMarkup = "";
+  if (isCurrentPlan) {
+    tagMarkup = `<span class="membership-tag tag-current">${icon("check", { style: "width:12px;height:12px;" })} Current Plan</span>`;
+  } else if (isFeatured) {
+    tagMarkup = `<span class="membership-tag">${icon("sparkles", { style: "width:12px;height:12px;" })} Recommended</span>`;
+  }
+
+  // Action button logic
+  let actionButton = "";
+  let actionNote = "";
+
+  if (!isLoggedIn) {
+    actionButton = `
+      <a class="button ${isFree ? "button-light" : ""}" href="#/login" data-membership-login>
+        ${icon("log-in")} Log in to continue
+      </a>
+    `;
+    actionNote = isFree ? "Get started with free daily credits" : "Log in to view upgrade options";
+  } else if (isCurrentPlan) {
+    actionButton = `
+      <button class="button button-light membership-button-current" type="button" disabled>
+        ${icon("check-circle-2")} Your Active Plan
+      </button>
+    `;
+    actionNote = "Your daily credits and exam quota are active";
+  } else if (isFree && userPlanCode !== "FREE") {
+    actionButton = `
+      <button class="button button-light membership-button-current" type="button" disabled>
+        Standard Tier
+      </button>
+    `;
+    actionNote = "Included with every Coco Germany account";
+  } else {
+    // Logged-in user looking at a paid upgrade
+    actionButton = `
+      <a class="button" href="https://wa.me/917907211108?text=Hello%20Coco%20Germany,%20I%20would%20like%20to%20upgrade%20my%20membership%20to%20${encodeURIComponent(name)}" target="_blank" rel="noopener">
+        ${icon("sparkles")} Upgrade to ${name}
+      </a>
+    `;
+    actionNote = "Direct coordinator support & activation";
+  }
+
+  return html`
+    <div class="membership-card ${isCurrentPlan ? "is-current" : ""} ${isFeatured ? "is-featured" : ""}">
+      ${tagMarkup}
+      <div class="membership-card-header">
+        <h2 class="membership-card-title">${name}</h2>
+        <p class="membership-card-subtitle">${subtitle}</p>
+        ${priceDisplay}
+      </div>
+
+      <ul class="membership-features">
+        ${features
+          .map(
+            (feat) => html`
+              <li class="membership-feature-item ${feat.enabled ? "" : "item-disabled"}">
+                <span class="membership-feature-icon ${feat.enabled ? "" : "icon-disabled"}">
+                  ${icon(feat.icon)}
+                </span>
+                <span class="membership-feature-text">${feat.text}</span>
+              </li>
+            `
+          )
+          .join("")}
+      </ul>
+
+      <div class="membership-card-action">
+        ${actionButton}
+        ${actionNote ? `<p class="membership-action-note">${actionNote}</p>` : ""}
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -133,8 +571,8 @@ async function renderMembership() {
   `;
   renderIcons();
 
-  // 2. Fetch read-only data from Supabase
-  const { plans, userPlanCode, userCredits } = await fetchMembershipData();
+  // 2. Fetch read-only data from Supabase & user currency from Firestore/localStorage
+  const { plans, userPlanCode, userCredits, userCurrency } = await fetchMembershipData();
 
   // 3. Handle Empty State if database plans could not be retrieved
   if (!plans || plans.length === 0) {
@@ -162,7 +600,7 @@ async function renderMembership() {
   }
 
   // 4. Render Main Membership Page with Dynamic Plans
-  const isLoggedIn = Boolean(currentUser);
+  const isLoggedIn = Boolean(typeof currentUser !== "undefined" && currentUser);
   const normalizedUserPlan = (userPlanCode || "FREE").toUpperCase();
 
   const userStatusBadge = isLoggedIn
@@ -171,6 +609,7 @@ async function renderMembership() {
           <span class="membership-status-dot"></span>
           <span>Logged in as <strong>${currentUser.email}</strong> &bull; Current tier: <strong>${normalizedUserPlan}</strong></span>
           ${userCredits !== null ? ` &bull; <span>${userCredits} credits remaining today</span>` : ""}
+          &bull; <span>Currency: <strong>${userCurrency}</strong></span>
         </div>
       `
     : "";
@@ -189,7 +628,7 @@ async function renderMembership() {
 
       <!-- 2. Dynamic Plan Cards from Supabase -->
       <div class="membership-grid">
-        ${plans.map((plan) => renderPlanCard(plan, normalizedUserPlan, isLoggedIn)).join("")}
+        ${plans.map((plan) => renderPlanCard(plan, normalizedUserPlan, isLoggedIn, userCurrency, plans)).join("")}
       </div>
 
       <!-- 3. Learning Architecture & Reassurance -->
@@ -255,114 +694,6 @@ async function renderMembership() {
 
   renderIcons();
   attachMembershipHandlers();
-}
-
-/**
- * Render individual plan card dynamically from database record
- */
-function renderPlanCard(plan, userPlanCode, isLoggedIn) {
-  const code = (plan.code || "").toUpperCase().trim();
-  const name = plan.name || (code === "FREE" ? "Free Learner" : `${code} Member`);
-  const isCurrentPlan = isLoggedIn && userPlanCode === code;
-  const isFree = code === "FREE";
-  const isFeatured = !isFree;
-
-  const creditsDesc = formatPracticeCredits(plan.daily_practice_credits);
-  const mockExamsDesc = formatMockExams(plan.weekly_mock_exams);
-  const schreibenInfo = formatSchreibenFeature(plan.schreiben_enabled, plan.weekly_schreiben_limit);
-
-  // Status tag at top of card
-  let tagMarkup = "";
-  if (isCurrentPlan) {
-    tagMarkup = `<span class="membership-tag tag-current">${icon("check", { style: "width:12px;height:12px;" })} Current Plan</span>`;
-  } else if (isFeatured) {
-    tagMarkup = `<span class="membership-tag">${icon("sparkles", { style: "width:12px;height:12px;" })} Recommended</span>`;
-  }
-
-  // Action Button logic (Read-only, no database mutations)
-  let actionButton = "";
-  let actionNote = "";
-
-  if (!isLoggedIn) {
-    actionButton = `
-      <a class="button ${isFree ? "button-light" : ""}" href="#/login" data-membership-login>
-        ${icon("log-in")} Log in to continue
-      </a>
-    `;
-    actionNote = isFree ? "Get started with free daily credits" : "Log in to view upgrade options";
-  } else if (isCurrentPlan) {
-    actionButton = `
-      <button class="button button-light membership-button-current" type="button" disabled>
-        ${icon("check-circle-2")} Your Active Plan
-      </button>
-    `;
-    actionNote = "Your daily credits and exam quota are active";
-  } else if (isFree && userPlanCode !== "FREE") {
-    actionButton = `
-      <button class="button button-light membership-button-current" type="button" disabled>
-        Standard Tier
-      </button>
-    `;
-    actionNote = "Included with every Coco Germany account";
-  } else {
-    // Logged-in Free user looking at Paid plan
-    actionButton = `
-      <a class="button" href="https://wa.me/917907211108?text=Hello%20Coco%20Germany,%20I%20would%20like%20to%20upgrade%20my%20membership%20to%20${encodeURIComponent(name)}" target="_blank" rel="noopener">
-        ${icon("sparkles")} Upgrade to ${name}
-      </a>
-    `;
-    actionNote = "Direct coordinator support & activation";
-  }
-
-  // Pricing display: Strictly do NOT invent prices. Free is Free. For paid, clear plan label.
-  const priceDisplay = isFree
-    ? `<div class="membership-card-price-row"><span class="membership-card-price">Free</span><span class="membership-card-cadence">Forever</span></div>`
-    : `<div class="membership-card-price-row"><span class="membership-card-price">Pro Tier</span><span class="membership-card-cadence">Comprehensive Study Access</span></div>`;
-
-  const subtitle = isFree
-    ? "Essential daily practice sessions and foundational German exam preparation."
-    : "Comprehensive Goethe & telc preparation with Advanced Writing evaluations and full mock tests.";
-
-  return html`
-    <div class="membership-card ${isCurrentPlan ? "is-current" : ""} ${isFeatured ? "is-featured" : ""}">
-      ${tagMarkup}
-      <div class="membership-card-header">
-        <h2 class="membership-card-title">${name}</h2>
-        <p class="membership-card-subtitle">${subtitle}</p>
-        ${priceDisplay}
-      </div>
-
-      <ul class="membership-features">
-        <li class="membership-feature-item">
-          <span class="membership-feature-icon">${icon("check-circle-2")}</span>
-          <span class="membership-feature-text">${creditsDesc}</span>
-        </li>
-        <li class="membership-feature-item">
-          <span class="membership-feature-icon">${icon("award")}</span>
-          <span class="membership-feature-text">${mockExamsDesc}</span>
-        </li>
-        <li class="membership-feature-item ${schreibenInfo.enabled ? "" : "item-disabled"}">
-          <span class="membership-feature-icon ${schreibenInfo.enabled ? "" : "icon-disabled"}">
-            ${icon(schreibenInfo.enabled ? "file-text" : "lock")}
-          </span>
-          <span class="membership-feature-text">${schreibenInfo.text}</span>
-        </li>
-        <li class="membership-feature-item">
-          <span class="membership-feature-icon">${icon("book-open")}</span>
-          <span class="membership-feature-text">Curated Lesen, Hören, and Grammatik sets</span>
-        </li>
-        <li class="membership-feature-item">
-          <span class="membership-feature-icon">${icon("bar-chart-2")}</span>
-          <span class="membership-feature-text">Personalized accuracy & CEFR progress tracking</span>
-        </li>
-      </ul>
-
-      <div class="membership-card-action">
-        ${actionButton}
-        ${actionNote ? `<p class="membership-action-note">${actionNote}</p>` : ""}
-      </div>
-    </div>
-  `;
 }
 
 /**
