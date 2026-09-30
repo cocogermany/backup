@@ -1,23 +1,25 @@
 /**
  * Coco Germany — Standalone Checkout Service Layer (checkout-service.js)
  *
- * Enforces clean separation between Frontend UI and Backend Payment Engine:
- * - Parses and normalizes incoming purchase context (URL params, hash, sessionStorage).
- * - Detects payment return states (completion, pending, cancellation, failure).
- * - Abstracted Worker / Payment Provider client interface.
- * - IMPORTANT: The frontend NEVER makes critical payment decisions.
- *   The future Cloudflare Worker is the single source of truth for:
+ * Thin client interface for the Cloudflare Worker:
+ * - Parses and normalizes incoming purchase context (URL parameters, hash, sessionStorage).
+ * - Delegates all critical business decisions to the authoritative Cloudflare Worker:
  *   product validation, actual prices, currencies, country eligibility,
  *   available payment methods, and payment order verification.
+ * - Zero hardcoded prices, payment methods, fake order IDs, or client-side payment logic.
+ * - Zero secrets or provider credentials in the frontend.
  */
 
 (function (window) {
   "use strict";
 
-  // Production Worker Endpoint Configuration (isolated for future connection)
-  const WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+  // Authoritative Cloudflare Worker Endpoint
+  const DEFAULT_WORKER_URL = "https://cocogermany-r2-worker.cocogermany-ytd.workers.dev";
+  const WORKER_URL =
+    (typeof window !== "undefined" && (window.COCO_WORKER_URL || localStorage.getItem("coco_worker_url"))) ||
+    DEFAULT_WORKER_URL;
+
   const STORAGE_KEY = "coco_checkout_context";
-  const RETURN_STORAGE_KEY = "coco_last_checkout_order";
 
   /**
    * Currency symbol helper
@@ -61,13 +63,14 @@
    * Format currency price cleanly using Intl.NumberFormat
    */
   function formatCurrency(amount, currency) {
+    if (amount === null || amount === undefined || amount === "") return "—";
     const num = Number(amount);
     if (!Number.isFinite(num)) return `${currency} ${amount}`;
     try {
       const noFraction = ["INR", "JPY", "HUF", "TWD", "KRW", "UGX"].includes(currency);
       return new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: currency,
+        currency: currency || "INR",
         maximumFractionDigits: noFraction ? 0 : 2,
       }).format(num);
     } catch {
@@ -116,7 +119,7 @@
     const currency = (getParam("currency") || context.currency || localStorage.getItem("coco_user_currency") || "INR").toUpperCase().trim();
     const country = (getParam("country") || context.country || localStorage.getItem("coco_user_country") || "").trim();
     const price = getParam("price") || getParam("displayed_price") || context.displayed_price || "";
-    const period = getParam("period") || context.period || (type === "membership" ? "/month" : "one-time");
+    const period = getParam("period") || context.period || (type === "membership" ? "/month" : "");
 
     let metadata = context.metadata || {};
     const rawMeta = getParam("metadata");
@@ -128,20 +131,18 @@
       }
     }
 
-    // Construct unified purchase context
     const mergedContext = {
-      purchase_type: type.toLowerCase().trim(),
-      item_id: id.trim(),
-      item_name: name.trim(),
+      purchase_type: String(type).toLowerCase().trim(),
+      item_id: String(id).trim(),
+      item_name: String(name).trim(),
       quantity: Number.isNaN(quantity) || quantity < 1 ? 1 : quantity,
       country: country,
       currency: currency || "INR",
-      displayed_price: price !== "" ? Number(price) : null,
+      displayed_price: price !== "" && !Number.isNaN(Number(price)) ? Number(price) : null,
       period: period,
       metadata: metadata,
     };
 
-    // Cache merged result for resilience during page reloads or return flows
     if (mergedContext.item_id) {
       savePurchaseContext(mergedContext);
     }
@@ -170,10 +171,7 @@
   }
 
   /**
-   * Check if current page load is a return from a payment gateway or completed session
-   * Supported query indicators:
-   * ?status=success|pending|failed|cancelled
-   * ?order_id=... or ?session_id=...
+   * Check if current page load is a return from a payment gateway redirect
    */
   function checkReturnState() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -192,7 +190,7 @@
     const sessionId = getParam("session_id") || getParam("sessionId") || "";
     const reason = getParam("reason") || getParam("error") || getParam("msg") || "";
 
-    if (["success", "pending", "failed", "cancelled", "cancel"].includes(statusParam) || (orderId && statusParam)) {
+    if (["success", "pending", "failed", "cancelled", "cancel"].includes(statusParam) || orderId || sessionId) {
       const normalizedStatus = statusParam === "cancel" ? "cancelled" : statusParam;
       return {
         isReturn: true,
@@ -207,293 +205,144 @@
   }
 
   /**
-   * Abstracted Worker / API Client: Initiate Checkout Session
+   * Thin Worker Client: Initiate Checkout Session
    *
-   * The future Worker endpoint will validate:
-   * 1. Product/plan existence & active status in DB
-   * 2. Authoritative price in user currency
-   * 3. Country eligibility & taxation rules
-   * 4. Available payment methods (Razorpay, Stripe, PayPal, UPI, etc.)
-   * 5. User eligibility (no duplicate active subscription)
-   *
-   * The frontend treats Worker responses as strictly authoritative.
+   * Calls the Cloudflare Worker to validate the purchase context and obtain
+   * authoritative price, currency, eligibility, order/session ID, and available payment methods.
    */
   async function initiateCheckoutSession(purchaseContext, customerInfo) {
-    // ------------------------------------------------------------------------
-    // FUTURE WORKER INTEGRATION POINT:
-    // When the Cloudflare Worker checkout route is deployed, uncomment:
-    //
-    // const res = await fetch(`${WORKER_URL}/api/checkout/initiate`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     purchase_context: purchaseContext,
-    //     customer: customerInfo,
-    //   }),
-    // });
-    // if (!res.ok) throw new Error("Worker checkout session initiation failed");
-    // return await res.json();
-    // ------------------------------------------------------------------------
+    if (!purchaseContext || !purchaseContext.item_id) {
+      return {
+        success: false,
+        status: "unavailable",
+        error: "Missing item identifier",
+        message: "No item or membership plan was specified for checkout.",
+      };
+    }
 
-    // For now: Clean, robust client-side validation & dynamic response architecture
-    // This allows full UI development, styling, and state verification without provider ties.
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Validation: Must have a valid item ID
-        if (!purchaseContext || !purchaseContext.item_id) {
-          resolve({
-            success: false,
-            status: "unavailable",
-            error: "No item or membership plan was specified for checkout.",
-            message: "Please select a plan or learning material from the site to continue.",
-          });
-          return;
-        }
+    try {
+      const res = await fetch(`${WORKER_URL}/api/checkout/initiate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          purchase_context: purchaseContext,
+          customer: customerInfo,
+        }),
+      });
 
-        const curr = purchaseContext.currency || "INR";
-        const isIndia = (purchaseContext.country || "").toUpperCase() === "IN" || curr === "INR";
-        const rawAmount = purchaseContext.displayed_price !== null && purchaseContext.displayed_price !== undefined
-          ? Number(purchaseContext.displayed_price)
-          : getDefaultPrice(purchaseContext.item_id, curr);
+      const data = await res.json().catch(() => null);
 
-        // If price could not be resolved or plan is contact-only
-        if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
-          if (rawAmount === 0 && purchaseContext.item_id.toUpperCase() === "FREE") {
-            resolve({
-              success: false,
-              status: "unavailable",
-              error: "Free Plan does not require checkout.",
-              message: "The Free Learner tier is included automatically with every Coco Germany account.",
-            });
-            return;
-          }
-          resolve({
-            success: false,
-            status: "unavailable",
-            error: "Price unavailable in selected currency.",
-            message: `Pricing for '${purchaseContext.item_name || purchaseContext.item_id}' in ${curr} is not configured yet. Please contact support.`,
-          });
-          return;
-        }
+      if (!res.ok) {
+        return {
+          success: false,
+          status: "unavailable",
+          error: data?.error || `HTTP ${res.status}`,
+          message: data?.message || "Payment service declined this checkout request. Please try again or contact support.",
+        };
+      }
 
-        const generatedOrderId = `CG-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-        const sessionId = `cs_live_${Math.random().toString(36).substring(2, 15)}`;
-
-        // Dynamic Payment Methods generated based on regional & currency authority
-        const availableMethods = isIndia
-          ? [
-              {
-                id: "upi",
-                name: "UPI / QR Code",
-                description: "Google Pay, PhonePe, Paytm, BHIM & any UPI App",
-                icon: "smartphone",
-                badge: "Instant & Zero Fee",
-                popular: true,
-              },
-              {
-                id: "cards",
-                name: "Credit or Debit Card",
-                description: "Visa, Mastercard, RuPay & Maestro",
-                icon: "credit-card",
-                badge: "Secure 256-Bit",
-              },
-              {
-                id: "netbanking",
-                name: "Net Banking",
-                description: "All major Indian banks (SBI, HDFC, ICICI, Axis & more)",
-                icon: "landmark",
-              },
-            ]
-          : [
-              {
-                id: "international_card",
-                name: "Credit / Debit Card",
-                description: "Visa, Mastercard, American Express, UnionPay",
-                icon: "credit-card",
-                badge: "Instant Activation",
-                popular: true,
-              },
-              {
-                id: "paypal",
-                name: "PayPal",
-                description: "Pay securely via your PayPal account or linked cards",
-                icon: "globe",
-                badge: "Global",
-              },
-              {
-                id: "bank_transfer",
-                name: "EU SEPA / International Wire",
-                description: "Direct bank transfer with official VAT invoice",
-                icon: "landmark",
-              },
-            ];
-
-        // Authoritative Session Object returned to the UI
-        resolve({
-          success: true,
-          status: "ready",
-          session_id: sessionId,
-          order_id: generatedOrderId,
-          customer: {
-            email: customerInfo?.email || "",
-            country: purchaseContext.country || (isIndia ? "IN" : "Global"),
-            currency: curr,
-          },
-          item: {
-            type: purchaseContext.purchase_type || "membership",
-            id: purchaseContext.item_id,
-            name: purchaseContext.item_name || `${purchaseContext.item_id} Plan`,
-            quantity: purchaseContext.quantity || 1,
-            unit_price: rawAmount,
-            formatted_price: formatCurrency(rawAmount, curr),
-            period: purchaseContext.period || "/month",
-            description: getItemDescription(purchaseContext.item_id, purchaseContext.purchase_type),
-            features: getItemFeatures(purchaseContext.item_id),
-          },
-          pricing: {
-            currency: curr,
-            subtotal: rawAmount,
-            formatted_subtotal: formatCurrency(rawAmount, curr),
-            tax: 0,
-            formatted_tax: formatCurrency(0, curr),
-            total: rawAmount,
-            formatted_total: formatCurrency(rawAmount, curr),
-          },
-          available_payment_methods: availableMethods,
-          metadata: purchaseContext.metadata || {},
-        });
-      }, 350); // Simulates fast authoritative API handshake
-    });
+      return data;
+    } catch (err) {
+      console.error("CheckoutService: Error initiating session with Worker:", err);
+      return {
+        success: false,
+        status: "unavailable",
+        error: err.name || "NetworkError",
+        message: "Could not reach the payment server. Please verify your connection and try again.",
+      };
+    }
   }
 
   /**
-   * Helper fallback pricing for known items when not provided in context
+   * Thin Worker Client: Process Payment
+   *
+   * Calls the Cloudflare Worker with selected method to authorize payment
+   * and receive instructions (redirect URL, provider action, or final status).
    */
-  function getDefaultPrice(itemId, currency) {
-    const code = (itemId || "").toUpperCase().trim();
-    const defaults = {
-      BASIC: { INR: 99, EUR: 2.8, USD: 3.15, GBP: 2.4 },
-      PRO: { INR: 199, EUR: 3.75, USD: 4.2, GBP: 3.2 },
-      PERSONAL: { INR: 999, EUR: 11.25, USD: 12.5, GBP: 9.6 },
+  async function processPayment(session, selectedMethodId, customer) {
+    if (!session) {
+      throw new Error("No active checkout session to process.");
+    }
+
+    const payload = {
+      session_id: session.session_id,
+      order_id: session.order_id,
+      method_id: selectedMethodId,
+      customer: customer || session.customer,
+      return_url: window.location.origin + window.location.pathname,
     };
-    if (defaults[code] && defaults[code][currency] !== undefined) {
-      return defaults[code][currency];
+
+    const res = await fetch(`${WORKER_URL}/api/checkout/process`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || `Payment processing failed with status ${res.status}`);
     }
-    return 199;
+
+    return data;
   }
 
   /**
-   * Helper description generator for common items
-   */
-  function getItemDescription(itemId, type) {
-    const code = (itemId || "").toUpperCase().trim();
-    if (type === "membership") {
-      if (code === "PRO") return "Full Goethe & telc examination preparation with 10 daily credits and 4 weekly mock tests.";
-      if (code === "BASIC") return "Expanded practice credits with 2 weekly mock exams and detailed writing feedback.";
-      if (code === "PERSONAL") return "Deep personalized writing analysis, custom remedial study plan, and 20 weekly exams.";
-      return "Structured German examination preparation resource with verified editorial sets.";
-    }
-    return "Editorially verified German study materials designed for Goethe & telc examinations.";
-  }
-
-  /**
-   * Helper features list for order summary
-   */
-  function getItemFeatures(itemId) {
-    const code = (itemId || "").toUpperCase().trim();
-    if (code === "PRO") {
-      return [
-        "10 daily practice credits",
-        "4 full Goethe & telc mock exams / week",
-        "5 writing evaluations / week",
-        "Full grammar & vocabulary analysis",
-        "Comprehensive corrections — up to 10 points",
-        "Long-term weakness tracking across submissions",
-      ];
-    }
-    if (code === "BASIC") {
-      return [
-        "5 daily practice credits",
-        "2 full Goethe & telc mock exams / week",
-        "2 writing evaluations / week",
-        "Grammar feedback — up to 4 points",
-        "Detailed corrections — up to 5 points",
-        "Tone & register analysis",
-      ];
-    }
-    if (code === "PERSONAL") {
-      return [
-        "50 daily practice credits",
-        "20 full Goethe & telc mock exams / week",
-        "20 writing evaluations / week",
-        "Deep personalized grammar & vocabulary",
-        "Personalized line-by-line rewrite",
-        "Personalized remedial study plan & focus areas",
-      ];
-    }
-    return [
-      "Curated Lesen, Hören & Grammatik sets",
-      "CEFR-standard scoring rubrics",
-      "Instant activation upon payment completion",
-    ];
-  }
-
-  /**
-   * Abstracted Worker / API Client: Verify Order Status
+   * Thin Worker Client: Verify Payment Session
+   *
+   * Calls the Cloudflare Worker to verify the authoritative status of an order/session.
+   * Never assumes payment is successful on the client side.
    */
   async function verifyPaymentSession(orderId, sessionId) {
-    // ------------------------------------------------------------------------
-    // FUTURE WORKER INTEGRATION POINT:
-    // const res = await fetch(`${WORKER_URL}/api/checkout/verify?order_id=${encodeURIComponent(orderId)}`);
-    // return await res.json();
-    // ------------------------------------------------------------------------
+    if (!orderId && !sessionId) {
+      return {
+        verified: false,
+        status: "failed",
+        message: "Missing order reference to verify.",
+      };
+    }
 
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          verified: true,
-          order_id: orderId || `CG-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-          status: "confirmed",
-          timestamp: new Date().toISOString(),
-        });
-      }, 400);
-    });
-  }
+    try {
+      const params = new URLSearchParams();
+      if (orderId) params.set("order_id", orderId);
+      if (sessionId) params.set("session_id", sessionId);
 
-  /**
-   * Abstracted Worker / Payment Provider Client: Process Payment
-   *
-   * The frontend NEVER executes transactions directly or stores secrets.
-   * In future production, this forwards the authorization token or order intent
-   * to the Cloudflare Worker.
-   */
-  async function processPayment(session, selectedMethodId) {
-    // ------------------------------------------------------------------------
-    // FUTURE WORKER INTEGRATION POINT:
-    // const res = await fetch(`${WORKER_URL}/api/checkout/process`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     session_id: session?.session_id,
-    //     order_id: session?.order_id,
-    //     method_id: selectedMethodId,
-    //   }),
-    // });
-    // return await res.json();
-    // ------------------------------------------------------------------------
+      const res = await fetch(`${WORKER_URL}/api/checkout/verify?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          status: "confirmed",
-          order_id: session?.order_id || `CG-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-          session_id: session?.session_id || "",
-          method_id: selectedMethodId,
-          timestamp: new Date().toISOString(),
-        });
-      }, 750);
-    });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        return {
+          verified: false,
+          status: "failed",
+          order_id: orderId,
+          session_id: sessionId,
+          message: data?.message || data?.error || "Could not verify payment status with the server.",
+        };
+      }
+
+      return data;
+    } catch (err) {
+      console.error("CheckoutService: Error verifying payment session:", err);
+      return {
+        verified: false,
+        status: "failed",
+        order_id: orderId,
+        session_id: sessionId,
+        message: "Network error occurred while verifying payment with the server.",
+      };
+    }
   }
 
   // Export module globally
@@ -507,8 +356,5 @@
     verifyPaymentSession,
     formatCurrency,
     getCurrencySymbol,
-    getDefaultPrice,
-    getItemDescription,
-    getItemFeatures,
   };
 })(window);

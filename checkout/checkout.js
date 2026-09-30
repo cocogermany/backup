@@ -1,21 +1,25 @@
 /**
  * Coco Germany — Standalone Checkout Controller (checkout.js)
  *
- * Implements the decoupled, two-stage checkout flow & state machine:
+ * Implements the two-stage checkout flow:
  * 1. READY_TO_PAY:
- *    - Immediately displays the purchase context & order summary on page load.
- *    - Absolutely NO Worker or payment provider calls on page load.
+ *    - Immediately displays purchase context & order summary on page load.
+ *    - Does NOT call the Cloudflare Worker or fetch payment methods on load.
  *    - Presents primary "Continue to Payment" action.
  * 2. LOADING_PAYMENT_OPTIONS:
  *    - Triggered ONLY when user explicitly clicks "Continue to Payment".
- *    - Sends purchase context to the authoritative Worker.
+ *    - Calls authoritative Cloudflare Worker to validate the purchase and return
+ *      authoritative price, currency, eligibility, order/session ID, and available payment methods.
  * 3. PAYMENT_METHOD_SELECTION:
  *    - Renders dynamic payment methods returned by the authoritative Worker.
- *    - Provider-agnostic (no hardcoded Razorpay, PayPal, QR, etc. in UI).
+ *    - Provider-agnostic: renders whatever methods the Worker configures.
  * 4. PAYMENT_PROCESSING:
- *    - Dispatches payment authorization with selected method.
- * 5. PENDING / SUCCESSFUL / FAILED / CANCELLED / UNAVAILABLE:
- *    - Dedicated return and completion state screens.
+ *    - Dispatches payment intent to the Worker and uses its response (redirect, status, provider action).
+ * 5. RETURN / VERIFICATION STATES:
+ *    - Never trusts ?status=success alone; verifies order/session with the Worker before showing Success.
+ *    - Handles Pending, Failure, Cancelled, and Unavailable states.
+ *    - All dynamic values are safely HTML-escaped to prevent XSS.
+ *    - Zero payment secrets, credentials, or provider SDKs in the frontend.
  */
 
 (function () {
@@ -26,6 +30,7 @@
     LOADING_PAYMENT_OPTIONS: "loading_payment_options",
     PAYMENT_METHOD_SELECTION: "payment_method_selection",
     PAYMENT_PROCESSING: "payment_processing",
+    VERIFYING: "verifying",
     PENDING: "pending",
     SUCCESSFUL: "successful",
     FAILED: "failed",
@@ -51,7 +56,29 @@
   let selectedMethodId = null;
 
   /**
-   * Helper to refresh Lucide icons
+   * Escape all HTML special characters to prevent XSS from URL parameters or context
+   */
+  function escapeHtml(val) {
+    if (val === null || val === undefined) return "";
+    return String(val)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /**
+   * Sanitize Lucide icon names to avoid invalid tag injections
+   */
+  function sanitizeIconName(iconName) {
+    if (!iconName || typeof iconName !== "string") return "credit-card";
+    const cleaned = iconName.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    return cleaned || "credit-card";
+  }
+
+  /**
+   * Helper to refresh Lucide icons safely
    */
   function renderIcons() {
     if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -108,7 +135,7 @@
   }
 
   /**
-   * Resolve user profile details for account strip
+   * Resolve user profile details for customer account strip
    */
   function getUserAccountInfo() {
     const email = (currentUser && currentUser.email) || "Guest Learner";
@@ -128,16 +155,37 @@
   }
 
   /**
-   * Resolve type display label
+   * Generic type display label for memberships, products, courses, and services
    */
   function getTypeLabel(type) {
+    const normalized = String(type || "").toLowerCase().trim();
     const typeLabels = {
       membership: "Membership Tier",
       product: "Digital Material",
       course: "Exam Preparation Course",
       service: "Learning Service",
     };
-    return typeLabels[type] || "Learning Purchase";
+    return typeLabels[normalized] || (normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Learning Item");
+  }
+
+  /**
+   * Generic fallback item description
+   */
+  function getItemFallbackDescription(context) {
+    if (context.metadata && typeof context.metadata.description === "string" && context.metadata.description.trim()) {
+      return context.metadata.description.trim();
+    }
+    const type = String(context.purchase_type || "").toLowerCase().trim();
+    if (type === "membership") {
+      return "Official Goethe-Zertifikat and telc examination preparation resources.";
+    }
+    if (type === "course") {
+      return "Structured German language preparation course with authentic practice materials.";
+    }
+    if (type === "product") {
+      return "Editorially verified German study materials and exercise sets.";
+    }
+    return "Official Coco Germany educational resource.";
   }
 
   /**
@@ -155,28 +203,36 @@
 
     const account = getUserAccountInfo();
     const typeLabel = getTypeLabel(context.purchase_type);
-    const itemName = context.item_name || `${context.item_id} Plan`;
+    const itemName = context.item_name || (context.item_id ? `${context.item_id} Plan` : "Learning Resource");
     const cadenceLabel = context.period || (context.purchase_type === "membership" ? "/month" : "");
 
-    // Resolve displayed price
-    let rawPrice = context.displayed_price;
-    if (rawPrice === null || rawPrice === undefined) {
-      rawPrice = window.CheckoutService.getDefaultPrice(context.item_id, account.currency);
-    }
-    const formattedPrice = window.CheckoutService.formatCurrency(rawPrice, account.currency);
+    // Resolve displayed price if available from context
+    const hasDisplayedPrice = context.displayed_price !== null && context.displayed_price !== undefined;
+    const formattedPrice = hasDisplayedPrice
+      ? window.CheckoutService.formatCurrency(context.displayed_price, account.currency)
+      : "Verified at next step";
 
-    // Get item description and features for order summary
-    const itemDesc = window.CheckoutService.getItemDescription(context.item_id, context.purchase_type);
-    const itemFeatures = window.CheckoutService.getItemFeatures(context.item_id);
+    const itemDesc = getItemFallbackDescription(context);
+    const itemFeatures = Array.isArray(context.metadata?.features) ? context.metadata.features : [];
+
+    // Safe escaped strings for HTML insertion
+    const safeItemName = escapeHtml(itemName);
+    const safeTypeLabel = escapeHtml(typeLabel);
+    const safeEmail = escapeHtml(account.email);
+    const safeCountry = escapeHtml(account.country);
+    const safeCurrency = escapeHtml(account.currency);
+    const safeCadenceLabel = escapeHtml(cadenceLabel);
+    const safeFormattedPrice = escapeHtml(formattedPrice);
+    const safeItemDesc = escapeHtml(itemDesc);
 
     mount.innerHTML = html`
       <!-- Breadcrumb Navigation -->
       <nav class="breadcrumb-nav" aria-label="Breadcrumb">
         <a href="../index.html"><i data-lucide="home"></i> Home</a>
         <i data-lucide="chevron-right"></i>
-        <a href="../index.html#/membership">Membership & Plans</a>
+        <a href="../index.html#/membership">Membership &amp; Plans</a>
         <i data-lucide="chevron-right"></i>
-        <span class="active-crumb">${itemName}</span>
+        <span class="active-crumb">${safeItemName}</span>
       </nav>
 
       <div class="checkout-grid">
@@ -192,9 +248,9 @@
 
             <div class="customer-profile-strip" id="customer-profile-strip">
               <div class="customer-info-wrap">
-                <div class="customer-avatar" aria-hidden="true">${account.email.charAt(0).toUpperCase()}</div>
+                <div class="customer-avatar" aria-hidden="true">${escapeHtml(safeEmail.charAt(0).toUpperCase())}</div>
                 <div class="customer-details">
-                  <span class="customer-email">${account.email}</span>
+                  <span class="customer-email">${safeEmail}</span>
                   <span class="customer-status-note">
                     <i data-lucide="${account.isVerified ? "shield-check" : "user"}"></i>
                     ${account.isVerified ? "Verified Coco Germany Account" : "Guest Learner Checkout"}
@@ -204,10 +260,10 @@
 
               <div class="customer-context-chips">
                 <span class="context-chip" title="Billing Country Context" id="chip-country">
-                  <i data-lucide="map-pin"></i> Region: ${account.country}
+                  <i data-lucide="map-pin"></i> Region: ${safeCountry}
                 </span>
                 <span class="context-chip" title="Transaction Currency" id="chip-currency">
-                  <i data-lucide="banknote"></i> Currency: ${account.currency}
+                  <i data-lucide="banknote"></i> Currency: ${safeCurrency}
                 </span>
               </div>
             </div>
@@ -233,7 +289,7 @@
                   <div class="prompt-text">
                     <h4>Ready to configure payment</h4>
                     <p>
-                      Click <strong>Continue to Payment</strong> to verify plan availability and securely retrieve available payment options (cards, UPI, net banking, or international wire) for your currency (<strong>${account.currency}</strong>).
+                      Click <strong>Continue to Payment</strong> to verify item availability, validate regional pricing, and securely retrieve available payment methods for <strong>${safeCurrency}</strong>.
                     </p>
                   </div>
                 </div>
@@ -249,7 +305,7 @@
               <div class="method-guidance-box" style="margin-top: 16px;">
                 <i data-lucide="lock"></i>
                 <span>
-                  No payment methods or worker calls are executed until you continue. All transactions are protected by 256-bit SSL encryption.
+                  No payment methods or server orders are initialized until you continue. All transactions are protected by 256-bit SSL encryption.
                 </span>
               </div>
             </div>
@@ -261,7 +317,7 @@
               <div class="reassurance-mini-icon"><i data-lucide="zap"></i></div>
               <div class="reassurance-mini-text">
                 <h4>Instant Activation</h4>
-                <p>Credits and mock exams are activated immediately after payment.</p>
+                <p>Credits and mock exams are activated immediately after payment verification.</p>
               </div>
             </div>
             <div class="reassurance-mini-card">
@@ -279,21 +335,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Developer / Manual State Simulator Strip -->
-          <div class="checkout-dev-simulator" aria-label="Testing state switch">
-            <span><strong>Testing Controls:</strong> Preview any checkout state:</span>
-            <div class="sim-buttons">
-              <button class="sim-btn" type="button" data-sim="ready">Reset (Ready to Pay)</button>
-              <button class="sim-btn" type="button" data-sim="loading">Loading Options</button>
-              <button class="sim-btn" type="button" data-sim="methods">Payment Methods</button>
-              <button class="sim-btn" type="button" data-sim="processing">Processing</button>
-              <button class="sim-btn" type="button" data-sim="success">Success</button>
-              <button class="sim-btn" type="button" data-sim="pending">Pending</button>
-              <button class="sim-btn" type="button" data-sim="failed">Failure</button>
-              <button class="sim-btn" type="button" data-sim="cancelled">Cancel</button>
-            </div>
-          </div>
         </main>
 
         <!-- Right Column: Sticky Order Summary -->
@@ -301,12 +342,12 @@
           <div class="order-summary-card">
             <div class="order-summary-header">
               <h3>Order Summary</h3>
-              <span class="summary-type-tag">${typeLabel}</span>
+              <span class="summary-type-tag">${safeTypeLabel}</span>
             </div>
 
             <div class="summary-item-block">
-              <h4 class="summary-item-title">${itemName}</h4>
-              <p class="summary-item-desc">${itemDesc}</p>
+              <h4 class="summary-item-title">${safeItemName}</h4>
+              <p class="summary-item-desc">${safeItemDesc}</p>
 
               ${Array.isArray(itemFeatures) && itemFeatures.length > 0
                 ? html`
@@ -317,7 +358,7 @@
                           (feat) => html`
                             <li class="summary-feature-item">
                               <i data-lucide="check-circle-2"></i>
-                              <span>${feat}</span>
+                              <span>${escapeHtml(feat)}</span>
                             </li>
                           `
                         )
@@ -330,8 +371,8 @@
             <!-- Pricing Breakdown -->
             <div class="summary-pricing-table">
               <div class="pricing-row">
-                <span>Plan / Item Price</span>
-                <span id="summary-subtotal-val">${formattedPrice}</span>
+                <span>Item / Plan Price</span>
+                <span id="summary-subtotal-val">${safeFormattedPrice}</span>
               </div>
               <div class="pricing-row">
                 <span>Tax &amp; Platform Fee</span>
@@ -340,8 +381,8 @@
               <div class="pricing-row row-total">
                 <span>Total Due</span>
                 <div>
-                  <span class="price-total-val" id="summary-total-val">${formattedPrice}</span>
-                  <span class="pricing-cadence-label">${cadenceLabel}</span>
+                  <span class="price-total-val" id="summary-total-val">${safeFormattedPrice}</span>
+                  <span class="pricing-cadence-label">${safeCadenceLabel}</span>
                 </div>
               </div>
             </div>
@@ -353,7 +394,7 @@
               type="button"
             >
               <i data-lucide="lock"></i>
-              <span>Continue to Payment &bull; ${formattedPrice}</span>
+              <span>Continue to Payment ${hasDisplayedPrice ? `&bull; ${safeFormattedPrice}` : ""}</span>
             </button>
 
             <div class="summary-guarantee-note">
@@ -380,7 +421,6 @@
    * Attach interaction handlers for the Ready-to-Pay state
    */
   function attachReadyToPayHandlers() {
-    // 1. Primary "Continue to Payment" action (from Step 2 card)
     const btnMain = document.getElementById("btn-continue-main");
     if (btnMain) {
       btnMain.addEventListener("click", () => {
@@ -388,7 +428,6 @@
       });
     }
 
-    // 2. Summary "Continue to Payment" action (from sidebar)
     const btnSummary = document.getElementById("btn-summary-action");
     if (btnSummary) {
       btnSummary.addEventListener("click", () => {
@@ -399,9 +438,6 @@
         }
       });
     }
-
-    // 3. Testing simulator controls
-    attachSimulatorHandlers();
   }
 
   /**
@@ -409,7 +445,7 @@
    *
    * Only called when user explicitly clicks "Continue to Payment".
    * 1. Displays loading state in payment options area.
-   * 2. Calls Worker (authoritative).
+   * 2. Calls Cloudflare Worker (authoritative) to validate the purchase.
    * 3. Renders dynamic payment methods on success.
    */
   async function handleContinueToPayment() {
@@ -446,7 +482,7 @@
           <h4>Verifying Available Payment Options...</h4>
           <p>
             Contacting the payment engine to validate item eligibility, regional tax rates, and available payment methods for
-            <strong>${activePurchaseContext.currency || "INR"}</strong>.
+            <strong>${escapeHtml(activePurchaseContext.currency || "INR")}</strong>.
           </p>
         </div>
       `;
@@ -466,7 +502,7 @@
       if (!session || !session.success || session.status === "unavailable") {
         renderUnavailableState(
           session?.message || "Payment options are currently unavailable for this item.",
-          session?.error || "Worker validation declined the purchase request."
+          session?.error || "Server validation declined the purchase request."
         );
         return;
       }
@@ -491,7 +527,7 @@
   function renderPaymentMethodSelection(session) {
     currentState = CHECKOUT_STATES.PAYMENT_METHOD_SELECTION;
     currentSession = session;
-    const methods = session.available_payment_methods || [];
+    const methods = Array.isArray(session.available_payment_methods) ? session.available_payment_methods : [];
     const paymentMount = document.getElementById("payment-options-mount");
     const summaryBtn = document.getElementById("btn-summary-action");
 
@@ -511,8 +547,12 @@
     if (session.pricing) {
       const subtotalEl = document.getElementById("summary-subtotal-val");
       const totalEl = document.getElementById("summary-total-val");
-      if (subtotalEl) subtotalEl.textContent = session.pricing.formatted_subtotal;
-      if (totalEl) totalEl.textContent = session.pricing.formatted_total;
+      if (subtotalEl && session.pricing.formatted_subtotal) {
+        subtotalEl.textContent = session.pricing.formatted_subtotal;
+      }
+      if (totalEl && session.pricing.formatted_total) {
+        totalEl.textContent = session.pricing.formatted_total;
+      }
     }
 
     // Render dynamic payment methods
@@ -530,29 +570,35 @@
             ${methods
               .map((method) => {
                 const isSelected = method.id === selectedMethodId;
+                const safeId = escapeHtml(method.id);
+                const safeName = escapeHtml(method.name);
+                const safeDesc = escapeHtml(method.description || "");
+                const safeBadge = escapeHtml(method.badge || "");
+                const safeIcon = sanitizeIconName(method.icon);
+
                 return html`
                   <div
                     class="payment-method-tile ${isSelected ? "is-selected" : ""}"
                     role="radio"
                     tabindex="0"
                     aria-checked="${isSelected ? "true" : "false"}"
-                    data-method-id="${method.id}"
+                    data-method-id="${safeId}"
                   >
                     <div class="method-left">
                       <div class="method-radio-circle" aria-hidden="true">
                         <div class="method-radio-dot"></div>
                       </div>
                       <div class="method-icon-wrap" aria-hidden="true">
-                        <i data-lucide="${method.icon || "credit-card"}"></i>
+                        <i data-lucide="${safeIcon}"></i>
                       </div>
                       <div class="method-text-wrap">
-                        <span class="method-title">${method.name}</span>
-                        <span class="method-desc">${method.description}</span>
+                        <span class="method-title">${safeName}</span>
+                        <span class="method-desc">${safeDesc}</span>
                       </div>
                     </div>
                     <div class="method-right">
-                      ${method.badge
-                        ? html`<span class="method-badge ${method.popular ? "badge-popular" : ""}">${method.badge}</span>`
+                      ${safeBadge
+                        ? html`<span class="method-badge ${method.popular ? "badge-popular" : ""}">${safeBadge}</span>`
                         : ""}
                     </div>
                   </div>
@@ -574,9 +620,10 @@
     // Update Summary CTA button to final payment action
     if (summaryBtn) {
       summaryBtn.disabled = methods.length === 0;
+      const formattedTotal = session.pricing?.formatted_total || "";
       summaryBtn.innerHTML = html`
         <i data-lucide="shield-check"></i>
-        <span>Complete Purchase &bull; ${session.pricing.formatted_total}</span>
+        <span>Complete Purchase ${formattedTotal ? `&bull; ${escapeHtml(formattedTotal)}` : ""}</span>
       `;
     }
 
@@ -615,8 +662,8 @@
   /**
    * 4. STATE TRANSITION: PROCESS PAYMENT
    *
-   * User clicks "Complete Purchase".
-   * Shows processing state and communicates with Worker / payment gateway.
+   * Calls the Cloudflare Worker with selected method and uses its response
+   * (redirect URL, provider action, or final status) rather than handling providers in the frontend.
    */
   async function handleProcessPayment() {
     if (!selectedMethodId || !currentSession) return;
@@ -633,15 +680,16 @@
       `;
     }
 
+    const selectedMethod = currentSession.available_payment_methods?.find((m) => m.id === selectedMethodId);
+    const safeMethodName = escapeHtml(selectedMethod?.name || "selected method");
+
     if (paymentMount) {
-      const methodName =
-        currentSession.available_payment_methods?.find((m) => m.id === selectedMethodId)?.name || "selected method";
       paymentMount.innerHTML = html`
         <div class="payment-processing-card">
           <div class="payment-processing-spinner" aria-hidden="true">
             <i data-lucide="loader-2" class="spin"></i>
           </div>
-          <h4>Authorizing Payment with ${methodName}...</h4>
+          <h4>Authorizing Payment with ${safeMethodName}...</h4>
           <p>
             Securely transmitting transaction tokens to the payment provider. Please do not close, refresh, or navigate away from this window.
           </p>
@@ -650,17 +698,34 @@
     }
     renderIcons();
 
-    try {
-      const paymentResult = await window.CheckoutService.processPayment(currentSession, selectedMethodId);
+    const customerInfo = {
+      uid: (currentUser && currentUser.uid) || "",
+      email: (currentUser && currentUser.email) || "",
+      displayName: (currentUser && currentUser.displayName) || "",
+    };
 
-      if (paymentResult.status === "confirmed") {
-        renderSuccessState(paymentResult.order_id, currentSession.item);
-      } else if (paymentResult.status === "pending") {
-        renderPendingState(paymentResult.order_id);
+    try {
+      const paymentResult = await window.CheckoutService.processPayment(
+        currentSession,
+        selectedMethodId,
+        customerInfo
+      );
+
+      // 1. External Gateway Redirect (e.g. Stripe Checkout session, PayPal approval URL, or hosted checkout)
+      if (paymentResult && paymentResult.redirect_url) {
+        window.location.href = paymentResult.redirect_url;
+        return;
+      }
+
+      // 2. Direct server confirmation
+      if (paymentResult && (paymentResult.status === "confirmed" || paymentResult.status === "success")) {
+        renderSuccessState(paymentResult.order_id || currentSession.order_id, currentSession.item);
+      } else if (paymentResult && paymentResult.status === "pending") {
+        renderPendingState(paymentResult.order_id || currentSession.order_id);
       } else {
         renderFailureState(
-          paymentResult.order_id,
-          paymentResult.message || "Payment authorization was declined by your bank or payment provider."
+          paymentResult?.order_id || currentSession.order_id,
+          paymentResult?.message || "Payment authorization was declined by your bank or payment provider."
         );
       }
     } catch (err) {
@@ -673,25 +738,65 @@
   }
 
   /**
-   * 5. RENDER UNAVAILABLE STATE SCREEN
+   * 5. RENDER VERIFYING STATE SCREEN
+   *
+   * Shown when returning from a gateway redirect before showing Success.
+   * Never assumes success until verified by the Worker.
+   */
+  function renderVerifyingState(orderRef) {
+    currentState = CHECKOUT_STATES.VERIFYING;
+    const mount = document.getElementById("checkout-mount");
+    if (!mount) return;
+
+    const safeRef = escapeHtml(orderRef);
+
+    mount.innerHTML = html`
+      <div class="state-screen-wrap">
+        <div class="state-card">
+          <div class="payment-loading-spinner" style="margin: 0 auto 20px;" aria-hidden="true">
+            <i data-lucide="loader-2" class="spin"></i>
+          </div>
+          <h2 class="state-title">Verifying Payment Status</h2>
+          <p class="state-desc">
+            Securely verifying your transaction status with the server. Please wait a moment.
+          </p>
+          ${safeRef
+            ? html`
+                <div class="state-meta-box">
+                  <div class="state-meta-row">
+                    <span>Order Reference</span>
+                    <strong>${safeRef}</strong>
+                  </div>
+                </div>
+              `
+            : ""}
+        </div>
+      </div>
+    `;
+    renderIcons();
+  }
+
+  /**
+   * 6. RENDER UNAVAILABLE STATE SCREEN
    */
   function renderUnavailableState(message, reason) {
     currentState = CHECKOUT_STATES.UNAVAILABLE;
     const mount = document.getElementById("checkout-mount");
     if (!mount) return;
 
+    const safeMessage = escapeHtml(message || "The requested plan or learning resource could not be loaded for checkout.");
+    const safeReason = escapeHtml(reason || "");
+
     mount.innerHTML = html`
       <div class="state-screen-wrap">
         <div class="state-card">
-          <div class="state-icon-large state-icon-unavailable">
+          <div class="state-icon-large state-icon-unavailable" aria-hidden="true">
             <i data-lucide="shield-alert"></i>
           </div>
           <h2 class="state-title">Checkout Unavailable</h2>
-          <p class="state-desc">
-            ${message || "The requested plan or learning resource could not be loaded for checkout."}
-          </p>
+          <p class="state-desc">${safeMessage}</p>
 
-          ${reason ? html`<div class="state-meta-box"><span>Details: <strong>${reason}</strong></span></div>` : ""}
+          ${safeReason ? html`<div class="state-meta-box"><span>Details: <strong>${safeReason}</strong></span></div>` : ""}
 
           <div class="state-actions-wrap">
             <a class="btn-primary" href="../index.html#/membership">
@@ -708,43 +813,44 @@
   }
 
   /**
-   * 6. RENDER SUCCESS STATE SCREEN
+   * 7. RENDER SUCCESS STATE SCREEN
    */
   function renderSuccessState(orderId, itemContext) {
     currentState = CHECKOUT_STATES.SUCCESSFUL;
     const mount = document.getElementById("checkout-mount");
     if (!mount) return;
 
-    // Clear saved cart context after confirmed success
+    // Clear saved cart context after confirmed server verification
     window.CheckoutService.clearPurchaseContext();
 
-    const orderRef = orderId || `CG-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const safeOrderRef = escapeHtml(orderId || "Confirmed");
     const itemName =
       (itemContext && itemContext.name) ||
       (itemContext && itemContext.item_name) ||
       (activePurchaseContext && activePurchaseContext.item_name) ||
-      "Coco Germany Membership";
+      "Coco Germany Access";
+    const safeItemName = escapeHtml(itemName);
     const dateFormatted = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date());
 
     mount.innerHTML = html`
       <div class="state-screen-wrap">
         <div class="state-card">
-          <div class="state-icon-large state-icon-success">
+          <div class="state-icon-large state-icon-success" aria-hidden="true">
             <i data-lucide="check-circle-2"></i>
           </div>
           <h2 class="state-title">Purchase Successful!</h2>
           <p class="state-desc">
-            Thank you for learning with Coco Germany. Your order has been confirmed and your access is active immediately.
+            Thank you for learning with Coco Germany. Your order has been verified and your access is active immediately.
           </p>
 
           <div class="state-meta-box">
             <div class="state-meta-row">
               <span>Order Reference</span>
-              <strong>${orderRef}</strong>
+              <strong>${safeOrderRef}</strong>
             </div>
             <div class="state-meta-row">
               <span>Item / Tier</span>
-              <strong>${itemName}</strong>
+              <strong>${safeItemName}</strong>
             </div>
             <div class="state-meta-row">
               <span>Status</span>
@@ -752,7 +858,7 @@
             </div>
             <div class="state-meta-row">
               <span>Date &amp; Time</span>
-              <span>${dateFormatted}</span>
+              <span>${escapeHtml(dateFormatted)}</span>
             </div>
           </div>
 
@@ -771,19 +877,19 @@
   }
 
   /**
-   * 7. RENDER PENDING STATE SCREEN
+   * 8. RENDER PENDING STATE SCREEN
    */
   function renderPendingState(orderId) {
     currentState = CHECKOUT_STATES.PENDING;
     const mount = document.getElementById("checkout-mount");
     if (!mount) return;
 
-    const orderRef = orderId || `CG-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const safeOrderRef = escapeHtml(orderId || "");
 
     mount.innerHTML = html`
       <div class="state-screen-wrap">
         <div class="state-card">
-          <div class="state-icon-large state-icon-pending">
+          <div class="state-icon-large state-icon-pending" aria-hidden="true">
             <i data-lucide="hourglass"></i>
           </div>
           <h2 class="state-title">Payment Verification Pending</h2>
@@ -791,16 +897,20 @@
             Your transaction is currently being processed by your bank or payment provider. Confirmation usually completes within 1&ndash;2 minutes.
           </p>
 
-          <div class="state-meta-box">
-            <div class="state-meta-row">
-              <span>Order Reference</span>
-              <strong>${orderRef}</strong>
-            </div>
-            <div class="state-meta-row">
-              <span>Status</span>
-              <strong style="color: var(--amber);">Awaiting Gateway Confirmation</strong>
-            </div>
-          </div>
+          ${safeOrderRef
+            ? html`
+                <div class="state-meta-box">
+                  <div class="state-meta-row">
+                    <span>Order Reference</span>
+                    <strong>${safeOrderRef}</strong>
+                  </div>
+                  <div class="state-meta-row">
+                    <span>Status</span>
+                    <strong style="color: var(--amber);">Awaiting Gateway Confirmation</strong>
+                  </div>
+                </div>
+              `
+            : ""}
 
           <div class="state-actions-wrap">
             <button class="btn-primary" type="button" id="btn-refresh-status">
@@ -821,9 +931,9 @@
         refreshBtn.disabled = true;
         refreshBtn.innerHTML = html`<i data-lucide="loader-2" class="spin"></i> Checking...`;
         renderIcons();
-        const verification = await window.CheckoutService.verifyPaymentSession(orderRef);
-        if (verification && verification.status === "confirmed") {
-          renderSuccessState(orderRef, currentSession ? currentSession.item : null);
+        const verification = await window.CheckoutService.verifyPaymentSession(orderId);
+        if (verification && (verification.verified === true || verification.status === "confirmed" || verification.status === "success")) {
+          renderSuccessState(orderId, verification.item || (currentSession ? currentSession.item : null));
         } else {
           setTimeout(() => {
             refreshBtn.disabled = false;
@@ -836,23 +946,25 @@
   }
 
   /**
-   * 8. RENDER FAILURE STATE SCREEN
+   * 9. RENDER FAILURE STATE SCREEN
    */
   function renderFailureState(orderId, reason) {
     currentState = CHECKOUT_STATES.FAILED;
     const mount = document.getElementById("checkout-mount");
     if (!mount) return;
 
+    const safeReason = escapeHtml(
+      reason || "The transaction was declined by your bank or the payment authorization timed out. No funds were captured."
+    );
+
     mount.innerHTML = html`
       <div class="state-screen-wrap">
         <div class="state-card">
-          <div class="state-icon-large state-icon-failure">
+          <div class="state-icon-large state-icon-failure" aria-hidden="true">
             <i data-lucide="alert-octagon"></i>
           </div>
           <h2 class="state-title">Payment Not Completed</h2>
-          <p class="state-desc">
-            ${reason || "The transaction was declined by your bank or the payment authorization timed out. No funds were captured."}
-          </p>
+          <p class="state-desc">${safeReason}</p>
 
           <div class="state-actions-wrap">
             <button class="btn-primary" type="button" id="btn-retry-checkout">
@@ -878,7 +990,7 @@
   }
 
   /**
-   * 9. RENDER CANCELLED STATE SCREEN
+   * 10. RENDER CANCELLED STATE SCREEN
    */
   function renderCancelledState() {
     currentState = CHECKOUT_STATES.CANCELLED;
@@ -888,7 +1000,7 @@
     mount.innerHTML = html`
       <div class="state-screen-wrap">
         <div class="state-card">
-          <div class="state-icon-large state-icon-cancelled">
+          <div class="state-icon-large state-icon-cancelled" aria-hidden="true">
             <i data-lucide="undo-2"></i>
           </div>
           <h2 class="state-title">Checkout Cancelled</h2>
@@ -920,84 +1032,57 @@
   }
 
   /**
-   * Testing simulator buttons handler (for interactive validation)
-   */
-  function attachSimulatorHandlers() {
-    document.querySelectorAll("[data-sim]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const target = btn.getAttribute("data-sim");
-        const orderId = currentSession ? currentSession.order_id : "CG-2026-TEST";
-
-        if (target === "ready") {
-          renderReadyToPayState(activePurchaseContext);
-        } else if (target === "loading") {
-          handleContinueToPayment();
-        } else if (target === "methods") {
-          // Immediately simulate resolved methods
-          const dummySession = {
-            success: true,
-            status: "ready",
-            order_id: orderId,
-            session_id: "cs_test_sim",
-            pricing: {
-              formatted_subtotal: window.CheckoutService.formatCurrency(activePurchaseContext?.displayed_price || 199, activePurchaseContext?.currency || "INR"),
-              formatted_total: window.CheckoutService.formatCurrency(activePurchaseContext?.displayed_price || 199, activePurchaseContext?.currency || "INR"),
-            },
-            available_payment_methods: [
-              { id: "upi", name: "UPI / QR Code", description: "Google Pay, PhonePe, Paytm & BHIM", icon: "smartphone", badge: "Instant", popular: true },
-              { id: "cards", name: "Credit or Debit Card", description: "Visa, Mastercard, RuPay & Maestro", icon: "credit-card", badge: "Secure" },
-              { id: "netbanking", name: "Net Banking", description: "All major Indian & international banks", icon: "landmark" },
-            ],
-          };
-          renderPaymentMethodSelection(dummySession);
-        } else if (target === "processing") {
-          selectedMethodId = selectedMethodId || "cards";
-          currentSession = currentSession || {
-            order_id: orderId,
-            available_payment_methods: [{ id: "cards", name: "Credit or Debit Card" }],
-          };
-          handleProcessPayment();
-        } else if (target === "success") {
-          renderSuccessState(orderId, currentSession ? currentSession.item : null);
-        } else if (target === "pending") {
-          renderPendingState(orderId);
-        } else if (target === "failed") {
-          renderFailureState(orderId, "Simulated card authorization decline.");
-        } else if (target === "cancelled") {
-          renderCancelledState();
-        }
-      });
-    });
-  }
-
-  /**
    * MAIN INITIALIZATION LOGIC
    *
    * Immediate order summary rendering:
-   * - Checks for return parameters first.
-   * - Parses incoming purchase context.
-   * - Immediately displays READY_TO_PAY state.
-   * - Asynchronously enriches user profile when auth resolves.
-   * - DOES NOT CALL THE PAYMENT WORKER.
+   * - Checks for gateway return parameters.
+   * - Never trusts ?status=success alone; verifies order with the Worker.
+   * - If initial purchase: parses context and immediately displays READY_TO_PAY state.
+   * - DOES NOT CALL THE PAYMENT WORKER ON PAGE LOAD.
    */
   async function initCheckout() {
     // 1. Check for payment gateway return status (?status=success, pending, failed, cancelled)
     const returnState = window.CheckoutService.checkReturnState();
     if (returnState.isReturn) {
-      if (returnState.status === "success") {
-        renderSuccessState(returnState.order_id);
+      // User cancelled at gateway
+      if (returnState.status === "cancelled") {
+        renderCancelledState();
         return;
       }
-      if (returnState.status === "pending") {
-        renderPendingState(returnState.order_id);
-        return;
-      }
-      if (returnState.status === "failed") {
+
+      // Explicit failure without order reference
+      if (returnState.status === "failed" && !returnState.order_id && !returnState.session_id) {
         renderFailureState(returnState.order_id, returnState.reason);
         return;
       }
-      if (returnState.status === "cancelled") {
-        renderCancelledState();
+
+      // Security requirement: NEVER trust ?status=success or return queries alone.
+      // Always verify the order/session with the Worker before showing Success.
+      if (returnState.order_id || returnState.session_id || returnState.status === "success" || returnState.status === "pending") {
+        renderVerifyingState(returnState.order_id || returnState.session_id);
+
+        try {
+          const verification = await window.CheckoutService.verifyPaymentSession(
+            returnState.order_id,
+            returnState.session_id
+          );
+
+          if (verification && (verification.verified === true || verification.status === "confirmed" || verification.status === "success")) {
+            renderSuccessState(verification.order_id || returnState.order_id, verification.item);
+          } else if (verification && verification.status === "pending") {
+            renderPendingState(verification.order_id || returnState.order_id);
+          } else {
+            renderFailureState(
+              returnState.order_id,
+              verification?.message || returnState.reason || "Payment could not be verified by the server."
+            );
+          }
+        } catch (err) {
+          renderFailureState(
+            returnState.order_id,
+            "Failed to verify payment with server: " + (err.message || "Network error")
+          );
+        }
         return;
       }
     }
@@ -1055,10 +1140,10 @@
               `;
             }
             if (countryEl) {
-              countryEl.innerHTML = html`<i data-lucide="map-pin"></i> Region: ${acc.country}`;
+              countryEl.innerHTML = html`<i data-lucide="map-pin"></i> Region: ${escapeHtml(acc.country)}`;
             }
             if (currencyEl) {
-              currencyEl.innerHTML = html`<i data-lucide="banknote"></i> Currency: ${acc.currency}`;
+              currencyEl.innerHTML = html`<i data-lucide="banknote"></i> Currency: ${escapeHtml(acc.currency)}`;
             }
             renderIcons();
           }
