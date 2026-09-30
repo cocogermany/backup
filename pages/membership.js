@@ -18,24 +18,14 @@
 // Plan feature templates aligned with DB limits and inspected Schreiben configuration
 const PLAN_TIER_FEATURES = {
   FREE: [
-    { text: "Grammar feedback — Limited", enabled: false },
-    { text: "Key corrections — up to 3", enabled: true },
-    { text: "Useful phrases — up to 2", enabled: true },
-    { text: "Improved text — first 2 sentences only", enabled: true },
-    { text: "Tone & register analysis", enabled: false },
-    { text: "Recurring error patterns", enabled: false },
-    { text: "Long-term weakness tracking", enabled: false },
-    { text: "Personalized remedial study plan", enabled: false },
+    { text: "Limited writing analystics", enabled: true },
+    
   ],
   BASIC: [
     { text: "Grammar feedback — up to 4", enabled: true },
     { text: "Detailed corrections — up to 5", enabled: true },
     { text: "Useful phrases — up to 4", enabled: true },
-    { text: "Improved text — first 2 sentences only", enabled: true },
-    { text: "Tone & register analysis", enabled: true },
-    { text: "Recurring error patterns identified", enabled: true },
-    { text: "Long-term weakness tracking", enabled: false },
-    { text: "Personalized remedial study plan", enabled: false },
+    { text: "Improved text", enabled: true },
   ],
   PRO: [
     { text: "Full grammar & vocabulary analysis", enabled: true },
@@ -44,7 +34,7 @@ const PLAN_TIER_FEATURES = {
     { text: "Full rewritten improved text", enabled: true },
     { text: "Tone & register analysis", enabled: true },
     { text: "Recurring error patterns identified", enabled: true },
-    { text: "Long-term weakness tracking across submissions", enabled: true },
+    { text: "Long-term weakness tracking across submissions", enabled: false },
     { text: "Personalized remedial study plan", enabled: false },
   ],
   ADVANCED: [
