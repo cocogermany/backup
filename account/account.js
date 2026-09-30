@@ -209,7 +209,7 @@ const defaultTabTemplates = {
       </p>
       <ul>
         <li><strong>Email:</strong> <code>cocogermany.ytd@gmail.com</code></li>
-        <li><strong>WhatsApp Desk:</strong> <code>+91 7907211108</code> (Mon–Sat, 09:00–18:00 IST)</li>
+        <li><strong>WhatsApp Desk:</strong> <code>+91 7902301205</code> (Mon–Sat, 09:00–18:00 IST)</li>
       </ul>
     </div>
   `,
@@ -279,7 +279,7 @@ const defaultTabTemplates = {
       </p>
       <ul>
         <li><strong>Email:</strong> <a href="mailto:cocogermany.ytd@gmail.com" style="color: var(--brand);">cocogermany.ytd@gmail.com</a></li>
-        <li><strong>WhatsApp Desk:</strong> <a href="https://wa.me/917907211108" target="_blank" rel="noopener" style="color: var(--brand);">+91 7907211108</a></li>
+        <li><strong>WhatsApp Desk:</strong> <a href="https://wa.me/917902301205" target="_blank" rel="noopener" style="color: var(--brand);">+91 7902301205</a></li>
         <li><strong>Contact Page:</strong> <a href="../index.html#/contact" style="color: var(--brand);">Coco Germany Contact Form</a></li>
       </ul>
     </div>
@@ -402,7 +402,7 @@ const defaultTabTemplates = {
       <ul>
         <li><strong>Entity:</strong> Coco Germany ([BUSINESS LEGAL NAME - e.g., Coco Germany Educational Services])</li>
         <li><strong>Email:</strong> <a href="mailto:cocogermany.ytd@gmail.com" style="color: var(--brand);">cocogermany.ytd@gmail.com</a></li>
-        <li><strong>WhatsApp Support:</strong> <a href="https://wa.me/917907211108" target="_blank" rel="noopener" style="color: var(--brand);">+91 7907211108</a></li>
+        <li><strong>WhatsApp Support:</strong> <a href="https://wa.me/917902301205" target="_blank" rel="noopener" style="color: var(--brand);">+91 7902301205</a></li>
         <li><strong>Contact Page:</strong> <a href="../index.html#/contact" style="color: var(--brand);">Coco Germany Contact Hub</a></li>
       </ul>
     </div>

@@ -970,7 +970,7 @@
             <button class="btn-primary" type="button" id="btn-retry-checkout">
               <i data-lucide="rotate-ccw"></i> Try Again / Choose Other Method
             </button>
-            <a class="btn-secondary" href="https://wa.me/917907211108?text=Hello%20Coco%20Germany,%20I%20had%20an%20issue%20with%20checkout" target="_blank" rel="noopener">
+            <a class="btn-secondary" href="https://wa.me/917902301205?text=Hello%20Coco%20Germany,%20I%20had%20an%20issue%20with%20checkout" target="_blank" rel="noopener">
               <i data-lucide="message-circle"></i> Contact Support
             </a>
           </div>

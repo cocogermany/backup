@@ -2348,14 +2348,14 @@ function renderContact() {
         </div>
         <div class="contact-actions">
           <a class="button" href="mailto:cocogermany.ytd@gmail.com">${icon("mail")}Email Coco Germany</a>
-          <a class="button whatsapp-button" href="https://wa.me/917907211108" target="_blank" rel="noopener">${icon("message-circle")}WhatsApp</a>
+          <a class="button whatsapp-button" href="https://wa.me/917902301205" target="_blank" rel="noopener">${icon("message-circle")}WhatsApp</a>
         </div>
       </div>
       <div class="card card-body contact-card">
         ${icon("mail-check")}
         <h3>Quick contact</h3>
         
-        <p>WhatsApp: <a href="https://wa.me/917907211108" target="_blank" rel="noopener">Whatsapp Now</a></p>
+        <p>WhatsApp: <a href="https://wa.me/917902301205" target="_blank" rel="noopener">Whatsapp Now</a></p>
       </div>
     </section>
   `;
@@ -3443,7 +3443,7 @@ function renderPurchase(resourceId) {
         <input type="hidden" name="isDigital" value="${digitalProduct ? "yes" : "no"}" />
         <label class="field">Full name <input name="name" required /></label>
         <label class="field">Email <input name="email" type="email" value="${currentUser ? currentUser.email : ""}" required /></label>
-        <label class="field">WhatsApp number <input name="phone" placeholder="+91 79072 11108" required /></label>
+        <label class="field">WhatsApp number <input name="phone" placeholder="+91 79023 01205" required /></label>
         ${digitalProduct
           ? ""
           : html`
