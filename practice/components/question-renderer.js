@@ -92,6 +92,27 @@
     /* ============================================================
      * 2. UTILITY & SANITIZATION HELPERS
      * ============================================================ */
+    sanitizeRichText: function (value) {
+      if (value === null || value === undefined) return "";
+      const text = String(value);
+      if (!text) return "";
+      if (typeof document === "undefined") return this.escapeHtml(text);
+
+      const template = document.createElement("template");
+      template.innerHTML = text;
+      template.content.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((node) => node.remove());
+      template.content.querySelectorAll("*").forEach((node) => {
+        [...node.attributes].forEach((attribute) => {
+          const name = attribute.name.toLowerCase();
+          const val = attribute.value.trim().toLowerCase();
+          if (name.startsWith("on") || name === "srcdoc" || ((name === "href" || name === "src") && val.startsWith("javascript:"))) {
+            node.removeAttribute(attribute.name);
+          }
+        });
+      });
+      return template.innerHTML;
+    },
+
     escapeHtml: function (str) {
       if (str === null || str === undefined) return "";
       return String(str)
@@ -176,7 +197,7 @@
         return `
           <div class="${blockClass} exam-unsupported-q" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.statement || "Aufgabe")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.statement || "Aufgabe")}</div>
             <div class="exam-unsupported-card">
               <i data-lucide="alert-circle" style="width:20px;height:20px;color:#d97706;flex-shrink:0;"></i>
               <div>
@@ -199,7 +220,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || "")}</div>
             <div class="${isMock ? 'mock-options-list' : 'exam-radio-list'}">
               ${options.map((opt) => {
                 const optVal = this.getOptionValue(opt);
@@ -236,7 +257,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.statement || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.statement || "")}</div>
             <div class="exam-tf-group">
               ${options.map((opt) => {
                 const optVal = this.getOptionValue(opt);
@@ -268,7 +289,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.statement || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.statement || "")}</div>
             <div class="exam-tf-group">
               ${options.map((opt) => {
                 const optVal = this.getOptionValue(opt);
@@ -300,7 +321,7 @@
         return `
           <div class="${blockClass} exam-matching-card" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.situation || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.situation || "")}</div>
             <div class="exam-matching-select-row">
               <span class="exam-matching-label">Passende Zuordnung:</span>
               <select
@@ -332,7 +353,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || "Wählen Sie alle passenden Antworten:")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || "Wählen Sie alle passenden Antworten:")}</div>
             <div class="exam-checkbox-list">
               ${options.map((opt) => {
                 const optVal = this.getOptionValue(opt);
@@ -369,7 +390,7 @@
         return `
           <div class="${blockClass} exam-matching-card" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.gapContext || `Lücke ${idx + 1}`)}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.gapContext || `Lücke ${idx + 1}`)}</div>
             <div class="exam-matching-select-row">
               <span class="exam-matching-label">Passender Satz:</span>
               <select
@@ -399,7 +420,7 @@
         return `
           <div class="${blockClass} exam-matching-card" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.paragraph || q.question || `Abschnitt ${idx + 1}`)}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.paragraph || q.question || `Abschnitt ${idx + 1}`)}</div>
             <div class="exam-matching-select-row">
               <span class="exam-matching-label">Passende Überschrift:</span>
               <select
@@ -429,7 +450,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.statement || q.question || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.statement || q.question || "")}</div>
             <div class="${isMock ? 'mock-options-list' : 'exam-radio-list'}">
               ${pool.map((opt) => {
                 const optVal = this.getOptionValue(opt);
@@ -466,7 +487,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || "Wählen Sie das passende Bild:")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || "Wählen Sie das passende Bild:")}</div>
             <div class="exam-img-grid">
               ${options.map((opt, oIdx) => {
                 const optVal = this.getOptionValue(opt);
@@ -500,7 +521,7 @@
         return `
           <div class="${blockClass}" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="${textClass}">${this.escapeHtml(q.question || q.label || "")}</div>
+            <div class="${textClass}">${this.sanitizeRichText(q.question || q.label || "")}</div>
             <div class="exam-text-input-wrap">
               <input
                 type="text"
@@ -523,7 +544,7 @@
         return `
           <div class="${blockClass} exam-form-container" id="exam-q-block-${this.escapeHtml(qId)}">
             ${headerHtml}
-            <div class="exam-form-header">${this.escapeHtml(q.question || q.title || "Formular ausfüllen")}</div>
+            <div class="exam-form-header">${this.sanitizeRichText(q.question || q.title || "Formular ausfüllen")}</div>
             <div class="exam-form-grid">
               ${fields.map((field) => {
                 const fId = String(field.id || field.name);
@@ -568,12 +589,12 @@
             <div class="mock-prompt-card">
               <span class="mock-prompt-badge">Schreibaufgabe</span>
               <h2 class="mock-prompt-title">${this.escapeHtml(q.title || opts.material?.title || "Schriftlicher Ausdruck")}</h2>
-              ${situation ? `<div class="mock-prompt-situation">${this.escapeHtml(situation)}</div>` : ''}
-              ${aufgabe ? `<p style="font-size:0.92rem; font-weight:600; margin:0 0 10px;">${this.escapeHtml(aufgabe)}</p>` : ''}
+              ${situation ? `<div class="mock-prompt-situation">${this.sanitizeRichText(situation)}</div>` : ''}
+              ${aufgabe ? `<p style="font-size:0.92rem; font-weight:600; margin:0 0 10px;">${this.sanitizeRichText(aufgabe)}</p>` : ''}
               ${points.length > 0 ? `
                 <div class="mock-prompt-points-title">Punkte der Aufgabe:</div>
                 <ul class="mock-prompt-points">
-                  ${points.map(p => `<li>${this.escapeHtml(p)}</li>`).join("")}
+                  ${points.map(p => `<li>${this.sanitizeRichText(p)}</li>`).join("")}
                 </ul>
               ` : ''}
             </div>

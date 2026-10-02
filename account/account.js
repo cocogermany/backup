@@ -826,7 +826,7 @@ function initMobileTabModal() {
   // Bind clicks on sub-navigation tabs
   document.querySelectorAll(".account-tab").forEach((tab) => {
     tab.addEventListener("click", async (e) => {
-      // Refer & Earn must NOT be a modal like the other Account sections!
+      // Affiliate Program must NOT be a modal like the other Account sections!
       if (tab.matches("[data-refer-tab]") || (tab.getAttribute("href") || "").includes("refer")) {
         e.preventDefault();
         e.stopPropagation();

@@ -1,5 +1,5 @@
 /**
- * Coco Germany — Dedicated Refer & Earn Logic (refer.js)
+ * Coco Germany — Dedicated Affiliate Program Logic (refer.js)
  * Production-ready referral dashboard, dynamic link generation,
  * Cloudflare Worker sync with Firestore fallback, and coin history rendering.
  */
@@ -322,7 +322,7 @@ function renderTransactionRow(tx) {
 }
 
 /**
- * Populate Refer & Earn UI with fetched data
+ * Populate Affiliate Program UI with fetched data
  */
 function populateDashboard(data) {
   const { referralCode, stats, transactions } = data;

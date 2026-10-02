@@ -2539,7 +2539,7 @@ function adminShell(active, title, intro, content) {
     ["exam-materials", "Exam Materials", "file-text"],
     ["analytics", "Analytics", "chart-column"],
     ["customers", "Customers", "users"],
-    ["refer-earn", "Refer & Earn", "gift"],
+    ["refer-earn", "Affiliate Program", "gift"],
     ["videos", "Videos", "video"],
     ["settings", "Settings", "settings"],
   ];
@@ -2761,7 +2761,7 @@ async function renderAdminReferrals() {
   // Show loading shell first
   adminShell(
     "refer-earn",
-    "Refer & Earn",
+    "Affiliate Program",
     "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
     html`<section class="admin-section"><p class="muted">Loading referral data from Firebase…</p></section>`,
   );
@@ -2828,7 +2828,7 @@ async function renderAdminReferrals() {
 
     adminShell(
       "refer-earn",
-      "Refer & Earn",
+      "Affiliate Program",
       "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
       html`
         <section class="admin-section">
@@ -2909,7 +2909,7 @@ async function renderAdminReferrals() {
   } catch (err) {
     adminShell(
       "refer-earn",
-      "Refer & Earn",
+      "Affiliate Program",
       "View all user referral profiles, see who referred whom, and set per-user commission percentages.",
       html`<section class="admin-section"><p class="error">Failed to load referral data: ${err.message || err}</p></section>`,
     );
