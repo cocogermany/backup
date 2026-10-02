@@ -218,12 +218,20 @@ window.MockPlayerComponent = {
         isMissingDb = true;
       }
 
+      // If user elected to skip optional Grammatik upfront prior to start:
+      const skipGrammatikUpfront = sessionStorage.getItem("coco_mock_skip_grammatik") === "true";
+      const isGrammatik = stepDef.module === "Grammatik" || stepDef.module === "Sprachbausteine";
+      if (skipGrammatikUpfront && (stepDef.optional || isGrammatik)) {
+        continue;
+      }
+
       resolvedSteps.push({
         stepIndex: resolvedSteps.length,
         module: stepDef.module,
         teil: stepDef.teil || (chosenMaterial?.teil || "Teil 1"),
         teilNum: stepDef.teilNum || 1,
         mandatory: stepDef.mandatory,
+        optional: Boolean(stepDef.optional),
         materialMeta: chosenMaterial,
         isSolvedAll: isSolvedAll,
         isMissingDb: isMissingDb,
@@ -308,6 +316,7 @@ window.MockPlayerComponent = {
     // 3. Build fresh exam steps
     try {
       const steps = await this.resolveMaterialsForExam(format, level, uid);
+      sessionStorage.removeItem("coco_mock_skip_grammatik");
       if (!steps || steps.length === 0) {
         root.innerHTML = `
           <div class="mock-workspace">
@@ -586,6 +595,7 @@ window.MockPlayerComponent = {
     const formatLabel = this.activeExam.format.toUpperCase();
     const level = this.activeExam.level;
     const material = step.loadedContent;
+    const isGrammatik = step.module === "Grammatik" || step.module === "Sprachbausteine" || Boolean(step.optional);
 
     root.innerHTML = `
       <header class="mock-cbt-header">
@@ -610,6 +620,12 @@ window.MockPlayerComponent = {
         </div>
 
         <div class="mock-header-right">
+          ${isGrammatik ? `
+            <button type="button" class="mock-btn-skip-teil" id="mock-skip-grammatik-btn" onclick="window.MockPlayerComponent.confirmSkipGrammatik(${stepIndex})">
+              <i data-lucide="skip-forward" style="width:14px;height:14px;"></i>
+              <span>Skip Grammatik (Optional)</span>
+            </button>
+          ` : ''}
           <button type="button" class="mock-btn-submit-teil" id="mock-submit-btn" onclick="window.MockPlayerComponent.submitCurrentStep(${stepIndex})">
             <i data-lucide="check" style="width:16px;height:16px;"></i>
             <span>Submit ${step.teil}</span>
@@ -753,6 +769,22 @@ window.MockPlayerComponent = {
 
       return `
         <div class="mock-grammatik-container">
+          <div class="mock-grammatik-optional-banner">
+            <div class="mock-grammatik-optional-info">
+              <div class="mock-grammatik-optional-badge-row">
+                <span class="badge-pill badge-gold"><i data-lucide="info" style="width:12px;height:12px;"></i> Optional Section</span>
+                <span class="mock-grammatik-optional-tag">${this.escapeHtml(modTitle)}</span>
+              </div>
+              <p class="mock-grammatik-optional-desc">
+                ${this.escapeHtml(modTitle)} is an optional section in this examination format. You can solve these practice exercises or skip directly to the next section without any penalty to your score.
+              </p>
+            </div>
+            <button type="button" class="mock-btn-skip-banner" onclick="window.MockPlayerComponent.confirmSkipGrammatik(${step.stepIndex})">
+              <i data-lucide="skip-forward" style="width:15px;height:15px;"></i>
+              <span>Skip ${this.escapeHtml(modTitle)}</span>
+            </button>
+          </div>
+
           <div style="margin-bottom:16px;">
             <h1 style="font-size:1.25rem; font-weight:700; margin:0 0 4px; font-family:var(--font-heading);">${this.escapeHtml(material.title || modTitle)}</h1>
             <p style="font-size:0.85rem; color:var(--muted); margin:0;">Choose the correct word or grammatical form to complete each task.</p>
@@ -761,6 +793,17 @@ window.MockPlayerComponent = {
           ${this.renderMatchingPoolBox(material)}
           <div class="mock-gram-list">
             ${questions.map((q, idx) => this.renderGrammatikQuestionCard(q, idx, questions.length)).join("")}
+          </div>
+
+          <div class="mock-grammatik-footer-actions">
+            <button type="button" class="mock-btn-skip-footer" onclick="window.MockPlayerComponent.confirmSkipGrammatik(${step.stepIndex})">
+              <i data-lucide="skip-forward" style="width:14px;height:14px;"></i>
+              <span>Skip ${this.escapeHtml(modTitle)} (Optional)</span>
+            </button>
+            <button type="button" class="mock-btn-submit-teil" onclick="window.MockPlayerComponent.submitCurrentStep(${step.stepIndex})">
+              <i data-lucide="check" style="width:16px;height:16px;"></i>
+              <span>Submit ${this.escapeHtml(step.teil)}</span>
+            </button>
           </div>
         </div>
       `;
@@ -1793,8 +1836,61 @@ window.MockPlayerComponent = {
     `;
   },
 
+  confirmSkipGrammatik: function (stepIndex) {
+    if (this._skipModalOpen) return;
+    this._skipModalOpen = true;
+
+    const overlay = document.createElement("div");
+    overlay.className = "mock-modal-overlay";
+    overlay.id = "mock-skip-modal";
+
+    const step = this.activeExam?.steps?.[stepIndex];
+    const modTitle = (step?.module === "Sprachbausteine" ? "Sprachbausteine" : "Grammatik");
+
+    overlay.innerHTML = `
+      <div class="mock-confirm-box">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+          <div style="width:38px; height:38px; border-radius:50%; background:#fef3c7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i data-lucide="skip-forward" style="width:18px;height:18px;color:#d97706;"></i>
+          </div>
+          <div>
+            <h3 class="mock-confirm-title" style="margin:0;">Skip ${this.escapeHtml(modTitle)} Section?</h3>
+            <span class="badge-pill badge-gold" style="font-size:0.72rem; padding:2px 8px; margin-top:4px; display:inline-block;">Optional Module</span>
+          </div>
+        </div>
+        <p class="mock-confirm-desc">
+          ${this.escapeHtml(modTitle)} is an optional component of this examination format. Skipping it will not lower your final exam score or mark the exam as failed. You will proceed immediately to the next section.
+        </p>
+        <div class="mock-confirm-actions">
+          <button type="button" class="btn-secondary" id="mock-skip-cancel">Continue Section</button>
+          <button type="button" class="btn-primary" style="background:#d97706; border-color:#d97706;" id="mock-skip-confirm">
+            <i data-lucide="skip-forward" style="width:14px;height:14px;"></i>
+            <span>Skip to Next Section</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    if (window.lucide) window.lucide.createIcons();
+
+    document.getElementById("mock-skip-cancel").addEventListener("click", () => {
+      overlay.remove();
+      this._skipModalOpen = false;
+    });
+
+    document.getElementById("mock-skip-confirm").addEventListener("click", (e) => {
+      overlay.remove();
+      this._skipModalOpen = false;
+      this.stopTimer();
+      this.skipCurrentStep(stepIndex, e.currentTarget);
+    });
+  },
+
   skipCurrentStep: function (stepIndex, btnEl = null) {
     if (!this.activeExam) return;
+    this.stopTimer();
+
     if (btnEl) {
       btnEl.disabled = true;
       btnEl.innerHTML = `<span class="btn-spinner"></span> Skipping...`;
@@ -1803,17 +1899,18 @@ window.MockPlayerComponent = {
     const step = this.activeExam.steps[stepIndex];
     if (step) {
       step.isSkipped = true;
+      this.activeExam.currentStepIndex = stepIndex;
       this.activeExam.stepResults[stepIndex] = {
         stepIndex: stepIndex,
         module: step.module,
         teil: step.teil,
         materialId: null,
-        title: `${step.module} ${step.teil}`,
+        title: `${step.module} ${step.teil || ''}`.trim(),
         earnedMarks: 0,
         totalMarks: 0,
         scorePercent: null,
         skipped: true,
-        skipReason: step.skipReason || "Skipped by learner"
+        skipReason: step.skipReason || "Optional section skipped by learner"
       };
       this.saveActiveExamState();
     }

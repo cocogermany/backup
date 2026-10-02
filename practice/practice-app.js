@@ -1264,6 +1264,10 @@
 
       const mockModal = document.getElementById("mock-exam-modal");
       if (mockModal) {
+        const includeGrammatikEl = document.getElementById("mock-setting-grammatik");
+        if (includeGrammatikEl) {
+          includeGrammatikEl.checked = true;
+        }
         mockModal.hidden = false;
         if (window.lucide) window.lucide.createIcons();
       }
@@ -1330,6 +1334,14 @@
       }
 
       this.closeMockExamModal();
+
+      // Check if user elected to skip optional Grammatik upfront
+      const includeGrammatikEl = document.getElementById("mock-setting-grammatik");
+      if (includeGrammatikEl && !includeGrammatikEl.checked) {
+        sessionStorage.setItem("coco_mock_skip_grammatik", "true");
+      } else {
+        sessionStorage.removeItem("coco_mock_skip_grammatik");
+      }
 
       // Clear any prior finished session and authorize fresh exam launch
       localStorage.removeItem("coco_active_mock_exam");
