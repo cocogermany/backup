@@ -1650,13 +1650,27 @@ body.exam-mode .app-viewport {
     padding: 20px 16px 80px;
   }
 
+  .exam-cbt-root:has(.exam-results-screen) .exam-mobile-tabs {
+    display: none !important;
+  }
+
   .exam-review-top-banner {
+    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .is-hoeren .exam-review-top-banner,
+  .is-grammatik .exam-review-top-banner,
+  #player-main-container[data-module="Hören"] .exam-review-top-banner,
+  #player-main-container[data-module="Grammatik"] .exam-review-top-banner {
     margin-top: calc(var(--exam-header-h) + var(--exam-progress-h));
   }
 
   .exam-review-top-banner + .exam-cbt-workspace,
   .exam-review-top-banner + .player-view-lesen {
-    margin-top: calc(var(--exam-header-h) + var(--exam-progress-h) + var(--exam-mobile-tabs-h));
+    margin-top: 0 !important;
     height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h) - 37px);
   }
 
@@ -1664,8 +1678,9 @@ body.exam-mode .app-viewport {
   .exam-review-top-banner + .exam-hoeren-workspace,
   .exam-review-top-banner + .player-view-hoeren,
   .exam-review-top-banner + .exam-grammatik-workspace,
-  .exam-review-top-banner + .player-view-grammatik {
-    margin-top: 0;
+  .exam-review-top-banner + .player-view-grammatik,
+  .exam-review-top-banner + .exam-speaking-workspace {
+    margin-top: 0 !important;
     height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - 37px);
   }
 
@@ -1700,11 +1715,8 @@ body.exam-mode .app-viewport {
   }
 
   .exam-review-top-banner + .exam-cbt-workspace:not(.layout-v-split),
-  .exam-review-top-banner + .player-view-lesen:not(.layout-v-split),
-  .exam-review-top-banner + .exam-single-panel-workspace,
-  .exam-review-top-banner + .exam-hoeren-workspace,
-  .exam-review-top-banner + .exam-grammatik-workspace,
-  .exam-review-top-banner + .exam-speaking-workspace {
+  .exam-review-top-banner + .player-view-lesen:not(.layout-v-split) {
+    margin-top: 0 !important;
     height: calc(100vh - var(--exam-header-h) - var(--exam-progress-h) - var(--exam-mobile-tabs-h) - 37px);
   }
 

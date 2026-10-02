@@ -1491,6 +1491,8 @@ window.InteractivePlayerComponent = {
 
   renderResultsScreen: function () {
     this.isReviewMode = false;
+    const mobileTabs = document.getElementById("exam-mobile-tabs");
+    if (mobileTabs) mobileTabs.style.display = "none";
 
     const contentArea = document.getElementById("player-content-area");
     if (!contentArea) return;
