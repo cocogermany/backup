@@ -3145,3 +3145,145 @@ textarea:focus-visible,
     flex-direction: column-reverse;
   }
 }
+
+/* Credits & Allowance Modal Enhancements */
+.credits-modal-card {
+  max-width: 460px;
+}
+
+.credits-allowance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0 16px 0;
+}
+
+.credit-allowance-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: all var(--transition-fast);
+}
+
+.credit-allowance-item:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.credit-allowance-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.credit-allowance-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.credit-icon-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.credit-icon-chip i {
+  width: 16px;
+  height: 16px;
+}
+
+.chip-amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.chip-purple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.chip-blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.credit-allowance-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.credit-allowance-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.credit-allowance-item .credits-count-big {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 0;
+  line-height: 1;
+}
+
+.credit-allowance-item .credits-bar-track {
+  height: 6px;
+  width: 100%;
+  margin: 0 0 6px 0;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.credit-allowance-item .credits-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+.fill-amber {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.fill-purple {
+  background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+}
+
+.fill-blue {
+  background: linear-gradient(90deg, #0ea5e9, #0284c7);
+}
+
+.credit-allowance-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.credit-period-tag {
+  font-weight: 600;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.credits-membership-card {
+  background: var(--paper);
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(72, 70, 143, 0.08);
+}

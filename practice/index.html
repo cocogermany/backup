@@ -280,7 +280,7 @@
 
     <!-- CREDITS DETAILS MODAL -->
     <div class="modal-backdrop" id="credits-detail-modal" hidden>
-      <div class="modal-card">
+      <div class="modal-card credits-modal-card">
         <div class="modal-header">
           <div style="display:flex; align-items:center; gap:8px;">
             <i data-lucide="zap" style="color:var(--gold); fill:var(--gold); width:20px; height:20px;"></i>
@@ -289,23 +289,83 @@
           <button class="modal-close-btn" id="credits-modal-close" aria-label="Close"><i data-lucide="x"></i></button>
         </div>
         
-        <div style="text-align:center; padding:16px 0;">
-          <div class="credits-count-big" id="modal-credits-big">-- / --</div>
-          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px;">Daily Credits Available Today</p>
-          
-          <div class="credits-bar-track" style="height:8px; max-width:280px; margin:0 auto 16px;">
-            <div class="credits-bar-fill" id="modal-credits-fill" style="width: 0%;"></div>
+        <div class="credits-allowance-list">
+          <!-- 1. Daily Practice Allowance Card -->
+          <div class="credit-allowance-item">
+            <div class="credit-allowance-head">
+              <div class="credit-allowance-info">
+                <div class="credit-icon-chip chip-amber">
+                  <i data-lucide="zap"></i>
+                </div>
+                <div>
+                  <div class="credit-allowance-title">Daily Practice</div>
+                  <div class="credit-allowance-subtitle">Questions & Exercises</div>
+                </div>
+              </div>
+              <div class="credits-count-big" id="modal-credits-big">-- / --</div>
+            </div>
+            <div class="credits-bar-track">
+              <div class="credits-bar-fill fill-amber" id="modal-credits-fill" style="width: 0%;"></div>
+            </div>
+            <div class="credit-allowance-meta">
+              <span id="modal-credits-timer">Resets every 24 hours</span>
+              <span class="credit-period-tag">Daily</span>
+            </div>
           </div>
-          
-          <p style="font-size:0.78rem; color:var(--muted);" id="modal-credits-timer">Resets every 24 hours</p>
+
+          <!-- 2. Weekly Schreiben Evaluations Card -->
+          <div class="credit-allowance-item">
+            <div class="credit-allowance-head">
+              <div class="credit-allowance-info">
+                <div class="credit-icon-chip chip-purple">
+                  <i data-lucide="pen-tool"></i>
+                </div>
+                <div>
+                  <div class="credit-allowance-title">Writing (Schreiben)</div>
+                  <div class="credit-allowance-subtitle">AI Teacher Evaluations</div>
+                </div>
+              </div>
+              <div class="credits-count-big" id="modal-schreiben-big">-- / --</div>
+            </div>
+            <div class="credits-bar-track">
+              <div class="credits-bar-fill fill-purple" id="modal-schreiben-fill" style="width: 0%;"></div>
+            </div>
+            <div class="credit-allowance-meta">
+              <span id="modal-schreiben-timer">Resets every Monday</span>
+              <span class="credit-period-tag">Weekly</span>
+            </div>
+          </div>
+
+          <!-- 3. Weekly Mock Exams Card -->
+          <div class="credit-allowance-item">
+            <div class="credit-allowance-head">
+              <div class="credit-allowance-info">
+                <div class="credit-icon-chip chip-blue">
+                  <i data-lucide="award"></i>
+                </div>
+                <div>
+                  <div class="credit-allowance-title">Full Mock Exams</div>
+                  <div class="credit-allowance-subtitle">Timed Official Simulations</div>
+                </div>
+              </div>
+              <div class="credits-count-big" id="modal-mock-big">-- / --</div>
+            </div>
+            <div class="credits-bar-track">
+              <div class="credits-bar-fill fill-blue" id="modal-mock-fill" style="width: 0%;"></div>
+            </div>
+            <div class="credit-allowance-meta">
+              <span id="modal-mock-timer">Resets every Monday</span>
+              <span class="credit-period-tag">Weekly</span>
+            </div>
+          </div>
         </div>
 
-        <div style="background:var(--paper); padding:14px; border-radius:12px; margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:6px;">
-            <span>Current Membership</span>
-            <span class="badge-pill badge-emerald" id="modal-user-plan">Free Learner</span>
+        <div class="credits-membership-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:4px;">
+            <span style="font-weight:600; color:var(--ink);">Current Membership</span>
+            <span class="badge-pill badge-emerald" id="modal-user-plan">FREE</span>
           </div>
-          <p style="font-size:0.75rem; color:var(--muted);">Your available credits reset according to your membership plan.</p>
+          <p style="font-size:0.75rem; color:var(--muted); margin:0;">Your available credits reset according to your membership plan.</p>
         </div>
 
         <div style="display:flex; justify-content:center;">

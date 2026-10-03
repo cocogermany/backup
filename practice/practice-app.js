@@ -169,6 +169,7 @@
     },
     testHistory: JSON.parse(localStorage.getItem("coco_history")) || []
   };
+  window.AppState = AppState;
 
   class PracticeApp {
     constructor() {
@@ -392,6 +393,17 @@
           localStorage.setItem("coco_practice_format", AppState.currentFormat);
         }
 
+        if (typeof creditRes.schreiben_credits_remaining === "number") {
+          AppState.schreibenCreditsRemaining = creditRes.schreiben_credits_remaining;
+          AppState.weeklySchreibenLimit = creditRes.weekly_schreiben_limit;
+          AppState.schreibenEnabled = creditRes.schreiben_enabled !== false;
+        }
+
+        if (typeof creditRes.mock_exams_remaining === "number") {
+          AppState.mockExamsRemaining = creditRes.mock_exams_remaining;
+          AppState.weeklyMockLimit = creditRes.weekly_mock_exams;
+        }
+
         // Fetch dynamic weekly Schreiben credits in background
         if (window.SupabaseService && typeof window.SupabaseService.checkSchreibenCreditsWorker === "function") {
           window.SupabaseService.checkSchreibenCreditsWorker(idToken).then((schreibenRes) => {
@@ -399,6 +411,7 @@
               AppState.schreibenCreditsRemaining = schreibenRes.schreiben_credits_remaining;
               AppState.weeklySchreibenLimit = schreibenRes.weekly_schreiben_limit;
               AppState.schreibenEnabled = schreibenRes.schreiben_enabled;
+              this.updateCreditsModalUI();
             }
           }).catch(() => {});
         }
@@ -409,6 +422,7 @@
             if (mockRes && typeof mockRes.mock_exams_remaining === "number") {
               AppState.mockExamsRemaining = mockRes.mock_exams_remaining;
               AppState.weeklyMockLimit = mockRes.weekly_mock_exams;
+              this.updateCreditsModalUI();
             }
           }).catch(() => {});
         }
@@ -529,6 +543,11 @@
       const openCreditsModal = () => {
         this.updateCreditsModalUI();
         if (creditsModal) creditsModal.hidden = false;
+        if (this.currentFirebaseUser) {
+          this.loadCreditsFromWorker(this.currentFirebaseUser).then(() => {
+            this.updateCreditsModalUI();
+          }).catch(() => {});
+        }
       };
 
       if (topbarCreditsBtn) topbarCreditsBtn.addEventListener("click", openCreditsModal);
@@ -626,11 +645,12 @@
     }
 
     updateCreditsModalUI() {
-      const credits = AppState.dailyCredits;
+      const credits = AppState.dailyCredits || {};
       const bigCount = document.getElementById("modal-credits-big");
       const fillBar = document.getElementById("modal-credits-fill");
       const userPlan = document.getElementById("modal-user-plan");
 
+      // 1. Daily Practice Credits
       if (bigCount) {
         if (credits.remaining === null || credits.remaining === undefined) {
           bigCount.textContent = "-- / --";
@@ -638,14 +658,77 @@
           bigCount.textContent = `${credits.remaining} / ${credits.total || credits.remaining}`;
         }
       }
-      if (userPlan) userPlan.textContent = AppState.userProfile.plan || "FREE";
       if (fillBar) {
         if (credits.remaining === null || !credits.total) {
           fillBar.style.width = "0%";
         } else {
-          const pct = Math.round((credits.remaining / (credits.total || 1)) * 100);
+          const pct = Math.min(100, Math.max(0, Math.round((credits.remaining / (credits.total || 1)) * 100)));
           fillBar.style.width = `${pct}%`;
         }
+      }
+
+      // 2. Writing (Schreiben) Credits
+      const schreibenCount = document.getElementById("modal-schreiben-big");
+      const schreibenFill = document.getElementById("modal-schreiben-fill");
+      const sRem = AppState.schreibenCreditsRemaining;
+      const sTotal = AppState.weeklySchreibenLimit;
+      const sEnabled = AppState.schreibenEnabled !== false;
+
+      if (schreibenCount) {
+        if (!sEnabled && (sRem === null || sRem === 0) && sTotal === 0) {
+          schreibenCount.textContent = "Not Enabled";
+          schreibenCount.style.fontSize = "0.95rem";
+          schreibenCount.style.color = "var(--muted)";
+        } else if (sRem === null || sRem === undefined) {
+          schreibenCount.textContent = "-- / --";
+          schreibenCount.style.fontSize = "";
+          schreibenCount.style.color = "";
+        } else {
+          schreibenCount.textContent = `${sRem} / ${sTotal !== null && sTotal !== undefined ? sTotal : sRem}`;
+          schreibenCount.style.fontSize = "";
+          schreibenCount.style.color = "";
+        }
+      }
+      if (schreibenFill) {
+        if (sRem === null || !sTotal) {
+          schreibenFill.style.width = "0%";
+        } else {
+          const pct = Math.min(100, Math.max(0, Math.round((sRem / (sTotal || 1)) * 100)));
+          schreibenFill.style.width = `${pct}%`;
+        }
+      }
+
+      // 3. Mock Exams Credits
+      const mockCount = document.getElementById("modal-mock-big");
+      const mockFill = document.getElementById("modal-mock-fill");
+      const mRem = AppState.mockExamsRemaining;
+      const mTotal = AppState.weeklyMockLimit;
+
+      if (mockCount) {
+        if (mRem === null || mRem === undefined) {
+          mockCount.textContent = "-- / --";
+        } else {
+          mockCount.textContent = `${mRem} / ${mTotal !== null && mTotal !== undefined ? mTotal : mRem}`;
+        }
+      }
+      if (mockFill) {
+        if (mRem === null || !mTotal) {
+          mockFill.style.width = "0%";
+        } else {
+          const pct = Math.min(100, Math.max(0, Math.round((mRem / (mTotal || 1)) * 100)));
+          mockFill.style.width = `${pct}%`;
+        }
+      }
+
+      // Membership Badge
+      if (userPlan) {
+        const plan = AppState.userProfile?.plan || (AppState.dailyCredits && AppState.dailyCredits.membership) || "FREE";
+        userPlan.textContent = String(plan).toUpperCase();
+      }
+
+      // Re-create icons for any newly rendered elements
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        try { window.lucide.createIcons(); } catch (e) {}
       }
     }
 

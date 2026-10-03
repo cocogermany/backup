@@ -871,13 +871,15 @@ export default {
           return responseJSON({ error: `Plan '${membershipCode}' is missing a numeric daily_practice_credits value.` }, 500, request);
         }
         const dailyPracticeCredits = plan.daily_practice_credits;
+        const weeklySchreibenLimit = typeof plan.weekly_schreiben_limit === "number" ? plan.weekly_schreiben_limit : 0;
+        const schreibenEnabled = Boolean(plan.schreiben_enabled);
+        const weeklyMockExams = typeof plan.weekly_mock_exams === "number" ? plan.weekly_mock_exams : 1;
 
         // Create missing users only after their allowance has been resolved from
         // plans. A failed insert is an error, never an in-memory fallback.
         if (!userRow) {
           const todayIsoDate = new Date().toISOString().split("T")[0];
           const nowIso = new Date().toISOString();
-          const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
           const newUser = {
             uid,
             membership: membershipCode,
@@ -885,6 +887,8 @@ export default {
             format: "goethe",
             credits_remaining: dailyPracticeCredits,
             last_reset: todayIsoDate,
+            schreiben_credits_remaining: weeklySchreibenLimit,
+            schreiben_last_reset: nowIso,
             mock_exams_remaining: weeklyMockExams,
             mock_exams_last_reset: nowIso,
             created_at: nowIso,
@@ -929,11 +933,44 @@ export default {
         let creditsRemaining = typeof userRow.credits_remaining === "number" ? userRow.credits_remaining : dailyPracticeCredits;
         let lastReset = userRow.last_reset ? String(userRow.last_reset).split("T")[0] : "";
 
-        // 4. Check if local calendar date is newer than last_reset
+        const updates = {};
+
+        // 4. Check if daily calendar date is newer than last_reset
         if (!lastReset || userLocalToday > lastReset) {
           creditsRemaining = dailyPracticeCredits;
           lastReset = userLocalToday;
+          updates.credits_remaining = creditsRemaining;
+          updates.last_reset = lastReset;
+        }
 
+        // 5. Check weekly reset for Schreiben & Mock Exams using local calendar week start (Monday)
+        const currentWeekStart = getLocalCalendarWeekStart(new Date(), userTimezone);
+        let schreibenLastReset = userRow.schreiben_last_reset ? String(userRow.schreiben_last_reset) : "";
+        let schreibenCreditsRemaining = typeof userRow.schreiben_credits_remaining === "number"
+          ? userRow.schreiben_credits_remaining
+          : weeklySchreibenLimit;
+
+        if (!schreibenLastReset || (currentWeekStart > getLocalCalendarWeekStart(schreibenLastReset, userTimezone))) {
+          schreibenCreditsRemaining = weeklySchreibenLimit;
+          schreibenLastReset = new Date().toISOString();
+          updates.schreiben_credits_remaining = schreibenCreditsRemaining;
+          updates.schreiben_last_reset = schreibenLastReset;
+        }
+
+        let mockLastReset = userRow.mock_exams_last_reset ? String(userRow.mock_exams_last_reset) : "";
+        let mockExamsRemaining = typeof userRow.mock_exams_remaining === "number"
+          ? userRow.mock_exams_remaining
+          : weeklyMockExams;
+
+        if (!mockLastReset || (currentWeekStart > getLocalCalendarWeekStart(mockLastReset, userTimezone))) {
+          mockExamsRemaining = weeklyMockExams;
+          mockLastReset = new Date().toISOString();
+          updates.mock_exams_remaining = mockExamsRemaining;
+          updates.mock_exams_last_reset = mockLastReset;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updates.updated_at = new Date().toISOString();
           await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}`, {
             method: "PATCH",
             headers: {
@@ -941,11 +978,7 @@ export default {
               "Authorization": `Bearer ${serviceRoleKey}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              credits_remaining: creditsRemaining,
-              last_reset: lastReset,
-              updated_at: new Date().toISOString(),
-            }),
+            body: JSON.stringify(updates),
           });
         }
 
@@ -958,6 +991,11 @@ export default {
             format: userRow.format || "goethe",
             credits_remaining: creditsRemaining,
             daily_practice_credits: dailyPracticeCredits,
+            schreiben_credits_remaining: schreibenCreditsRemaining,
+            weekly_schreiben_limit: weeklySchreibenLimit,
+            schreiben_enabled: schreibenEnabled,
+            mock_exams_remaining: mockExamsRemaining,
+            weekly_mock_exams: weeklyMockExams,
             last_reset: lastReset,
             timezone: userTimezone,
           },
