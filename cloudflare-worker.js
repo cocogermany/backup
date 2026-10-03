@@ -2022,6 +2022,12 @@ Point #${pt.id}: ${pt.requirement}
         const evaluationPrompt = `
 You are a qualified German writing teacher and Goethe/telc exam-preparation evaluator analyzing a student's ${examFormat.toUpperCase()} ${level} (${teilText}) writing submission.
 
+CRITICAL INSTRUCTION - EVALUATION LANGUAGE:
+- You must write ALL evaluations, pedagogical explanations, feedback, criteria assessments, overall summaries, register/tone analyses, error pattern analyses, long-term weaknesses, and personalized learning plans in ENGLISH.
+- The student's original German text must be kept unchanged in "original" and "evidence" fields.
+- All German corrections ("correction"), rewritten sentences ("rewritten"), improved sentences ("improved"), model revisions ("improved_version"), and German Redemittel phrases ("phrase") must remain in natural, authentic German.
+- Do NOT translate German text, German corrections, or German examples to English unless specifically requested. Explain the German text in clear English while keeping the German words/sentences in German.
+
 EXAM SPECIFICATIONS:
 - Exam: ${examFormat.toUpperCase()}
 - Level: ${level}
@@ -2056,31 +2062,36 @@ CALIBRATED EXPLANATION DEPTH REQUIREMENTS:
 - Improvements Depth: ${resolveDepth(activePlanConfig.improvements_depth)}
 - Improved Version Depth: ${resolveDepth(activePlanConfig.improved_version_depth)}
 
-EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL AREAS WHERE APPLICABLE):
-1. Task fulfillment: Check every required Leitpunkt individually. Determine whether each is "fulfilled", "partial", or "missing". Cite the student's exact German wording in "evidence". If missing, set evidence to "".
-2. Grammar mistakes: Identify genuine grammatical errors (syntax, morphology, case government, endings, word order). Provide original wording, correction, and pedagogical explanation of the rule.
-3. Word usage / improper usage: Identify words or expressions that are grammatically possible but inappropriate, unnatural, or unsuitable in the sentence/context.
+EVALUATION RESPONSIBILITIES (ANALYZE THOROUGHLY ACROSS ALL AREAS WHERE APPLICABLE — WRITE ALL EXPLANATIONS IN ENGLISH):
+1. Task fulfillment: Check every required Leitpunkt individually. Determine whether each is "fulfilled", "partial", or "missing". Cite the student's exact German wording in "evidence". If missing, set evidence to "". Write qualitative feedback in criteria.task_fulfillment in English.
+2. Grammar mistakes: Identify genuine grammatical errors (syntax, morphology, case government, endings, word order). Provide original German wording in "original", corrected German wording in "correction" (in German), and pedagogical explanation of the rule written in English.
+3. Word usage / improper usage: Identify words or expressions that are grammatically possible but inappropriate, unnatural, or unsuitable in the sentence/context. Provide original German wording in "original", suggested German wording in "suggestion" (in German), and pedagogical explanation written in English.
 4. Word choice: Identify cases where an alternative German word or expression communicates the intended meaning more accurately, idiomatically, or naturally for CEFR ${level}.
-5. Unclear sentences: Identify sentences whose meaning is unclear, awkward, or difficult to comprehend. Provide the original sentence and a completely rewritten, natural German version.
-6. Why it is wrong / problematic: In all explanations, explain the underlying linguistic issue at CEFR ${level} level rather than simply giving a bare correction.
-7. Structure and organization: Evaluate how ideas are introduced, developed, connected, and concluded. Assess paragraph transitions and connective flow in criteria.coherence.
-8. Redemittel: Suggest useful, natural German Redemittel and sentence connectors specifically relevant to this exam task and CEFR ${level}.
-9. How to improve: Provide practical, specific, actionable advice based on the student's actual demonstrated weaknesses.
-10. Improved version: Produce a fully corrected, naturally rewritten version of the student's entire submission in authentic German while strictly preserving the student's intended meaning. Do not introduce ideas that were not present unless necessary to make the text coherent.
-11. Systematic error patterns: If recurring habits or systematic mistake patterns exist (e.g. Nebensatz verb position, adjective declension), explain them in error_patterns.
-12. Long-term weaknesses: Identify broader language learning hurdles to focus on over coming weeks in long_term_weaknesses.
-13. Personalized learning plan: Recommend tailored next study steps and practice drills in personalized_learning_plan.
-14. Register analysis: Analyze formality, salutations, closing etiquette, and situational tone in register_analysis.
-15. Strengths & improvements: Identify genuine strengths in feedback.strengths and priority growth points in feedback.improvements.
-16. Summary: Provide a concise, objective overall qualitative assessment in feedback.summary.
+5. Unclear sentences: Identify sentences whose meaning is unclear, awkward, or difficult to comprehend. Provide the original German sentence in "original", a completely rewritten natural German version in "rewritten" (in German), and explanation written in English.
+6. Why it is wrong / problematic: In all explanations, explain the underlying linguistic issue at CEFR ${level} level in English rather than simply giving a bare correction.
+7. Structure and organization: Evaluate how ideas are introduced, developed, connected, and concluded. Assess paragraph transitions and connective flow in criteria.coherence in English.
+8. Redemittel: Suggest useful, natural German Redemittel and sentence connectors in "phrase" (in German) and explain how and when to use them in "usage" in English.
+9. How to improve: Provide practical, specific, actionable advice written in English based on the student's actual demonstrated weaknesses.
+10. Improved version: Produce a fully corrected, naturally rewritten version of the student's entire submission in authentic German in "improved_version" while strictly preserving the student's intended meaning. Do NOT translate it to English. Do not introduce ideas that were not present unless necessary to make the text coherent.
+11. Systematic error patterns: If recurring habits or systematic mistake patterns exist (e.g. Nebensatz verb position, adjective declension), explain them in error_patterns in English.
+12. Long-term weaknesses: Identify broader language learning hurdles to focus on over coming weeks in long_term_weaknesses in English.
+13. Personalized learning plan: Recommend tailored next study steps and practice drills in personalized_learning_plan in English.
+14. Register analysis: Analyze formality, salutations, closing etiquette, and situational tone in register_analysis in English (e.g. tone description and analysis in English).
+15. Strengths & improvements: Identify genuine strengths in feedback.strengths (in English) and priority growth points in feedback.improvements (in English).
+16. Summary: Provide a concise, objective overall qualitative assessment in feedback.summary written in English.
 
 MANDATORY RULES & CONSTRAINTS:
-1. STRICTLY QUALITATIVE: Completely remove all percentage, marks, pass/fail, and score-based evaluation concepts. You must NOT calculate, recommend, determine, or return any numeric score, mark, or percentage. Focus exclusively on qualitative feedback, explanations, and actionable observations.
-2. DO NOT INVENT MISTAKES: Only identify authentic linguistic, grammatical, lexical, or structural issues present in the student's text. If the student's text contains no genuine issue in a category, return an empty array. Never invent mistakes simply to fill a limit.
-3. CEFR LEVEL CALIBRATION: Calibrate all feedback, corrections, explanations, and Redemittel strictly to CEFR ${level}.
-4. INTERNAL LOGIC CONFIDENTIALITY: Never expose internal plan names, limits, AI model selection, or database configuration in the feedback or report.
-5. OBJECTIVE TEACHER TONE: Maintain an encouraging yet objective pedagogical tone. Avoid generic empty praise ("Sehr gut", "Super", "Great job").
-6. LANGUAGE REQUIREMENT: If the text is mostly non-German (English/other), set language.detected to the detected language, language.appropriate = false, and provide guidance explaining the requirement to write in German.
+1. OUTPUT LANGUAGE IS STRICTLY ENGLISH:
+   - All evaluation texts, pedagogical explanations, criteria assessments, feedback comments, register/tone observations, strengths, improvements, summaries, error pattern descriptions, long-term weaknesses, and learning plan steps MUST be written in ENGLISH.
+   - The student's original German submission and cited quotes must remain in original German in "original" and "evidence".
+   - All German corrections ("correction"), rewritten sentences ("rewritten"), improved sentences ("improved"), model revisions ("improved_version"), and German Redemittel phrases ("phrase") MUST remain in authentic German.
+   - Do NOT translate German corrections, German sentences, or German examples into English. Explain them in English.
+2. STRICTLY QUALITATIVE: Completely remove all percentage, marks, pass/fail, and score-based evaluation concepts. You must NOT calculate, recommend, determine, or return any numeric score, mark, or percentage. Focus exclusively on qualitative feedback, explanations, and actionable observations in English.
+3. DO NOT INVENT MISTAKES: Only identify authentic linguistic, grammatical, lexical, or structural issues present in the student's text. If the student's text contains no genuine issue in a category, return an empty array. Never invent mistakes simply to fill a limit.
+4. CEFR LEVEL CALIBRATION: Calibrate all feedback, corrections, explanations, and Redemittel strictly to CEFR ${level}.
+5. INTERNAL LOGIC CONFIDENTIALITY: Never expose internal plan names, limits, AI model selection, or database configuration in the feedback or report.
+6. OBJECTIVE TEACHER TONE: Maintain an encouraging yet objective pedagogical tone in English. Avoid generic empty praise ("Very good", "Super", "Great job").
+7. LANGUAGE REQUIREMENT: If the student's submission is mostly non-German (English/other), set language.detected to the detected language, language.appropriate = false, and provide guidance in English explaining the requirement to write in German.
 
 Return ONLY a valid JSON object matching this exact schema (no markdown fences, no text outside JSON):
 {
@@ -2095,7 +2106,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
       {
         "id": 1,
         "status": "fulfilled",
-        "evidence": "..."
+        "evidence": "Exact German quote from student text, or \\"\\" if missing"
       }
     ]
   },
@@ -2108,84 +2119,91 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
   },
   "criteria": {
     "task_fulfillment": {
-      "feedback": "Qualitative assessment of task fulfillment and Leitpunkte addressing."
+      "feedback": "Detailed qualitative assessment in English of task fulfillment and addressing of Leitpunkte."
     },
     "coherence": {
-      "feedback": "Qualitative assessment of coherence, structure, and connective flow."
+      "feedback": "Detailed qualitative assessment in English of text structure, organization, and connective flow."
     },
     "vocabulary": {
-      "feedback": "Qualitative assessment of vocabulary range, accuracy, and register."
+      "feedback": "Detailed qualitative assessment in English of vocabulary range, word choice, and appropriateness."
     },
     "grammar_form": {
-      "feedback": "Qualitative assessment of grammatical correctness, syntax, and form."
+      "feedback": "Detailed qualitative assessment in English of grammatical correctness, syntax, morphology, and form."
     }
   },
   "mistakes": [
     {
-      "original": "...",
-      "correction": "...",
+      "original": "Exact student German wording",
+      "correction": "Correct German wording (in German)",
       "type": "grammar",
-      "explanation": "..."
+      "explanation": "Clear pedagogical explanation in English of the grammar rule and error."
     }
   ],
   "word_usage": [
     {
-      "original": "...",
-      "correction": "...",
-      "explanation": "..."
+      "original": "Exact student German wording",
+      "suggestion": "Recommended German wording (in German)",
+      "explanation": "Clear explanation in English of why the word is unnatural or inappropriate."
     }
   ],
   "unclear_sentences": [
     {
-      "original": "...",
-      "rewritten": "...",
-      "explanation": "..."
+      "original": "Original student German sentence",
+      "rewritten": "Naturally rewritten German sentence (in German)",
+      "explanation": "Explanation in English of what made the sentence unclear."
     }
   ],
   "redemittel": [
     {
-      "phrase": "...",
-      "usage": "..."
+      "phrase": "German Redemittel phrase or connector (in German)",
+      "usage": "Guidance in English on how and when to use this phrase."
     }
   ],
   "improved_sentences": [
     {
-      "original": "...",
-      "improved": "...",
-      "explanation": "..."
+      "original": "Original student German sentence",
+      "improved": "Naturally improved German sentence (in German)",
+      "explanation": "Explanation in English of why this improved version is better."
     }
   ],
-  "improved_version": "...",
+  "improved_version": "Complete, naturally rewritten version of the student's entire submission in authentic German (keep in German, do not translate to English).",
   "error_patterns": [
     {
-      "pattern": "...",
-      "explanation": "...",
-      "advice": "..."
+      "pattern": "Name of error pattern in English (e.g. Subordinate Clause Verb Position)",
+      "explanation": "Explanation in English of how this pattern manifests.",
+      "advice": "Actionable advice in English on how to prevent this mistake."
     }
   ],
   "long_term_weaknesses": [
     {
-      "area": "...",
-      "impact": "...",
-      "recommendation": "..."
+      "area": "Focus area in English (e.g. Dative vs. Accusative Prepositions)",
+      "diagnostic": "Diagnostic in English of why this is a challenge.",
+      "remedy": "Recommended study action in English."
     }
   ],
   "personalized_learning_plan": [
     {
       "step": 1,
-      "focus": "...",
-      "action": "..."
+      "focus": "Study topic in English",
+      "action": "Concrete practice exercise in English"
     }
   ],
   "register_analysis": {
     "appropriate": true,
-    "tone": "...",
-    "feedback": "..."
+    "tone": "Description of tone in English (e.g. Appropriate informal, Too formal, Incomplete for an informal letter)",
+    "analysis": "Detailed register analysis in English.",
+    "recommendation": "Recommendation in English for proper greeting, register, and sign-off."
   },
   "feedback": {
-    "summary": "Objective qualitative overview of the submission...",
-    "strengths": [],
-    "improvements": []
+    "summary": "Objective qualitative overview of the submission in English.",
+    "strengths": [
+      "Strength in English",
+      "Strength in English"
+    ],
+    "improvements": [
+      "Improvement suggestion in English",
+      "Improvement suggestion in English"
+    ]
   }
 }
 `.trim();
@@ -2356,19 +2374,19 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           const criteriaList = [
             {
               name: "Task Fulfillment",
-              feedback: String(rawCriteria.task_fulfillment?.feedback || rawCriteria.task_fulfillment || "").trim() || "Aufgabenerfüllung und Leitpunkte wurden qualitativ geprüft."
+              feedback: String(rawCriteria.task_fulfillment?.feedback || rawCriteria.task_fulfillment || "").trim() || "Task fulfillment and Leitpunkte were qualitatively evaluated."
             },
             {
               name: "Coherence & Structure",
-              feedback: String(rawCriteria.coherence?.feedback || rawCriteria.coherence || "").trim() || "Textaufbau, Struktur und Kohärenz wurden qualitativ geprüft."
+              feedback: String(rawCriteria.coherence?.feedback || rawCriteria.coherence || "").trim() || "Text structure, connective flow, and organization were qualitatively evaluated."
             },
             {
               name: "Vocabulary",
-              feedback: String(rawCriteria.vocabulary?.feedback || rawCriteria.vocabulary || "").trim() || "Wortschatzspektrum und Ausdrucksvermögen wurden qualitativ geprüft."
+              feedback: String(rawCriteria.vocabulary?.feedback || rawCriteria.vocabulary || "").trim() || "Vocabulary range and word choice were qualitatively evaluated."
             },
             {
               name: "Grammar & Form",
-              feedback: String(rawCriteria.grammar_form?.feedback || rawCriteria.grammar_form || "").trim() || "Grammatische Korrektheit und Form wurden qualitativ geprüft."
+              feedback: String(rawCriteria.grammar_form?.feedback || rawCriteria.grammar_form || "").trim() || "Grammatical accuracy and form were qualitatively evaluated."
             }
           ];
 
@@ -2471,7 +2489,7 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             ? {
                 appropriate: parsed.register_analysis.appropriate !== false,
                 tone: String(parsed.register_analysis.tone || "").trim(),
-                analysis: String(parsed.register_analysis.analysis || "").trim(),
+                analysis: String(parsed.register_analysis.analysis || parsed.register_analysis.feedback || "").trim(),
                 recommendation: String(parsed.register_analysis.recommendation || "").trim(),
               }
             : null;
