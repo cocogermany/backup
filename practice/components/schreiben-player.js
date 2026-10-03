@@ -987,7 +987,11 @@ window.SchreibenPlayerComponent = {
     const improvedSentences = Array.isArray(evaluation.improved_sentences) ? evaluation.improved_sentences : [];
     const redemittel = Array.isArray(evaluation.redemittel) ? evaluation.redemittel : [];
     const improvedVersion = evaluation.improved_version ? String(evaluation.improved_version).trim() : null;
-    const improvedVersionMode = evaluation.improved_version_mode || (improvedVersion ? "full" : "none");
+    const planCode = String(evaluation.plan_config?.plan_code || (window.AppState && window.AppState.membership) || "").trim().toLowerCase();
+    const isProOrAbove = ["pro", "advanced", "personal"].includes(planCode);
+    const resolvedMode = isProOrAbove ? (improvedVersion ? "full" : "none") : (evaluation.improved_version_mode || (improvedVersion ? "full" : "none"));
+    const improvedVersionMode = resolvedMode;
+    const isModelPreviewOnly = !isProOrAbove && (improvedVersionMode === "first_2_sentences" || Boolean(lockedFeatures.has_more_improved_version));
 
     const feedback = evaluation.feedback || "";
     const feedbackDetails = evaluation.feedback_details || {};
@@ -1296,7 +1300,7 @@ window.SchreibenPlayerComponent = {
               <div class="schreiben-improved-header">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="schreiben-badge-pill" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">
-                    ${improvedVersionMode === "first_2_sentences" ? "2-Sentence Preview" : "Full Model Text"}
+                    ${isModelPreviewOnly ? "2-Sentence Preview" : "Full Model Text"}
                   </span>
                 </div>
                 <button type="button" class="schreiben-copy-btn" onclick="window.SchreibenPlayerComponent.copyImprovedText(this)">
@@ -1305,12 +1309,12 @@ window.SchreibenPlayerComponent = {
                 </button>
               </div>
               <p class="schreiben-improved-sub">
-                ${improvedVersionMode === "first_2_sentences"
+                ${isModelPreviewOnly
                   ? "Preview of your optimized text (first 2 sentences) featuring native corrections and polished sentence structure."
                   : "Fully corrected and stylistically polished revision of your writing while preserving your core ideas."}
               </p>
               <div class="schreiben-improved-content">${this.escapeHtml(improvedVersion)}</div>
-              ${improvedVersionMode === "first_2_sentences" || lockedFeatures.has_more_improved_version ? `
+              ${isModelPreviewOnly ? `
                 <div class="schreiben-improved-locked-footer">
                   <div class="schreiben-improved-locked-info">
                     <i data-lucide="lock" style="width:16px;height:16px;"></i>
@@ -1321,18 +1325,32 @@ window.SchreibenPlayerComponent = {
               ` : ''}
             </div>
           ` : `
-            <div class="schreiben-locked-feature-card">
-              <div class="schreiben-locked-feature-info">
-                <div class="schreiben-locked-feature-icon-wrap">
-                  <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
-                </div>
-                <div>
-                  <h4 class="schreiben-locked-feature-title">Unlock Model Revision</h4>
-                  <p class="schreiben-locked-feature-desc">Receive a complete, error-free, and stylistically perfected revision of your text with native phrasing.</p>
+            ${isProOrAbove ? `
+              <div class="schreiben-locked-feature-card" style="border-color:#e2e8f0; background:#f8fafc;">
+                <div class="schreiben-locked-feature-info">
+                  <div class="schreiben-locked-feature-icon-wrap" style="background:#ede9fe;">
+                    <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
+                  </div>
+                  <div>
+                    <h4 class="schreiben-locked-feature-title" style="color:#1e293b;">Model Revision (Pro Included)</h4>
+                    <p class="schreiben-locked-feature-desc">Full model revision is included in your Pro plan. No alternative text revision was required for this task.</p>
+                  </div>
                 </div>
               </div>
-              <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade for Model Text</a>
-            </div>
+            ` : `
+              <div class="schreiben-locked-feature-card">
+                <div class="schreiben-locked-feature-info">
+                  <div class="schreiben-locked-feature-icon-wrap">
+                    <i data-lucide="sparkles" style="width:20px;height:20px; color:#8b5cf6;"></i>
+                  </div>
+                  <div>
+                    <h4 class="schreiben-locked-feature-title">Unlock Model Revision</h4>
+                    <p class="schreiben-locked-feature-desc">Receive a complete, error-free, and stylistically perfected revision of your text with native phrasing.</p>
+                  </div>
+                </div>
+                <a href="../index.html#/membership" onclick="return window.SchreibenPlayerComponent.openMembership(event);" class="schreiben-teaser-btn schreiben-teaser-btn-purple">Upgrade for Model Text</a>
+              </div>
+            `}
           `}
         </div>
 

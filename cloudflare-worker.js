@@ -2062,10 +2062,28 @@ Point #${pt.id}: ${pt.requirement}
           }
         };
 
-        let activePlanConfig = { ...(DEFAULT_SCHREIBEN_PLAN_CONFIGS[validatedPlan] || DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free) };
+        // Uppercase aliases to ensure direct indexing never returns undefined
+        DEFAULT_SCHREIBEN_PLAN_CONFIGS.FREE = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free;
+        DEFAULT_SCHREIBEN_PLAN_CONFIGS.BASIC = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Basic;
+        DEFAULT_SCHREIBEN_PLAN_CONFIGS.PRO = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Pro;
+        DEFAULT_SCHREIBEN_PLAN_CONFIGS.ADVANCED = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Advanced;
+        DEFAULT_SCHREIBEN_PLAN_CONFIGS.PERSONAL = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Personal;
+
+        // Case-insensitive baseline defaults lookup
+        const planKey = VALID_PLANS.find((p) => p.toLowerCase() === String(validatedPlan).toLowerCase()) || "Free";
+        let activePlanConfig = { ...(DEFAULT_SCHREIBEN_PLAN_CONFIGS[planKey] || DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free) };
+
         try {
-          const configRes = await fetch(
-            `${supabaseUrl}/rest/v1/schreiben_plan_config?plan_code=ilike.${encodeURIComponent(validatedPlan)}&select=*`,
+          const planCodeQuery = encodeURIComponent(validatedPlan);
+          const upperPlanCode = encodeURIComponent(validatedPlan.toUpperCase());
+          const lowerPlanCode = encodeURIComponent(validatedPlan.toLowerCase());
+
+          let configRows = null;
+
+          // 1. Try targeted filter matching Pro / PRO / pro case-insensitively
+          const filterParam = `or=(plan_code.eq.${upperPlanCode},plan_code.eq.${planCodeQuery},plan_code.eq.${lowerPlanCode},plan_code.ilike.${planCodeQuery})`;
+          const targetedRes = await fetch(
+            `${supabaseUrl}/rest/v1/schreiben_plan_config?${filterParam}&select=*`,
             {
               headers: {
                 "apikey": serviceRoleKey,
@@ -2073,11 +2091,42 @@ Point #${pt.id}: ${pt.requirement}
               },
             }
           );
-          if (configRes.ok) {
-            const configRows = await configRes.json();
-            if (Array.isArray(configRows) && configRows.length > 0 && configRows[0]) {
-              const row = configRows[0];
-              for (const [k, v] of Object.entries(row)) {
+          if (targetedRes.ok) {
+            const data = await targetedRes.json();
+            if (Array.isArray(data) && data.length > 0) {
+              configRows = data;
+            }
+          }
+
+          // 2. Fallback: fetch all rows from schreiben_plan_config if targeted query returned empty or failed
+          if (!configRows || configRows.length === 0) {
+            const allRes = await fetch(
+              `${supabaseUrl}/rest/v1/schreiben_plan_config?select=*`,
+              {
+                headers: {
+                  "apikey": serviceRoleKey,
+                  "Authorization": `Bearer ${serviceRoleKey}`,
+                },
+              }
+            );
+            if (allRes.ok) {
+              const allData = await allRes.json();
+              if (Array.isArray(allData) && allData.length > 0) {
+                configRows = allData;
+              }
+            }
+          }
+
+          // 3. Find matching row case-insensitively (never blindly pick configRows[0])
+          if (Array.isArray(configRows) && configRows.length > 0) {
+            const targetLower = validatedPlan.toLowerCase();
+            const matchedRow = configRows.find((r) => {
+              const rowCode = String(r.plan_code || r.code || r.name || "").trim().toLowerCase();
+              return rowCode === targetLower;
+            });
+
+            if (matchedRow) {
+              for (const [k, v] of Object.entries(matchedRow)) {
                 if (v !== null && v !== undefined) {
                   activePlanConfig[k] = v;
                 }
@@ -2565,17 +2614,49 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
           const filteredRedemittel = applyLimit(rawRedemittel, activePlanConfig.redemittel_limit);
 
           // 7. Improved version feature gate ("first_2_sentences" | "full" | "none"/falsy)
-          const rawImprovedVersion = parsed.improved_version ? String(parsed.improved_version).trim() : "";
+          let rawImprovedVersion = "";
+          if (typeof parsed.improved_version === "string") {
+            rawImprovedVersion = parsed.improved_version.trim();
+          } else if (parsed.improved_version && typeof parsed.improved_version === "object") {
+            rawImprovedVersion = String(parsed.improved_version.text || parsed.improved_version.improved || parsed.improved_version.content || parsed.improved_version.version || "").trim();
+          } else if (typeof parsed.improved_text === "string") {
+            rawImprovedVersion = parsed.improved_text.trim();
+          } else if (typeof parsed.improvedVersion === "string") {
+            rawImprovedVersion = parsed.improvedVersion.trim();
+          } else if (typeof parsed.model_revision === "string") {
+            rawImprovedVersion = parsed.model_revision.trim();
+          }
+
           const improvedVersionConfig = String(activePlanConfig.improved_version || "").toLowerCase().trim();
+          const isProOrAbove = ["pro", "advanced", "personal"].includes(String(validatedPlan).toLowerCase());
+          const isFullConfig = isProOrAbove || improvedVersionConfig === "full" || improvedVersionConfig === "true" || activePlanConfig.improved_version === true;
+
           let filteredImprovedVersion = null;
           let improvedVersionMode = "none";
 
-          if (improvedVersionConfig === "first_2_sentences" && rawImprovedVersion) {
-            filteredImprovedVersion = extractFirstTwoSentences(rawImprovedVersion);
-            improvedVersionMode = "first_2_sentences";
-          } else if ((improvedVersionConfig === "full" || improvedVersionConfig === "true") && rawImprovedVersion) {
+          if (isFullConfig) {
             filteredImprovedVersion = rawImprovedVersion;
             improvedVersionMode = "full";
+
+            // Fallback for Pro/above if rawImprovedVersion was missing from AI output
+            if (!filteredImprovedVersion && isProOrAbove) {
+              if (Array.isArray(filteredImprovedSentences) && filteredImprovedSentences.length > 0) {
+                filteredImprovedVersion = filteredImprovedSentences
+                  .map((s) => String(s.improved || s.correction || "").trim())
+                  .filter(Boolean)
+                  .join(" ");
+              }
+              if (!filteredImprovedVersion && studentAnswer) {
+                filteredImprovedVersion = studentAnswer;
+              }
+            }
+          } else if (improvedVersionConfig === "first_2_sentences" && rawImprovedVersion) {
+            filteredImprovedVersion = extractFirstTwoSentences(rawImprovedVersion);
+            improvedVersionMode = "first_2_sentences";
+          } else if (rawImprovedVersion && !isProOrAbove) {
+            // Default Free/Basic to 2-sentence preview
+            filteredImprovedVersion = extractFirstTwoSentences(rawImprovedVersion);
+            improvedVersionMode = "first_2_sentences";
           } else {
             filteredImprovedVersion = null;
             improvedVersionMode = "none";
@@ -2643,8 +2724,8 @@ Return ONLY a valid JSON object matching this exact schema (no markdown fences, 
             has_more_redemittel: rawRedemittel.length > filteredRedemittel.length,
             has_more_strengths: rawStrengths.length > filteredStrengths.length,
             has_more_improvements: rawImprovements.length > filteredImprovements.length,
-            has_more_improved_version: improvedVersionMode === "first_2_sentences",
-            improved_version_locked: improvedVersionMode === "none",
+            has_more_improved_version: isProOrAbove ? false : (improvedVersionMode === "first_2_sentences"),
+            improved_version_locked: isProOrAbove ? false : (improvedVersionMode === "none" || !filteredImprovedVersion),
             task_fulfillment_locked: activePlanConfig.task_fulfillment === false,
             register_analysis_locked: !activePlanConfig.register_analysis,
             error_patterns_locked: !activePlanConfig.show_error_patterns,
