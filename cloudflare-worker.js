@@ -1381,41 +1381,180 @@ export default {
         const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
         const supabaseUrl = (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, "");
 
-        // 1. Fetch user row
-        const userRes = await fetch(`${supabaseUrl}/rest/v1/learning_users?uid=eq.${encodeURIComponent(uid)}&select=*`, {
-          headers: {
-            "apikey": serviceRoleKey,
-            "Authorization": `Bearer ${serviceRoleKey}`,
-          },
-        });
+        // 1. ONE Supabase fetch: user_schreiben_entitlement VIEW
+        //    Joins learning_users → plans → schreiben_plan_config in a single query.
+        //    Supabase is the sole source of truth — the Worker never invents plan config.
+        const entitlementRes = await fetch(
+          `${supabaseUrl}/rest/v1/user_schreiben_entitlement?uid=eq.${encodeURIComponent(uid)}&select=*`,
+          {
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+            },
+          }
+        );
 
-        if (!userRes.ok) {
-          const errText = await userRes.text();
-          return responseJSON({ error: `Supabase user fetch error (${userRes.status}): ${errText}` }, userRes.status, request);
+        if (!entitlementRes.ok) {
+          const errText = await entitlementRes.text();
+          console.error(`user_schreiben_entitlement fetch failed (${entitlementRes.status}):`, errText);
+          return responseJSON(
+            {
+              success: false,
+              error: "entitlement_fetch_error",
+              message: `Server error: could not load user entitlement configuration (${entitlementRes.status}). Please try again.`,
+            },
+            503,
+            request
+          );
         }
 
-        const userData = await userRes.json();
-        let userRow = userData && userData.length > 0 ? userData[0] : null;
-        const membershipCode = ((userRow && userRow.membership) || "FREE").toUpperCase().trim();
+        const entitlementData = await entitlementRes.json();
+        let entitlement = entitlementData && entitlementData.length > 0 ? entitlementData[0] : null;
 
-        // 2. Fetch plan details
-        const planRes = await fetch(`${supabaseUrl}/rest/v1/plans?code=eq.${encodeURIComponent(membershipCode)}&select=*`, {
-          headers: {
-            "apikey": serviceRoleKey,
-            "Authorization": `Bearer ${serviceRoleKey}`,
-          },
-        });
+        // If the user row does not exist yet, create it and retry the VIEW once.
+        let userRow = entitlement ? { ...entitlement } : null;
 
-        if (!planRes.ok) {
-          const errText = await planRes.text();
-          return responseJSON({ error: `Supabase plan fetch error (${planRes.status}): ${errText}` }, planRes.status, request);
+        if (!entitlement) {
+          // User record missing — initialise with FREE defaults from the plans table.
+          const planBootRes = await fetch(
+            `${supabaseUrl}/rest/v1/plans?code=eq.FREE&select=daily_practice_credits,weekly_schreiben_limit,weekly_mock_exams`,
+            {
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+              },
+            }
+          );
+          const planBootData = planBootRes.ok ? await planBootRes.json() : null;
+          const bootPlan = planBootData && planBootData[0];
+          const todayIsoDate = new Date().toISOString().split("T")[0];
+          const nowIso = new Date().toISOString();
+          const bootCredits = (bootPlan && typeof bootPlan.daily_practice_credits === "number") ? bootPlan.daily_practice_credits : 10;
+          const bootSchreiben = (bootPlan && typeof bootPlan.weekly_schreiben_limit === "number") ? bootPlan.weekly_schreiben_limit : 0;
+          const bootMock = (bootPlan && typeof bootPlan.weekly_mock_exams === "number") ? bootPlan.weekly_mock_exams : 1;
+
+          const newUser = {
+            uid,
+            membership: "FREE",
+            current_level: "A1",
+            format: "goethe",
+            credits_remaining: bootCredits,
+            last_reset: todayIsoDate,
+            schreiben_credits_remaining: bootSchreiben,
+            schreiben_last_reset: nowIso,
+            mock_exams_remaining: bootMock,
+            mock_exams_last_reset: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
+            method: "POST",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify([newUser]),
+          });
+
+          if (!createRes.ok) {
+            const errText = await createRes.text();
+            return responseJSON(
+              { error: `Supabase user creation error (${createRes.status}): ${errText}` },
+              createRes.status,
+              request
+            );
+          }
+
+          // Re-query the VIEW now that the row exists
+          const retryRes = await fetch(
+            `${supabaseUrl}/rest/v1/user_schreiben_entitlement?uid=eq.${encodeURIComponent(uid)}&select=*`,
+            {
+              headers: {
+                "apikey": serviceRoleKey,
+                "Authorization": `Bearer ${serviceRoleKey}`,
+              },
+            }
+          );
+          const retryData = retryRes.ok ? await retryRes.json() : null;
+          const retryRow = retryData && retryData.length > 0 ? retryData[0] : null;
+
+          if (!retryRow) {
+            return responseJSON(
+              {
+                success: false,
+                error: "entitlement_unavailable",
+                message: "Server error: user entitlement could not be established. Please try again.",
+              },
+              503,
+              request
+            );
+          }
+          userRow = retryRow;
         }
 
-        const planData = await planRes.json();
-        const plan = planData && planData[0];
-        const schreibenEnabled = Boolean(plan && plan.schreiben_enabled);
-        const weeklySchreibenLimit = (plan && typeof plan.weekly_schreiben_limit === "number") ? plan.weekly_schreiben_limit : 0;
-        const weeklyMockExams = (plan && typeof plan.weekly_mock_exams === "number") ? plan.weekly_mock_exams : 1;
+        // ── Membership & plan fields (from VIEW) ─────────────────────────────
+        const membershipCode = String(userRow.membership || "FREE").toUpperCase().trim();
+        const schreibenEnabled = Boolean(userRow.schreiben_enabled);
+        const weeklySchreibenLimit = typeof userRow.weekly_schreiben_limit === "number" ? userRow.weekly_schreiben_limit : 0;
+        const weeklyMockExams = typeof userRow.weekly_mock_exams === "number" ? userRow.weekly_mock_exams : 1;
+
+        // ── Fail-safe: schreiben_plan_config must be present in the VIEW row ─
+        //    If max_key_mistakes is null the JOIN found no config row → fail clearly.
+        if (userRow.max_key_mistakes === null || userRow.max_key_mistakes === undefined) {
+          console.error(
+            `schreiben_plan_config row missing for membership '${membershipCode}' (uid: ${uid}). ` +
+            "Populate the schreiben_plan_config table for this plan code."
+          );
+          return responseJSON(
+            {
+              success: false,
+              error: "plan_config_unavailable",
+              message:
+                "Server error: Schreiben evaluation configuration is not available for your plan. " +
+                "Please contact support if this persists.",
+            },
+            503,
+            request
+          );
+        }
+
+        // ── Build activePlanConfig directly from the VIEW row (no defaults, no hardcoding) ──
+        const activePlanConfig = {
+          plan_code:                       String(userRow.plan_code || membershipCode),
+          max_key_mistakes:                userRow.max_key_mistakes,
+          max_grammar_explanations:        userRow.max_grammar_explanations,
+          max_word_usage_items:            userRow.max_word_usage_items,
+          unclear_sentence_limit:          userRow.unclear_sentence_limit,
+          redemittel_limit:                userRow.redemittel_limit,
+          max_strengths:                   userRow.max_strengths,
+          max_improvements:                userRow.max_improvements,
+          max_corrections:                 userRow.max_corrections,
+          max_improved_sentences:          userRow.max_improved_sentences,
+          task_fulfillment:                userRow.task_fulfillment,
+          task_fulfillment_depth:          userRow.task_fulfillment_depth,
+          grammar_depth:                   userRow.grammar_depth,
+          word_usage_depth:                userRow.word_usage_depth,
+          structure_depth:                 userRow.structure_depth,
+          redemittel_depth:                userRow.redemittel_depth,
+          correction_depth:                userRow.correction_depth,
+          improved_version:                userRow.improved_version,
+          improved_version_depth:          userRow.improved_version_depth,
+          strengths_depth:                 userRow.strengths_depth,
+          improvements_depth:              userRow.improvements_depth,
+          show_error_patterns:             userRow.show_error_patterns,
+          show_long_term_weaknesses:       userRow.show_long_term_weaknesses,
+          show_personalized_learning_plan: userRow.show_personalized_learning_plan,
+          register_analysis:               userRow.register_analysis,
+        };
+
+        // ── Derive canonical plan name for display / logging ─────────────────
+        //    (membership always comes from the DB — never trusted from the frontend)
+        const VALID_PLANS = ["Free", "Basic", "Pro", "Advanced", "Personal"];
+        const matchedPlan = VALID_PLANS.find((p) => p.toLowerCase() === membershipCode.toLowerCase());
+        const validatedPlan = matchedPlan || "Free";
 
         // Parse input body early to check for mock exam context
         let body = {};
@@ -1441,44 +1580,6 @@ export default {
           );
         }
 
-        // Initialize user record if missing
-        if (!userRow) {
-          const todayIsoDate = new Date().toISOString().split("T")[0];
-          const nowIso = new Date().toISOString();
-          const dailyPracticeCredits = (plan && typeof plan.daily_practice_credits === "number") ? plan.daily_practice_credits : 10;
-          const newUser = {
-            uid,
-            membership: membershipCode,
-            current_level: "A1",
-            format: "goethe",
-            credits_remaining: dailyPracticeCredits,
-            last_reset: todayIsoDate,
-            schreiben_credits_remaining: weeklySchreibenLimit,
-            schreiben_last_reset: nowIso,
-            mock_exams_remaining: weeklyMockExams,
-            mock_exams_last_reset: nowIso,
-            created_at: nowIso,
-            updated_at: nowIso,
-          };
-
-          const createRes = await fetch(`${supabaseUrl}/rest/v1/learning_users`, {
-            method: "POST",
-            headers: {
-              "apikey": serviceRoleKey,
-              "Authorization": `Bearer ${serviceRoleKey}`,
-              "Content-Type": "application/json",
-              "Prefer": "resolution=merge-duplicates,return=representation",
-            },
-            body: JSON.stringify([newUser]),
-          });
-
-          if (createRes.ok) {
-            const createdData = await createRes.json();
-            userRow = createdData && createdData.length > 0 ? createdData[0] : newUser;
-          } else {
-            userRow = newUser;
-          }
-        }
 
         // 3. Timezone and weekly reset check before allowing evaluation
         const userTimezone = userRow.timezone || "UTC";
@@ -1917,225 +2018,6 @@ Point #${pt.id}: ${pt.requirement}
           return DEPTH_DESCRIPTIONS[k] || DEPTH_DESCRIPTIONS[fallback] || k;
         }
 
-        // Validate database plan against exactly: Free, Basic, Pro, Advanced, Personal
-        const VALID_PLANS = ["Free", "Basic", "Pro", "Advanced", "Personal"];
-        const rawPlanCode = String((plan && (plan.name || plan.code)) || membershipCode || "").trim();
-        const matchedPlan = VALID_PLANS.find((p) => p.toLowerCase() === rawPlanCode.toLowerCase());
-        const validatedPlan = matchedPlan || "Free";
-
-        // Baseline defaults for schreiben_plan_config across all 5 tiers
-        const DEFAULT_SCHREIBEN_PLAN_CONFIGS = {
-          Free: {
-            plan_code: "FREE",
-            max_key_mistakes: 3,
-            max_grammar_explanations: 2,
-            max_word_usage_items: 2,
-            unclear_sentence_limit: 2,
-            redemittel_limit: 2,
-            max_strengths: 3,
-            max_improvements: 3,
-            max_corrections: 3,
-            max_improved_sentences: 1,
-            task_fulfillment: true,
-            task_fulfillment_depth: "summary",
-            grammar_depth: "limited",
-            word_usage_depth: "limited",
-            structure_depth: "summary",
-            redemittel_depth: "limited",
-            correction_depth: "limited",
-            improved_version: "first_2_sentences",
-            improved_version_depth: "limited",
-            strengths_depth: "summary",
-            improvements_depth: "limited",
-            show_error_patterns: false,
-            show_long_term_weaknesses: false,
-            show_personalized_learning_plan: false,
-            register_analysis: false
-          },
-          Basic: {
-            plan_code: "BASIC",
-            max_key_mistakes: 5,
-            max_grammar_explanations: 4,
-            max_word_usage_items: 3,
-            unclear_sentence_limit: 3,
-            redemittel_limit: 4,
-            max_strengths: 4,
-            max_improvements: 4,
-            max_corrections: 5,
-            max_improved_sentences: 3,
-            task_fulfillment: true,
-            task_fulfillment_depth: "medium",
-            grammar_depth: "medium",
-            word_usage_depth: "medium",
-            structure_depth: "medium",
-            redemittel_depth: "medium",
-            correction_depth: "medium",
-            improved_version: "first_2_sentences",
-            improved_version_depth: "medium",
-            strengths_depth: "medium",
-            improvements_depth: "medium",
-            show_error_patterns: true,
-            show_long_term_weaknesses: false,
-            show_personalized_learning_plan: false,
-            register_analysis: true
-          },
-          Pro: {
-            plan_code: "PRO",
-            max_key_mistakes: 10,
-            max_grammar_explanations: 8,
-            max_word_usage_items: 6,
-            unclear_sentence_limit: 5,
-            redemittel_limit: 6,
-            max_strengths: 5,
-            max_improvements: 5,
-            max_corrections: 10,
-            max_improved_sentences: 5,
-            task_fulfillment: true,
-            task_fulfillment_depth: "full",
-            grammar_depth: "full",
-            word_usage_depth: "full",
-            structure_depth: "full",
-            redemittel_depth: "full",
-            correction_depth: "full",
-            improved_version: "full",
-            improved_version_depth: "full",
-            strengths_depth: "full",
-            improvements_depth: "full",
-            show_error_patterns: true,
-            show_long_term_weaknesses: true,
-            show_personalized_learning_plan: false,
-            register_analysis: true
-          },
-          Advanced: {
-            plan_code: "ADVANCED",
-            max_key_mistakes: 15,
-            max_grammar_explanations: 12,
-            max_word_usage_items: 10,
-            unclear_sentence_limit: 8,
-            redemittel_limit: 8,
-            max_strengths: 6,
-            max_improvements: 6,
-            max_corrections: 15,
-            max_improved_sentences: 8,
-            task_fulfillment: true,
-            task_fulfillment_depth: "deep",
-            grammar_depth: "deep",
-            word_usage_depth: "enhanced",
-            structure_depth: "deep",
-            redemittel_depth: "extensive",
-            correction_depth: "deep",
-            improved_version: "full",
-            improved_version_depth: "enhanced",
-            strengths_depth: "enhanced",
-            improvements_depth: "deep",
-            show_error_patterns: true,
-            show_long_term_weaknesses: true,
-            show_personalized_learning_plan: true,
-            register_analysis: true
-          },
-          Personal: {
-            plan_code: "PERSONAL",
-            max_key_mistakes: 999,
-            max_grammar_explanations: 999,
-            max_word_usage_items: 999,
-            unclear_sentence_limit: 999,
-            redemittel_limit: 999,
-            max_strengths: 999,
-            max_improvements: 999,
-            max_corrections: 999,
-            max_improved_sentences: 999,
-            task_fulfillment: true,
-            task_fulfillment_depth: "deep_personal",
-            grammar_depth: "deep_personal",
-            word_usage_depth: "personalized",
-            structure_depth: "deep_personal",
-            redemittel_depth: "personalized",
-            correction_depth: "deep_personal",
-            improved_version: "full",
-            improved_version_depth: "deep_personal",
-            strengths_depth: "personalized",
-            improvements_depth: "deep_personal",
-            show_error_patterns: true,
-            show_long_term_weaknesses: true,
-            show_personalized_learning_plan: true,
-            register_analysis: true
-          }
-        };
-
-        // Uppercase aliases to ensure direct indexing never returns undefined
-        DEFAULT_SCHREIBEN_PLAN_CONFIGS.FREE = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free;
-        DEFAULT_SCHREIBEN_PLAN_CONFIGS.BASIC = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Basic;
-        DEFAULT_SCHREIBEN_PLAN_CONFIGS.PRO = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Pro;
-        DEFAULT_SCHREIBEN_PLAN_CONFIGS.ADVANCED = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Advanced;
-        DEFAULT_SCHREIBEN_PLAN_CONFIGS.PERSONAL = DEFAULT_SCHREIBEN_PLAN_CONFIGS.Personal;
-
-        // Case-insensitive baseline defaults lookup
-        const planKey = VALID_PLANS.find((p) => p.toLowerCase() === String(validatedPlan).toLowerCase()) || "Free";
-        let activePlanConfig = { ...(DEFAULT_SCHREIBEN_PLAN_CONFIGS[planKey] || DEFAULT_SCHREIBEN_PLAN_CONFIGS.Free) };
-
-        try {
-          const planCodeQuery = encodeURIComponent(validatedPlan);
-          const upperPlanCode = encodeURIComponent(validatedPlan.toUpperCase());
-          const lowerPlanCode = encodeURIComponent(validatedPlan.toLowerCase());
-
-          let configRows = null;
-
-          // 1. Try targeted filter matching Pro / PRO / pro case-insensitively
-          const filterParam = `or=(plan_code.eq.${upperPlanCode},plan_code.eq.${planCodeQuery},plan_code.eq.${lowerPlanCode},plan_code.ilike.${planCodeQuery})`;
-          const targetedRes = await fetch(
-            `${supabaseUrl}/rest/v1/schreiben_plan_config?${filterParam}&select=*`,
-            {
-              headers: {
-                "apikey": serviceRoleKey,
-                "Authorization": `Bearer ${serviceRoleKey}`,
-              },
-            }
-          );
-          if (targetedRes.ok) {
-            const data = await targetedRes.json();
-            if (Array.isArray(data) && data.length > 0) {
-              configRows = data;
-            }
-          }
-
-          // 2. Fallback: fetch all rows from schreiben_plan_config if targeted query returned empty or failed
-          if (!configRows || configRows.length === 0) {
-            const allRes = await fetch(
-              `${supabaseUrl}/rest/v1/schreiben_plan_config?select=*`,
-              {
-                headers: {
-                  "apikey": serviceRoleKey,
-                  "Authorization": `Bearer ${serviceRoleKey}`,
-                },
-              }
-            );
-            if (allRes.ok) {
-              const allData = await allRes.json();
-              if (Array.isArray(allData) && allData.length > 0) {
-                configRows = allData;
-              }
-            }
-          }
-
-          // 3. Find matching row case-insensitively (never blindly pick configRows[0])
-          if (Array.isArray(configRows) && configRows.length > 0) {
-            const targetLower = validatedPlan.toLowerCase();
-            const matchedRow = configRows.find((r) => {
-              const rowCode = String(r.plan_code || r.code || r.name || "").trim().toLowerCase();
-              return rowCode === targetLower;
-            });
-
-            if (matchedRow) {
-              for (const [k, v] of Object.entries(matchedRow)) {
-                if (v !== null && v !== undefined) {
-                  activePlanConfig[k] = v;
-                }
-              }
-            }
-          }
-        } catch (dbErr) {
-          console.warn("Failed to fetch schreiben_plan_config from DB, using fallback defaults:", dbErr);
-        }
 
         const evaluationPrompt = `
 You are a qualified German writing teacher and Goethe/telc exam-preparation evaluator analyzing a student's ${examFormat.toUpperCase()} ${level} (${teilText}) writing submission.
